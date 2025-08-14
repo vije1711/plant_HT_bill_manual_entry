@@ -394,7 +394,7 @@
       // Final Bill for IOM
       const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 − F16 − G16 − Credit TDS + Balance Pending + Delay Charges
       $('FINALv').textContent = toInr(FINAL);
-
+      persist();
       return { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
 
@@ -411,6 +411,41 @@
     let WB = XLSX.utils.book_new();
     WB.Props = { Title: 'WEG Billing Workbook', Author: 'WEG Billing Calculator', CreatedDate: new Date() };
 
+    const LS_KEY = 'weg-billing-v1';
+
+    function persist(){
+      const inputs = {};
+      document.querySelectorAll('input').forEach(el=>{
+        inputs[el.id] = el.value;
+      });
+      const data = { inputs, sheets: WB.SheetNames.slice() };
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    }
+
+    function restore(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return false;
+        const data = JSON.parse(raw);
+        if(data.inputs){
+          Object.entries(data.inputs).forEach(([id,val])=>{
+            const el = $(id);
+            if(el){
+              el.value = val;
+              if(el.type==='text') parseInrInput(el);
+            }
+          });
+        }
+        if(Array.isArray(data.sheets)){
+          WB.SheetNames = data.sheets;
+        }
+        return true;
+      }catch(err){
+        console.error(err);
+      }
+      return false;
+    }
+
     function refreshSheetList(){
       const list = $('sheetList');
       list.innerHTML = '';
@@ -424,6 +459,7 @@
         });
         list.appendChild(pill);
       });
+      persist();
     }
 
     function buildSheetData(model, monthLabel){
@@ -571,9 +607,10 @@
         compute();
       });
 
-    // initial compute
+    const restored = restore();
     compute();
     refreshSheetList();
+    if(restored) toast('Previous data restored.');
   </script>
 </body>
 </html>
