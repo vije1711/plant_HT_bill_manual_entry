@@ -116,6 +116,8 @@
     .toast.bad{border-left:4px solid var(--bad)}
     .toast.warn{border-left:4px solid var(--warn)}
     .toast.hide{opacity:0;transform:translateX(20px)}
+    .hint{display:none;color:var(--bad);font-size:11px;margin-top:4px}
+    .invalid{border-color:var(--bad)!important}
   </style>
 </head>
 <body>
@@ -152,15 +154,15 @@
       <section class="card span-6">
         <h2>HT Bill — Inputs <span class="help">Manual entries from utility bill</span></h2>
         <div class="fields">
-          <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001"/></div>
-          <div class="f"><label>Demand Charges (₹) <span class="mono">B4</span></label><input type="text" id="B4"/></div>
-          <div class="f"><label>Energy Charges (₹) <span class="mono">C4</span></label><input type="text" id="C4"/></div>
-          <div class="f"><label>Night Rebate (₹) <span class="mono">D4</span></label><input type="text" id="D4"/></div>
-          <div class="f"><label>Fuel Charge (₹) <span class="mono">E4</span></label><input type="text" id="E4"/></div>
-          <div class="f"><label>PF Rebate (₹) <span class="mono">F4</span></label><input type="text" id="F4"/></div>
-          <div class="f"><label>EHV Rebate (₹) <span class="mono">G4</span></label><input type="text" id="G4"/></div>
-          <div class="f"><label>TOU (₹) <span class="mono">H4</span></label><input type="text" id="H4"/></div>
-          <div class="f"><label>GT Charges (₹) <span class="mono">I4</span></label><input type="text" id="I4"/></div>
+          <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001" min="0"/><span class="hint"></span></div>
+          <div class="f"><label>Demand Charges (₹) <span class="mono">B4</span></label><input type="text" id="B4"/><span class="hint"></span></div>
+          <div class="f"><label>Energy Charges (₹) <span class="mono">C4</span></label><input type="text" id="C4"/><span class="hint"></span></div>
+          <div class="f"><label>Night Rebate (₹) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
+          <div class="f"><label>Fuel Charge (₹) <span class="mono">E4</span></label><input type="text" id="E4"/><span class="hint"></span></div>
+          <div class="f"><label>PF Rebate (₹) <span class="mono">F4</span></label><input type="text" id="F4"/><span class="hint"></span></div>
+          <div class="f"><label>EHV Rebate (₹) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
+          <div class="f"><label>TOU (₹) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
+          <div class="f"><label>GT Charges (₹) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
@@ -174,10 +176,10 @@
       <section class="card span-6">
         <h2>Adjustments & Carry‑forward <span class="help">Manual entries</span></h2>
         <div class="fields">
-          <div class="f sm"><label>Outstanding Arrears (₹) <span class="mono">D9</span></label><input type="text" id="D9"/></div>
-          <div class="f sm"><label>Freeze Amount (₹) <span class="mono">E9</span></label><input type="text" id="E9"/></div>
-          <div class="f sm"><label>Delayed Payment Charges (₹) <span class="mono">F9</span></label><input type="text" id="F9"/></div>
-          <div class="f sm"><label>Advance Payment / Adjust. (₹) <span class="mono">G9</span></label><input type="text" id="G9"/></div>
+          <div class="f sm"><label>Outstanding Arrears (₹) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Freeze Amount (₹) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Delayed Payment Charges (₹) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Advance Payment / Adjust. (₹) <span class="mono">G9</span></label><input type="text" id="G9"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
@@ -191,18 +193,18 @@
       <section class="card span-6">
         <h2>WEG — Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
         <div class="fields">
-          <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01"/></div>
-          <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01"/></div>
-          <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01"/></div>
+          <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+          <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+          <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
         </div>
         <details>
           <summary class="muted">Monthly Generation (MWh) — expand</summary>
           <div class="fields" style="margin-top:10px">
-            <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001"/></div>
-            <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001"/></div>
-            <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001"/></div>
-            <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001"/></div>
-            <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001"/></div>
+            <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
+            <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
+            <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
+            <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
+            <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
           </div>
         </details>
         <div class="hr"></div>
@@ -217,12 +219,12 @@
       <section class="card span-6">
         <h2>Wind Credits & Debits <span class="help">Prior‐month adjustments</span></h2>
         <div class="fields">
-          <div class="f sm"><label>Credit Board Charges (₹) <span class="mono">A24</span></label><input type="text" id="A24"/></div>
-          <div class="f sm"><label>Credit ED Charges (₹) <span class="mono">B24</span></label><input type="text" id="B24"/></div>
-          <div class="f sm"><label>Credit TDS (₹) <span class="mono">C24</span></label><input type="text" id="C24"/></div>
-          <div class="f sm"><label>Debit Board Charges (₹) <span class="mono">D24</span></label><input type="text" id="D24"/></div>
-          <div class="f sm"><label>Debit Electricity Duty (₹) <span class="mono">E24</span></label><input type="text" id="E24"/></div>
-          <div class="f sm"><label>Debit Wheeling Charges (₹) <span class="mono">F24</span></label><input type="text" id="F24"/></div>
+          <div class="f sm"><label>Credit Board Charges (₹) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Credit ED Charges (₹) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Credit TDS (₹) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Debit Board Charges (₹) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Debit Electricity Duty (₹) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Debit Wheeling Charges (₹) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
@@ -284,6 +286,7 @@
 
     const toInr = v => INR.format(Number.isFinite(v) ? v : 0);
     const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
+    let warned = false;
     function parseInrInput(el){
       const raw = el.value.replace(/[^0-9.\-]/g,'');
       const v = parseFloat(raw);
@@ -296,7 +299,42 @@
       }
     }
 
+    function validate(){
+      let ok = true;
+      const percentIds = ['B15','D15','C16'];
+      document.querySelectorAll('input').forEach(el=>{
+        if(el.type==='month' || el.type==='file') return;
+        const hint = el.nextElementSibling;
+        if(!hint || !hint.classList.contains('hint')) return;
+        hint.textContent='';
+        hint.style.display='none';
+        el.classList.remove('invalid');
+        const val = parseFloat(el.dataset.value || el.value);
+        if(!Number.isFinite(val)) return;
+        if(percentIds.includes(el.id)){
+          if(val < 0 || val > 100){
+            hint.textContent = '0–100 only.';
+            hint.style.display = 'block';
+            el.classList.add('invalid');
+            ok = false;
+          }
+        }else if(val < 0){
+          hint.textContent = '≥0 only.';
+          hint.style.display = 'block';
+          el.classList.add('invalid');
+          ok = false;
+        }
+      });
+      if(!ok && !warned){
+        toast('Please correct highlighted fields.','warn');
+        warned = true;
+      }
+      if(ok) warned = false;
+      return ok;
+    }
+
     function compute(){
+      if(!validate()) return;
       // HT Bill
       const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4');
       const A9 = B4 + C4 + D4 + E4 - F4 - G4 + H4 + I4;
