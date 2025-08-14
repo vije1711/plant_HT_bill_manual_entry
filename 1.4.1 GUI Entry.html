@@ -300,7 +300,6 @@
 
     const toInr = v => INR.format(Number.isFinite(v) ? v : 0);
       const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
-      let warned = false;
     function parseInrInput(el){
       const raw = el.value.replace(/[^0-9.\-]/g,'');
       const v = parseFloat(raw);
@@ -320,30 +319,20 @@
         if(el.type==='month' || el.type==='file') return;
         const hint = el.nextElementSibling;
         if(!hint || !hint.classList.contains('hint')) return;
-        hint.textContent='';
-        hint.style.display='none';
+        hint.textContent=''; hint.style.display='none';
         el.classList.remove('invalid');
-        const val = parseFloat(el.dataset.value || el.value);
-        if(!Number.isFinite(val)) return;
-        if(percentIds.includes(el.id)){
-          if(val < 0 || val > 100){
-            hint.textContent = '0–100 only.';
-            hint.style.display = 'block';
-            el.classList.add('invalid');
-            ok = false;
-          }
-        }else if(val < 0){
-          hint.textContent = '≥0 only.';
-          hint.style.display = 'block';
-          el.classList.add('invalid');
-          ok = false;
+
+        const raw = el.dataset.value ?? el.value;
+        const val = parseFloat(raw);
+        if (!Number.isFinite(val)) return; // allow empty/unfilled during typing
+
+        if (percentIds.includes(el.id)) {
+          if (val < 0 || val > 100) { hint.textContent='0–100 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false; }
+        } else if (val < 0) {
+          hint.textContent='≥ 0 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false;
         }
       });
-      if(!ok && !warned){
-        toast('Please correct highlighted fields.','warn');
-        warned = true;
-      }
-      if(ok) warned = false;
+      if(!ok) toast('Please correct highlighted fields.', 'warn');
       return ok;
     }
 
@@ -551,9 +540,9 @@
     }
 
       function monthLabel(){
-        const m = $('billMonth').value || '';
-        if(!m) return new Date().toISOString().slice(0,7);
-        return m; // YYYY-MM
+        const m = $('billMonth').value;
+        if (m && /^\d{4}-\d{2}$/.test(m)) return m;
+        return new Date().toISOString().slice(0,7);
       }
 
       function fillSampleData(){
@@ -575,24 +564,41 @@
 
       const xlsxInput = $('uploadXlsx');
 
-      $('addSheet').addEventListener('click', ()=>{
-        const _wb = getWB(); if(!_wb) return;
-        const model = compute();
-        const label = monthLabel();
-        const name = label;
-        const ws = buildSheetData(model, label);
-        const idx = _wb.SheetNames.indexOf(name);
-        if(idx>=0){ _wb.Sheets[name] = ws; }
-        else{ XLSX.utils.book_append_sheet(_wb, ws, name); }
-        toast('Month sheet "'+name+'" added/updated.');
-        refreshSheetList();
+      $('addSheet').addEventListener('click', () => {
+        try {
+          const _wb = getWB(); if(!_wb) return;
+          const model = compute();
+          if (!model) { toast('Fix highlighted inputs before adding the month sheet.', 'warn'); return; }
+          const label = monthLabel();
+          const ws = buildSheetData(model, label);
+          const exists = _wb.SheetNames.includes(label);
+          _wb.Sheets[label] = ws;
+          if (!exists) _wb.SheetNames.push(label);
+          toast(`${exists ? 'Updated' : 'Added'} sheet: ${label}`, 'good');
+          refreshSheetList();
+        } catch (e) {
+          console.error(e);
+          toast('Could not add/update the sheet. See console for details.', 'bad');
+        }
       });
 
-      $('downloadExcel').addEventListener('click', ()=>{
-        const _wb = getWB(); if(!_wb) return;
-        const fname = 'WEG_Billing_'+(monthLabel())+'.xlsx';
-        XLSX.writeFile(_wb, fname);
-        toast('Workbook downloaded.', 'good');
+      $('downloadExcel').addEventListener('click', () => {
+        try {
+          const _wb = getWB(); if(!_wb) return;
+          if ((_wb.SheetNames?.length || 0) === 0) {
+            const model = compute();
+            if (!model) { toast('Cannot download: fix inputs or add a month sheet first.', 'warn'); return; }
+            const label = monthLabel();
+            const ws = buildSheetData(model, label);
+            XLSX.utils.book_append_sheet(_wb, ws, label);
+          }
+          const fname = `WEG_Billing_${monthLabel()}.xlsx`;
+          XLSX.writeFile(_wb, fname);
+          toast('Workbook downloaded.', 'good');
+        } catch (e) {
+          console.error(e);
+          toast('Download failed. See console for details.', 'bad');
+        }
       });
 
       $('uploadExcel').addEventListener('click', ()=> xlsxInput.click());
