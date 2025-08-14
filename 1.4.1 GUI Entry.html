@@ -292,29 +292,39 @@
     }
   </script>
   <script>
-    // Single-flight, on-demand SheetJS loader (tries multiple CDNs)
+    // Single-flight, on-demand SheetJS loader with local/CDN fallbacks
     let __xlsxLoading = null;
     async function loadXLSX(){
       if (window.XLSX) return true;
       if (__xlsxLoading) return __xlsxLoading;
+      const qs = new URLSearchParams(location.search);
+      const override = qs.get('xlsx');
+      const local = ['./xlsx.full.min.js', './lib/xlsx.full.min.js'];
+      const cdns = [
+        'https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js',
+        'https://unpkg.com/xlsx@0.19.3/dist/xlsx.full.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js'
+      ];
+      const candidates = override ? [override, ...local, ...cdns] : [...local, ...cdns];
       __xlsxLoading = (async () => {
-        const urls = [
-          'https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js',
-          'https://unpkg.com/xlsx@0.19.3/dist/xlsx.full.min.js',
-          'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js'
-        ];
-        for (const src of urls){
+        let last = '';
+        for(const src of candidates){
+          last = src;
           try{
-            await new Promise((resolve, reject) => {
+            await new Promise((res, rej)=>{
               const s = document.createElement('script');
-              s.src = src; s.async = true;
-              s.onload = resolve; s.onerror = reject;
+              s.src = src;
+              s.async = true;
+              s.onload = res;
+              s.onerror = ()=>rej(new Error('load fail'));
               document.head.appendChild(s);
             });
-            if (window.XLSX) return true;
+            if(window.XLSX) return true;
           }catch{/* try next */}
         }
-        toast('Excel library failed to load. Check internet or CSP and try again.', 'bad');
+        const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content || '(none found)';
+        const isFile = location.protocol === 'file:';
+        toast(`Excel library failed to load (last: ${last}). ${isFile ? 'You are running from file://. ' : ''}If offline or CSP blocks CDNs, download “xlsx.full.min.js” and place it next to this HTML, or pass ?xlsx=/path/to/xlsx.full.min.js. CSP: ${csp}`, 'bad');
         return false;
       })();
       const ok = await __xlsxLoading;
@@ -731,12 +741,12 @@
             const exists = _wb.SheetNames.includes(label);
             _wb.Sheets[label] = ws;
             if(!exists) _wb.SheetNames.push(label);
-            _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
           } else if ((_wb.SheetNames?.length || 0) === 0) {
             toast('No sheets to download. Turn on auto‑update or add a month sheet first.', 'warn');
             return;
           }
 
+          _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
           XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
           toast('Workbook downloaded.', 'good');
         } finally { __dlInFlight = false; }
