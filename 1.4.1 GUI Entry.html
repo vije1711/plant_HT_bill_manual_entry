@@ -279,7 +279,6 @@
   </div>
 
   <!-- SheetJS for Excel export -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
   <script>
     function toast(msg, type='info'){
       const t = document.createElement('div');
@@ -290,6 +289,58 @@
         t.classList.add('hide');
         t.addEventListener('transitionend',()=>t.remove());
       },3000);
+    }
+  </script>
+  <script>
+    // Single-flight, on-demand SheetJS loader (tries multiple CDNs)
+    let __xlsxLoading = null;
+    async function loadXLSX(){
+      if (window.XLSX) return true;
+      if (__xlsxLoading) return __xlsxLoading;
+      __xlsxLoading = (async () => {
+        const urls = [
+          'https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js',
+          'https://unpkg.com/xlsx@0.19.3/dist/xlsx.full.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js'
+        ];
+        for (const src of urls){
+          try{
+            await new Promise((resolve, reject) => {
+              const s = document.createElement('script');
+              s.src = src; s.async = true;
+              s.onload = resolve; s.onerror = reject;
+              document.head.appendChild(s);
+            });
+            if (window.XLSX) return true;
+          }catch{/* try next */}
+        }
+        toast('Excel library failed to load. Check internet or CSP and try again.', 'bad');
+        return false;
+      })();
+      const ok = await __xlsxLoading;
+      __xlsxLoading = null;
+      return ok;
+    }
+
+    // Small UX helper to show a busy state on toolbar buttons
+    async function withBusy(btnId, fn){
+      const btn = document.getElementById(btnId);
+      const prevDisabled = btn ? btn.disabled : false;
+      const prevText = btn ? btn.textContent : '';
+      if (btn){
+        btn.disabled = true;
+        btn.dataset.prevText = prevText;
+        btn.textContent = 'Working…';
+      }
+      try{
+        return await fn();
+      } finally {
+        if (btn){
+          btn.disabled = prevDisabled;
+          btn.textContent = btn.dataset.prevText || prevText;
+          delete btn.dataset.prevText;
+        }
+      }
     }
   </script>
   <script>
@@ -442,23 +493,16 @@
       return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
 
-    // Excel workbook in memory (lazy init)
-    let WB = null;
-    let wbWarned = false;
-    function getWB(){
-      if(!window.XLSX){
-        if(!wbWarned){
-          toast('Excel library failed to load. Check network/CDN.', 'bad');
-          wbWarned = true;
+      // Excel workbook in memory (lazy init)
+      let WB = null;
+  function getWB(){
+        if(!window.XLSX) return null;
+        if(!WB){
+          WB = XLSX.utils.book_new();
+          WB.Props = { Title:'WEG Billing Workbook', Author:'WEG Billing Calculator', CreatedDate:new Date() };
         }
-        return null;
+        return WB;
       }
-      if(!WB){
-        WB = XLSX.utils.book_new();
-        WB.Props = { Title:'WEG Billing Workbook', Author:'WEG Billing Calculator', CreatedDate:new Date() };
-      }
-      return WB;
-    }
 
     const LS_KEY = 'weg-billing-v1';
 
@@ -504,7 +548,9 @@
       list.innerHTML = '';
       const _wb = getWB();
       if(!_wb) return;
-      [..._wb.SheetNames].sort((a,b)=>a.localeCompare(b)).forEach(name=>{
+      const names = normalizeSheetNames(_wb.SheetNames || []);
+      _wb.SheetNames = names; // keep workbook canonical and deduped
+      names.forEach(name=>{
         const pill=document.createElement('button');
         pill.className='pill';
         pill.textContent=name;
@@ -593,8 +639,15 @@
       // Determine month label in YYYY-MM format, defaulting to current month
       function monthLabel(){
         const m = $('billMonth').value;
-        if (m && /^\d{4}-\d{2}$/.test(m)) return m;
-        return new Date().toISOString().slice(0,7);
+        if (m && /^\d{4}-(0[1-9]|1[0-2])$/.test(m)) return m;
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return `${yyyy}-${mm}`;
+      }
+
+      function normalizeSheetNames(names){
+        return Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b));
       }
 
       function fillSampleData(){
@@ -613,13 +666,6 @@
       document.querySelectorAll('input:not([type="text"])').forEach(el=>{
         el.addEventListener('input', compute);
       });
-
-      if(!window.XLSX){
-        ['addSheet','downloadExcel'].forEach(id=>{
-          const b=$(id);
-          if(b){ b.disabled=true; b.title='Excel library not loaded'; }
-        });
-      }
 
       const sciIds = ['A4','A17','B17','C17','D17','E17','B15','D15','C16'];
       const showSciHint = el=>{
@@ -653,28 +699,27 @@
         });
       });
 
-      const xlsxInput = $('uploadXlsx');
+      $('addSheet').addEventListener('click', () => withBusy('addSheet', async () => {
+        if (!(await loadXLSX())) return;
+        const _wb = getWB(); if(!_wb) return;
+        const model = compute(true);
+        if (!model) { toast('Fix highlighted inputs before adding the month sheet.', 'warn'); return; }
+        const label = monthLabel();
+        const ws = buildSheetData(model, label);
+        const exists = _wb.SheetNames.includes(label);
+        _wb.Sheets[label] = ws;
+        if (!exists) _wb.SheetNames.push(label);
+        _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
+        toast(`${exists ? 'Updated' : 'Added'} sheet: ${label}`, 'good');
+        refreshSheetList();
+      }));
 
-      $('addSheet').addEventListener('click', () => {
+      let __dlInFlight = false;
+      $('downloadExcel').addEventListener('click', () => withBusy('downloadExcel', async () => {
+        if (__dlInFlight) return;
+        __dlInFlight = true;
         try{
-          const _wb = getWB(); if(!_wb) return;
-          const model = compute(true);
-          if (!model) { toast('Fix highlighted inputs before adding the month sheet.', 'warn'); return; }
-          const label = monthLabel();
-          const ws = buildSheetData(model, label);
-          const exists = _wb.SheetNames.includes(label);
-          _wb.Sheets[label] = ws;
-          if (!exists) _wb.SheetNames.push(label);
-          toast(`${exists ? 'Updated' : 'Added'} sheet: ${label}`, 'good');
-          refreshSheetList();
-        }catch(e){
-          console.error(e);
-          toast('Could not add/update the sheet.', 'bad');
-        }
-      });
-
-      $('downloadExcel').addEventListener('click', () => {
-        try{
+          if (!(await loadXLSX())) return;
           const _wb = getWB(); if(!_wb) return;
           const auto = $('autoUpdateOnDownload')?.checked;
 
@@ -686,26 +731,26 @@
             const exists = _wb.SheetNames.includes(label);
             _wb.Sheets[label] = ws;
             if(!exists) _wb.SheetNames.push(label);
+            _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
           } else if ((_wb.SheetNames?.length || 0) === 0) {
-            // No sheets at all — still prevent empty downloads
             toast('No sheets to download. Turn on auto‑update or add a month sheet first.', 'warn');
             return;
           }
 
           XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
           toast('Workbook downloaded.', 'good');
-        }catch(e){
-          console.error(e);
-          toast('Download failed.', 'bad');
-        }
-      });
+        } finally { __dlInFlight = false; }
+      }));
 
-      $('uploadExcel').addEventListener('click', ()=> xlsxInput.click());
-      xlsxInput.addEventListener('change', e=>{
+      $('uploadExcel').addEventListener('click', () => withBusy('uploadExcel', async () => {
+        if (!(await loadXLSX())) return;
+        $('uploadXlsx').click();
+      }));
+      $('uploadXlsx').addEventListener('change', e => {
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
-        reader.onload = async ev=>{
+        reader.onload = async ev => {
           try{
             const _wb = getWB(); if(!_wb) return;
             const data = new Uint8Array(ev.target.result);
@@ -713,10 +758,9 @@
             let added = 0, replaced = 0;
             const toReplace = [];
             for(const name of wb.SheetNames){
-              if(_wb.SheetNames.includes(name)){
-                // eslint-disable-next-line no-await-in-loop
+              if (_wb.SheetNames.includes(name)){
                 const ok = await confirmModal(`Sheet "${name}" exists. Replace it?`);
-                if(ok) toReplace.push(name);
+                if (ok) toReplace.push(name);
               }else{
                 _wb.Sheets[name] = wb.Sheets[name];
                 _wb.SheetNames.push(name);
@@ -728,6 +772,7 @@
               if(!_wb.SheetNames.includes(name)) _wb.SheetNames.push(name);
               replaced++;
             }
+            _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
             toast(`Workbook merged: ${added} added, ${replaced} replaced.`, 'good');
             refreshSheetList();
           }catch(err){
