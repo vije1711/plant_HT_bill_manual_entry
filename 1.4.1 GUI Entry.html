@@ -144,6 +144,7 @@
         <div id="sheetList" class="pills"></div>
         <button id="addSheet">Add / Update Month Sheet</button>
         <button id="uploadExcel">Upload Excel</button>
+        <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
         <button id="downloadExcel">Download Excel</button>
           <button class="ghost" id="resetAll">Reset</button>
           <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
@@ -256,7 +257,6 @@
   </div>
 
   <div id="toasts"></div>
-  <input type="file" id="excelFile" accept=".xlsx" style="display:none" />
 
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
@@ -531,19 +531,28 @@
       XLSX.writeFile(WB, fname);
     });
 
-    const fileInput = $('excelFile');
-    $('uploadExcel').addEventListener('click', ()=> fileInput.click());
-    fileInput.addEventListener('change', e=>{
+    const xlsxInput = $('uploadXlsx');
+    $('uploadExcel').addEventListener('click', ()=> xlsxInput.click());
+    xlsxInput.addEventListener('change', e=>{
       const file = e.target.files[0];
       if(!file) return;
       const reader = new FileReader();
       reader.onload = ev=>{
         const data = new Uint8Array(ev.target.result);
-        WB = XLSX.read(data, {type:'array'});
-        toast('Workbook loaded.');
+        const wb = XLSX.read(data, {type:'array'});
+        let added = 0;
+        wb.SheetNames.forEach(name=>{
+          if(!WB.SheetNames.includes(name)){
+            WB.SheetNames.push(name);
+            added++;
+          }
+          WB.Sheets[name] = wb.Sheets[name];
+        });
+        toast(`Workbook merged: ${added} added / ${WB.SheetNames.length} total.`, 'good');
         refreshSheetList();
       };
       reader.readAsArrayBuffer(file);
+      e.target.value = '';
     });
 
       $('resetAll').addEventListener('click', ()=>{
