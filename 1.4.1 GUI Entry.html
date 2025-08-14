@@ -107,6 +107,14 @@
 
     details{margin:10px 0}
     summary{cursor:pointer}
+
+    #toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:1000}
+    .toast{background:var(--card);color:var(--ink);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);opacity:1;transition:opacity .5s ease, transform .5s ease}
+    .toast.info{border-left:4px solid var(--accent)}
+    .toast.good{border-left:4px solid var(--good)}
+    .toast.bad{border-left:4px solid var(--bad)}
+    .toast.warn{border-left:4px solid var(--warn)}
+    .toast.hide{opacity:0;transform:translateX(20px)}
   </style>
 </head>
 <body>
@@ -237,11 +245,25 @@
       </section>
     </div>
 
-    <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
+  <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
   </div>
+
+  <div id="toasts"></div>
 
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+  <script>
+    function toast(msg, type='info'){
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.getElementById('toasts').appendChild(t);
+      setTimeout(()=>{
+        t.classList.add('hide');
+        t.addEventListener('transitionend',()=>t.remove());
+      },3000);
+    }
+  </script>
   <script>
     // Utility helpers
     const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
@@ -407,7 +429,7 @@
       const idx = WB.SheetNames.indexOf(name);
       if(idx>=0){ WB.Sheets[name] = ws; }
       else{ XLSX.utils.book_append_sheet(WB, ws, name); }
-      alert('Month sheet "'+name+'" added/updated.');
+      toast('Month sheet "'+name+'" added/updated.');
     });
 
     $('downloadExcel').addEventListener('click', ()=>{
