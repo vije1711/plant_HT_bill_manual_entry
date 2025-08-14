@@ -145,10 +145,10 @@
         <button id="addSheet">Add / Update Month Sheet</button>
         <button id="uploadExcel">Upload Excel</button>
         <button id="downloadExcel">Download Excel</button>
-        <button class="ghost" id="resetAll">Reset</button>
-        <button id="resetSample">Sample Data</button>
-      </div>
-    </header>
+          <button class="ghost" id="resetAll">Reset</button>
+          <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
+        </div>
+      </header>
 
     <div class="grid">
       <!-- Main HT Bill Inputs -->
@@ -274,9 +274,16 @@
   </script>
   <script>
     // Utility helpers
-    const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
-    const KWH = new Intl.NumberFormat('en-IN', { maximumFractionDigits:0 });
-    const RATE = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:6 });
+      const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
+      const KWH = new Intl.NumberFormat('en-IN', { maximumFractionDigits:0 });
+      const RATE = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:6 });
+      const SAMPLE = {
+        A4:1000,B4:5000,C4:8000,D4:200,E4:300,F4:100,G4:50,H4:400,I4:600,
+        D9:200,E9:50,F9:30,G9:0,
+        B15:30,D15:70,C16:2,
+        A17:1,B17:1,C17:2,D17:1,E17:1,
+        A24:500,B24:200,C24:100,D24:50,E24:25,F24:25
+      };
 
     const $ = id => document.getElementById(id);
     const num = id => {
@@ -286,8 +293,8 @@
     const roundUp0 = x => Math.ceil(x);
 
     const toInr = v => INR.format(Number.isFinite(v) ? v : 0);
-    const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
-    let warned = false;
+      const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
+      let warned = false;
     function parseInrInput(el){
       const raw = el.value.replace(/[^0-9.\-]/g,'');
       const v = parseFloat(raw);
@@ -492,11 +499,19 @@
       return ws;
     }
 
-    function monthLabel(){
-      const m = $('billMonth').value || '';
-      if(!m) return new Date().toISOString().slice(0,7);
-      return m; // YYYY-MM
-    }
+      function monthLabel(){
+        const m = $('billMonth').value || '';
+        if(!m) return new Date().toISOString().slice(0,7);
+        return m; // YYYY-MM
+      }
+
+      function fillSampleData(){
+        Object.entries(SAMPLE).forEach(([id,val])=>{
+          const el = $(id);
+          el.value = val;
+          if(el.type==='text') parseInrInput(el);
+        });
+      }
 
     $('addSheet').addEventListener('click', ()=>{
       const model = compute();
@@ -531,25 +546,21 @@
       reader.readAsArrayBuffer(file);
     });
 
-    $('resetAll').addEventListener('click', ()=>{
-      document.querySelectorAll('input').forEach(el=>{
-        if(el.type!=="month"){
-          el.value='';
-          el.dataset.value='';
+      $('resetAll').addEventListener('click', ()=>{
+        document.querySelectorAll('input').forEach(el=>{
+          if(el.type!=="month"){
+            el.value='';
+            el.dataset.value='';
         }
       });
       compute();
-    });
-
-    $('resetSample').addEventListener('click', ()=>{
-      const sample = {A4:1000,B4:5000,C4:8000,D4:200,E4:300,F4:100,G4:50,H4:400,I4:600,D9:200,E9:50,F9:30,G9:0,B15:30,D15:70,C16:2,A17:1,B17:1,C17:2,D17:1,E17:1,A24:500,B24:200,C24:100,D24:50,E24:25,F24:25};
-      Object.entries(sample).forEach(([id,val])=>{
-        const el = $(id);
-        el.value = val;
-        if(el.type==='text') parseInrInput(el);
       });
-      compute();
-    });
+
+      // Pre-fill form with sample screenshot values
+      $('resetSample').addEventListener('click', ()=>{
+        fillSampleData();
+        compute();
+      });
 
     // initial compute
     compute();
