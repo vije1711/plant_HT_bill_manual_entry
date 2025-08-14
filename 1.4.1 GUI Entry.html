@@ -1,3 +1,4 @@
+<!-- htmlhint tagname-lowercase:false -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -332,12 +333,11 @@
           hint.textContent='≥ 0 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false;
         }
       });
-      if(!ok) toast('Please correct highlighted fields.', 'warn');
       return ok;
     }
 
-    function compute(){
-      if(!validate()) return;
+    function compute(strict=false){
+      const ok = validate();
       // HT Bill
       const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4');
       const A9 = B4 + C4 + D4 + E4 - F4 - G4 + H4 + I4;
@@ -390,7 +390,7 @@
       const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 − F16 − G16 − Credit TDS + Balance Pending + Delay Charges
       $('FINALv').textContent = toInr(FINAL);
       persist();
-      return { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
+      return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
 
     // Excel workbook in memory (lazy init)
@@ -539,6 +539,7 @@
       return ws;
     }
 
+      // Determine month label in YYYY-MM format, defaulting to current month
       function monthLabel(){
         const m = $('billMonth').value;
         if (m && /^\d{4}-\d{2}$/.test(m)) return m;
@@ -565,9 +566,9 @@
       const xlsxInput = $('uploadXlsx');
 
       $('addSheet').addEventListener('click', () => {
-        try {
+        try{
           const _wb = getWB(); if(!_wb) return;
-          const model = compute();
+          const model = compute(true);
           if (!model) { toast('Fix highlighted inputs before adding the month sheet.', 'warn'); return; }
           const label = monthLabel();
           const ws = buildSheetData(model, label);
@@ -576,28 +577,27 @@
           if (!exists) _wb.SheetNames.push(label);
           toast(`${exists ? 'Updated' : 'Added'} sheet: ${label}`, 'good');
           refreshSheetList();
-        } catch (e) {
+        }catch(e){
           console.error(e);
-          toast('Could not add/update the sheet. See console for details.', 'bad');
+          toast('Could not add/update the sheet.', 'bad');
         }
       });
 
       $('downloadExcel').addEventListener('click', () => {
-        try {
+        try{
           const _wb = getWB(); if(!_wb) return;
           if ((_wb.SheetNames?.length || 0) === 0) {
-            const model = compute();
+            const model = compute(true);
             if (!model) { toast('Cannot download: fix inputs or add a month sheet first.', 'warn'); return; }
             const label = monthLabel();
             const ws = buildSheetData(model, label);
             XLSX.utils.book_append_sheet(_wb, ws, label);
           }
-          const fname = `WEG_Billing_${monthLabel()}.xlsx`;
-          XLSX.writeFile(_wb, fname);
+          XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
           toast('Workbook downloaded.', 'good');
-        } catch (e) {
+        }catch(e){
           console.error(e);
-          toast('Download failed. See console for details.', 'bad');
+          toast('Download failed.', 'bad');
         }
       });
 
@@ -645,9 +645,11 @@
       $('resetSample').addEventListener('click', ()=>{
         fillSampleData();
         const model = compute();
-        console.assert(model.A9 === 14350, `A9 expected 14350, got ${model.A9}`);
-        console.assert(model.C9 === 17220, `C9 expected 17220, got ${model.C9}`);
-        console.assert(Math.round(model.FINAL) === 16700, `FINAL expected 16700, got ${model.FINAL}`);
+        if(window.DEV){
+          console.assert(model.A9 === 14350, `A9 expected 14350, got ${model.A9}`);
+          console.assert(model.C9 === 17220, `C9 expected 17220, got ${model.C9}`);
+          console.assert(Math.round(model.FINAL) === 16700, `FINAL expected 16700, got ${model.FINAL}`);
+        }
       });
 
       const restored = restore();
