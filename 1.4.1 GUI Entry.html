@@ -152,6 +152,10 @@
         <button id="addSheet">Add / Update Month Sheet</button>
         <button id="uploadExcel">Upload Excel</button>
         <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
+        <label class="pill" id="autoUpdateToggle">
+          <input type="checkbox" id="autoUpdateOnDownload" checked />
+          <span>Auto‑update month on Download</span>
+        </label>
         <button id="downloadExcel">Download Excel</button>
           <button class="ghost" id="resetAll">Reset</button>
           <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
@@ -263,7 +267,16 @@
   <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
   </div>
 
-  <div id="toasts"></div>
+  <div id="toasts" role="status" aria-live="polite"></div>
+  <div id="modal" role="dialog" aria-modal="true" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1100; align-items:center; justify-content:center;">
+    <div style="background:var(--card); color:var(--ink); padding:16px; border-radius:12px; min-width:300px; box-shadow:var(--shadow)">
+      <div id="modalText" style="margin-bottom:12px"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button id="modalCancel" class="ghost">Cancel</button>
+        <button id="modalOk">Replace</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
@@ -313,9 +326,42 @@
       }
     }
 
+    const debounce = (fn, delay=200) => {
+      let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), delay); };
+    };
+
+    function confirmModal(msg){
+      return new Promise(resolve=>{
+        const m = $('modal');
+        const okBtn = $('modalOk');
+        const cancelBtn = $('modalCancel');
+        const prev = document.activeElement;
+        $('modalText').textContent = msg;
+        m.style.display = 'flex';
+        okBtn.focus();
+        const ok = ()=>{ cleanup(); resolve(true); };
+        const cancel = ()=>{ cleanup(); resolve(false); };
+        const esc = e=>{ if(e.key==='Escape') cancel(); };
+        const backdrop = e=>{ if(e.target===m) cancel(); };
+        function cleanup(){
+          okBtn.removeEventListener('click', ok);
+          cancelBtn.removeEventListener('click', cancel);
+          document.removeEventListener('keydown', esc);
+          m.removeEventListener('click', backdrop);
+          m.style.display = 'none';
+          if(prev) prev.focus();
+        }
+        okBtn.addEventListener('click', ok, { once:true });
+        cancelBtn.addEventListener('click', cancel, { once:true });
+        document.addEventListener('keydown', esc);
+        m.addEventListener('click', backdrop);
+      });
+    }
+
     function validate(){
       let ok = true;
       const percentIds = ['B15','D15','C16'];
+      const sciIds = ['A4','A17','B17','C17','D17','E17','B15','D15','C16'];
       document.querySelectorAll('input').forEach(el=>{
         if(el.type==='month' || el.type==='file') return;
         const hint = el.nextElementSibling;
@@ -324,6 +370,9 @@
         el.classList.remove('invalid');
 
         const raw = el.dataset.value ?? el.value;
+        if (sciIds.includes(el.id) && /e/i.test(String(raw))) {
+          hint.textContent='Scientific notation not allowed.'; hint.style.display='block'; el.classList.add('invalid'); ok = false; return;
+        }
         const val = parseFloat(raw);
         if (!Number.isFinite(val)) return; // allow empty/unfilled during typing
 
@@ -389,7 +438,7 @@
       // Final Bill for IOM
       const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 − F16 − G16 − Credit TDS + Balance Pending + Delay Charges
       $('FINALv').textContent = toInr(FINAL);
-      persist();
+      persistDebounced();
       return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
 
@@ -423,6 +472,8 @@
       localStorage.setItem(LS_KEY, JSON.stringify(data));
     }
 
+    const persistDebounced = debounce(persist, 200);
+
     function restore(){
       try{
         const raw = localStorage.getItem(LS_KEY);
@@ -453,7 +504,7 @@
       list.innerHTML = '';
       const _wb = getWB();
       if(!_wb) return;
-      _wb.SheetNames.forEach(name=>{
+      [..._wb.SheetNames].sort((a,b)=>a.localeCompare(b)).forEach(name=>{
         const pill=document.createElement('button');
         pill.className='pill';
         pill.textContent=name;
@@ -463,7 +514,7 @@
         });
         list.appendChild(pill);
       });
-      persist();
+      persistDebounced();
     }
 
     function buildSheetData(model, monthLabel){
@@ -563,6 +614,45 @@
         el.addEventListener('input', compute);
       });
 
+      if(!window.XLSX){
+        ['addSheet','downloadExcel'].forEach(id=>{
+          const b=$(id);
+          if(b){ b.disabled=true; b.title='Excel library not loaded'; }
+        });
+      }
+
+      const sciIds = ['A4','A17','B17','C17','D17','E17','B15','D15','C16'];
+      const showSciHint = el=>{
+        const hint = el.nextElementSibling;
+        if(hint && hint.classList.contains('hint')){
+          hint.textContent = 'Scientific notation not allowed.';
+          hint.style.display = 'block';
+          el.classList.add('invalid');
+        }
+      };
+      sciIds.forEach(id=>{
+        const el=$(id); if(!el) return;
+        el.addEventListener('keydown', e=>{
+          if(e.key==='e' || e.key==='E'){ e.preventDefault(); showSciHint(el); }
+        });
+        el.addEventListener('paste', e=>{
+          const txt = (e.clipboardData || window.clipboardData).getData('text');
+          if(/e/i.test(txt)){ e.preventDefault(); showSciHint(el); }
+        });
+      });
+
+      ['B15','D15','C16'].forEach(id=>{
+        const el=$(id); if(!el) return;
+        el.addEventListener('blur', ()=>{
+          let v = parseFloat(el.value);
+          if(Number.isFinite(v)){
+            if(v<0) v=0; if(v>100) v=100;
+            el.value = v; el.dataset.value = v;
+          }
+          compute();
+        });
+      });
+
       const xlsxInput = $('uploadXlsx');
 
       $('addSheet').addEventListener('click', () => {
@@ -586,13 +676,22 @@
       $('downloadExcel').addEventListener('click', () => {
         try{
           const _wb = getWB(); if(!_wb) return;
-          if ((_wb.SheetNames?.length || 0) === 0) {
+          const auto = $('autoUpdateOnDownload')?.checked;
+
+          if (auto) {
             const model = compute(true);
-            if (!model) { toast('Cannot download: fix inputs or add a month sheet first.', 'warn'); return; }
+            if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
             const label = monthLabel();
             const ws = buildSheetData(model, label);
-            XLSX.utils.book_append_sheet(_wb, ws, label);
+            const exists = _wb.SheetNames.includes(label);
+            _wb.Sheets[label] = ws;
+            if(!exists) _wb.SheetNames.push(label);
+          } else if ((_wb.SheetNames?.length || 0) === 0) {
+            // No sheets at all — still prevent empty downloads
+            toast('No sheets to download. Turn on auto‑update or add a month sheet first.', 'warn');
+            return;
           }
+
           XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
           toast('Workbook downloaded.', 'good');
         }catch(e){
@@ -606,20 +705,30 @@
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
-        reader.onload = ev=>{
+        reader.onload = async ev=>{
           try{
             const _wb = getWB(); if(!_wb) return;
             const data = new Uint8Array(ev.target.result);
             const wb = XLSX.read(data, {type:'array'});
-            let added = 0;
-            wb.SheetNames.forEach(name=>{
-              if(!_wb.SheetNames.includes(name)){
+            let added = 0, replaced = 0;
+            const toReplace = [];
+            for(const name of wb.SheetNames){
+              if(_wb.SheetNames.includes(name)){
+                // eslint-disable-next-line no-await-in-loop
+                const ok = await confirmModal(`Sheet "${name}" exists. Replace it?`);
+                if(ok) toReplace.push(name);
+              }else{
+                _wb.Sheets[name] = wb.Sheets[name];
                 _wb.SheetNames.push(name);
                 added++;
               }
+            }
+            for(const name of toReplace){
               _wb.Sheets[name] = wb.Sheets[name];
-            });
-            toast(`Workbook merged: ${added} added / ${_wb.SheetNames.length} total.`, 'good');
+              if(!_wb.SheetNames.includes(name)) _wb.SheetNames.push(name);
+              replaced++;
+            }
+            toast(`Workbook merged: ${added} added, ${replaced} replaced.`, 'good');
             refreshSheetList();
           }catch(err){
             console.error(err);
