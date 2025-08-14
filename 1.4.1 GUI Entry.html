@@ -637,9 +637,9 @@
       r(['WEG','Nanisindhodi MWh #1','C17', model.C17, 'MWh']);
       r(['WEG','Nanisindhodi MWh #2','D17', model.D17, 'MWh']);
       r(['WEG','Nanisindhodi MWh #3','E17', model.E17, 'MWh']);
-      r(['WEG (calc)','Bitlavadia Share (kWh)','A18', model.A18, 'ROUNDUP((A17+B17)*1000*B15%*(1−C16%),0)']);
-      r(['WEG (calc)','Nanisindhodi Share (kWh)','C18', model.C18, 'ROUNDUP((C17+D17+E17)*1000*D15%*(1−C16%),0)']);
-      r(['WEG (calc)','Total Allocated (kWh)','A19', model.A19, 'kWh']);
+      r(['WEG (calc)','Bitlavadia Share','A18', model.A18, 'kWh']);
+      r(['WEG (calc)','Nanisindhodi Share','C18', model.C18, 'kWh']);
+      r(['WEG (calc)','Total Allocated','A19', model.A19, 'kWh']);
       r([]);
 
       // Credits & Debits
@@ -652,7 +652,7 @@
       r(['Wind (calc)','Total Credit','A26', model.A26, '₹']);
       r(['Wind (calc)','Total Debit','B26', model.B26, '₹']);
       r(['Wind (calc)','Net Wind Credit','C26', model.C26, '₹']);
-      r(['Wind (calc)','Wind Rate (₹/kWh)','B19', model.B19, '₹/kWh']);
+      r(['Wind (calc)','Wind Rate','B19', model.B19, '₹/kWh']);
       r(['Wind (calc)','Share 4.5 MW (₹)','F16', model.F16, '₹']);
       r(['Wind (calc)','Share 14.7 MW (₹)','G16', model.G16, '₹']);
       r([]);
@@ -660,35 +660,35 @@
       // Final
       r(['FINAL','Final Bill for IOM','—', model.FINAL, '₹']);
 
-      // Convert to sheet with typed/formatted VALUE cells
-      // VALUE is column index 3; UNITS/NOTES is index 4
-      const toCell = (val, unit) => {
-        if (val == null || val === '') return { t:'z' };
-        // map unit -> Excel number format
-        if (unit === 'kWh')          return { v: val, t:'n', z: '#,##0' };
-        if (unit === 'MWh')          return { v: val, t:'n', z: '0.000' };
-        if (unit === '₹')            return { v: val, t:'n', z: '₹#,##0.00' };
-        if (unit === '₹/kWh')        return { v: val, t:'n', z: '₹#,##0.0000' };
-        if (unit === '%')            return { v: (val/100), t:'n', z: '0.00%' }; // model stores 0–100
-        return { v: val }; // leave as-is
-      };
-      // Build a new AOA where only VALUE cells are objects with type+format
-      const typed = rows.map((row, i) => {
-        if (i < 4 || row[0] === 'SECTION') return row; // header rows untouched
-        const unit = row[4];
-        const value = row[3];
-        const out = row.slice();
-        out[3] = toCell(value, unit);
-        return out;
-      });
-      const ws = XLSX.utils.aoa_to_sheet(typed);
-      // Fit columns
-      const widths = [18,32,8,16,36].map(w=>({wch:w}));
-      ws['!cols'] = widths;
-      // Optional niceties: simple autofilter over the main table
-      const firstDataRow = 4; // 0-based index; header row with SECTION...
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      // VALUE column formatting
+      const valueCol = 3; // zero-based index
+      const firstDataRow = 4; // skip header rows
       const lastRow = rows.length - 1;
-      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:firstDataRow, c:0}, e:{r:lastRow, c:4} }) };
+      for (let r = firstDataRow; r <= lastRow; r++) {
+        const addr = XLSX.utils.encode_cell({ r, c: valueCol });
+        const cell = ws[addr];
+        if (!cell || typeof cell.v !== 'number') continue;
+        const unit = rows[r][4];
+        if (unit === '%') {
+          cell.v = cell.v / 100;
+          cell.z = '0.00%';
+        } else if (unit === '₹') {
+          cell.z = '₹#,##0.00';
+        } else if (unit === '₹/kWh') {
+          cell.z = '₹#,##0.000000';
+        } else if (unit === 'MWh') {
+          cell.z = '0.000';
+        } else if (unit === 'kWh') {
+          cell.z = '#,##0';
+        } else {
+          cell.z = '#,##0.00';
+        }
+        cell.t = 'n';
+      }
+      // Column widths and AutoFilter
+      ws['!cols'] = [{wch:18},{wch:32},{wch:8},{wch:16},{wch:36}];
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:firstDataRow,c:0}, e:{r:lastRow,c:4} }) };
       return ws;
     }
 
@@ -873,12 +873,10 @@
 
       $('resetSample').addEventListener('click', ()=>{
         fillSampleData();
-        const model = compute();
-        if(window.DEV){
-          console.assert(model.A9 === 14350, `A9 expected 14350, got ${model.A9}`);
-          console.assert(model.C9 === 17220, `C9 expected 17220, got ${model.C9}`);
-          console.assert(Math.round(model.FINAL) === 16700, `FINAL expected 16700, got ${model.FINAL}`);
-        }
+        const m = compute(true);
+        console.assert(m.A9 === 14350, `A9 expected 14350, got ${m.A9}`);
+        console.assert(m.C9 === 17220, `C9 expected 17220, got ${m.C9}`);
+        console.assert(Math.round(m.FINAL) === 16700, `FINAL expected 16700, got ${m.FINAL}`);
       });
 
       const restored = restore();
