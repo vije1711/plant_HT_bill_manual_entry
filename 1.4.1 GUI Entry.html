@@ -37,7 +37,7 @@
     .brand h1{margin:0;font-size:22px;letter-spacing:.3px}
     .sub{color:var(--muted);font-size:13.5px}
 
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:10;padding:8px 0}
     button, .ghost{
       border:0;border-radius:12px;padding:10px 14px;font-weight:600;letter-spacing:.2px;
       background:linear-gradient(145deg, rgba(167,139,250,.25), rgba(34,211,238,.25));
@@ -103,6 +103,7 @@
     .hr{height:1px;background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03));margin:14px 0}
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:12px}
+    .pills{display:flex;gap:6px;flex-wrap:wrap}
     .right{float:right}
 
     details{margin:10px 0}
@@ -137,9 +138,12 @@
       </div>
       <div class="toolbar">
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
+        <div id="sheetList" class="pills"></div>
         <button id="addSheet">Add / Update Month Sheet</button>
+        <button id="uploadExcel">Upload Excel</button>
         <button id="downloadExcel">Download Excel</button>
         <button class="ghost" id="resetAll">Reset</button>
+        <button id="resetSample">Sample Data</button>
       </div>
     </header>
 
@@ -249,6 +253,7 @@
   </div>
 
   <div id="toasts"></div>
+  <input type="file" id="excelFile" accept=".xlsx" style="display:none" />
 
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
@@ -341,6 +346,21 @@
     let WB = XLSX.utils.book_new();
     WB.Props = { Title: 'WEG Billing Workbook', Author: 'WEG Billing Calculator', CreatedDate: new Date() };
 
+    function refreshSheetList(){
+      const list = $('sheetList');
+      list.innerHTML = '';
+      WB.SheetNames.forEach(name=>{
+        const pill=document.createElement('button');
+        pill.className='pill';
+        pill.textContent=name;
+        pill.addEventListener('click', ()=>{
+          $('billMonth').value = name;
+          compute();
+        });
+        list.appendChild(pill);
+      });
+    }
+
     function buildSheetData(model, monthLabel){
       const rows = [];
       const r = (...a)=>rows.push(a);
@@ -430,6 +450,7 @@
       if(idx>=0){ WB.Sheets[name] = ws; }
       else{ XLSX.utils.book_append_sheet(WB, ws, name); }
       toast('Month sheet "'+name+'" added/updated.');
+      refreshSheetList();
     });
 
     $('downloadExcel').addEventListener('click', ()=>{
@@ -437,13 +458,35 @@
       XLSX.writeFile(WB, fname);
     });
 
+    const fileInput = $('excelFile');
+    $('uploadExcel').addEventListener('click', ()=> fileInput.click());
+    fileInput.addEventListener('change', e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ev=>{
+        const data = new Uint8Array(ev.target.result);
+        WB = XLSX.read(data, {type:'array'});
+        toast('Workbook loaded.');
+        refreshSheetList();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
     $('resetAll').addEventListener('click', ()=>{
       document.querySelectorAll('input').forEach(el=>{ if(el.type!=="month") el.value=''; });
       compute();
     });
 
+    $('resetSample').addEventListener('click', ()=>{
+      const sample = {A4:1000,B4:5000,C4:8000,D4:200,E4:300,F4:100,G4:50,H4:400,I4:600,D9:200,E9:50,F9:30,G9:0,B15:30,D15:70,C16:2,A17:1,B17:1,C17:2,D17:1,E17:1,A24:500,B24:200,C24:100,D24:50,E24:25,F24:25};
+      Object.entries(sample).forEach(([id,val])=>$(id).value = val);
+      compute();
+    });
+
     // initial compute
     compute();
+    refreshSheetList();
   </script>
 </body>
 </html>
