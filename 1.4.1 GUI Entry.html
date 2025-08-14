@@ -117,6 +117,7 @@
     .toast.warn{border-left:4px solid var(--warn)}
     .toast.hide{opacity:0;transform:translateX(20px)}
     .hint{display:none;color:var(--bad);font-size:11px;margin-top:4px}
+    .warn-text{display:none;color:var(--muted);font-size:11px;margin-top:4px}
     .invalid{border-color:var(--bad)!important}
   </style>
 </head>
@@ -233,7 +234,7 @@
           <div class="box"><h3>Net Wind Credit (₹) <span class="mono">C26 = A26−B26</span></h3><div class="v" id="C26v">₹0</div></div>
         </div>
         <div class="kpi">
-          <div class="box"><h3>Wind Rate (₹ / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">₹0</div></div>
+          <div class="box"><h3>Wind Rate (₹ / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">₹0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as ₹0.00/kWh</small></div>
           <div class="box"><h3>Share of 4.5 MW WEG (₹) <span class="mono">F16 = B19×A18</span></h3><div class="v" id="F16v">₹0</div></div>
           <div class="box"><h3>Share of 14.7 MW WEG (₹) <span class="mono">G16 = B19×C18</span></h3><div class="v" id="G16v">₹0</div></div>
         </div>
@@ -379,6 +380,7 @@
       const F16 = B19 * A18;
       const G16 = B19 * C18;
       $('B19v').textContent = toRate(B19);
+      $('windRateWarn').style.display = (A19===0) ? 'block' : 'none';
       $('F16v').textContent = toInr(F16);
       $('G16v').textContent = toInr(G16);
 
