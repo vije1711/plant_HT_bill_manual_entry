@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WEG Billing Calculator</title>
+  <style>
+    :root{
+      --bg:#0f172a;          /* slate-900 */
+      --card:#111827;        /* gray-900 */
+      --ink:#e5e7eb;         /* gray-200 */
+      --muted:#94a3b8;       /* slate-400 */
+      --accent:#22d3ee;      /* cyan-400 */
+      --accent-2:#a78bfa;    /* violet-400 */
+      --good:#22c55e;        /* green-500 */
+      --bad:#ef4444;         /* red-500 */
+      --warn:#f59e0b;        /* amber-500 */
+      --panel:#0b1224;       /* deep */
+      --ring: 0 0 0 2px rgba(34,211,238,.45);
+      --shadow: 0 20px 50px rgba(0,0,0,.45);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1100px 600px at 100% -10%, rgba(167,139,250,.18), transparent 60%),
+                  radial-gradient(900px 500px at -10% 10%, rgba(34,211,238,.18), transparent 60%),
+                  var(--bg);
+      color:var(--ink);
+    }
+    .wrap{max-width:1200px;margin:32px auto;padding:0 20px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand svg{width:34px;height:34px}
+    .brand h1{margin:0;font-size:22px;letter-spacing:.3px}
+    .sub{color:var(--muted);font-size:13.5px}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    button, .ghost{
+      border:0;border-radius:12px;padding:10px 14px;font-weight:600;letter-spacing:.2px;
+      background:linear-gradient(145deg, rgba(167,139,250,.25), rgba(34,211,238,.25));
+      color:white;cursor:pointer;box-shadow:var(--shadow);backdrop-filter: blur(6px);
+    }
+    button:hover{filter:brightness(1.07)}
+    button:active{transform:translateY(1px)}
+    .ghost{background:rgba(255,255,255,.05)}
+
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+    .card{
+      grid-column: span 12;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:var(--radius);padding:18px 18px 12px 18px;box-shadow:var(--shadow)
+    }
+    @media(min-width:980px){
+      .span-6{grid-column:span 6}
+      .span-4{grid-column:span 4}
+      .span-8{grid-column:span 8}
+      .span-3{grid-column:span 3}
+      .span-9{grid-column:span 9}
+    }
+
+    .card h2{margin:0 0 12px 0;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+    .help{color:var(--muted);font-size:12px}
+
+    .fields{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+    .fields .f{grid-column:span 12}
+    @media(min-width:860px){.fields .f{grid-column:span 6}}
+    .fields .f.sm{grid-column:span 6}
+    @media(min-width:860px){.fields .f.sm{grid-column:span 3}}
+
+    label{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:12.5px;margin-bottom:6px}
+    input[type="number"], input[type="month"], input[type="text"]{
+      width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+      outline:none;background:rgba(17,24,39,.6);color:var(--ink)
+    }
+    input:focus{box-shadow:var(--ring)}
+
+    .kpi{
+      display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-top:6px
+    }
+    .kpi .box{grid-column:span 12}
+    @media(min-width:980px){.kpi .box{grid-column:span 4}}
+    .box{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px
+    }
+    .box h3{margin:0;color:var(--muted);font-size:12.5px;font-weight:600}
+    .box .v{margin-top:8px;font-size:22px;font-weight:800}
+    .unit{font-size:12px;color:var(--muted);margin-left:6px;font-weight:600}
+
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+    .accent{color:var(--accent)}
+    .violet{color:var(--accent-2)}
+    .good{color:var(--good)}
+    .bad{color:var(--bad)}
+    .warn{color:var(--warn)}
+
+    .footer{margin-top:18px;color:var(--muted);font-size:12px}
+    .muted{color:var(--muted)}
+    .hr{height:1px;background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03));margin:14px 0}
+
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:12px}
+    .right{float:right}
+
+    details{margin:10px 0}
+    summary{cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#22d3ee"/>
+              <stop offset="1" stop-color="#a78bfa"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 3c7.18 0 13 5.82 13 13s-5.82 13-13 13S3 23.18 3 16 8.82 3 16 3Zm0 4a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 3.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 16 10.2Z" fill="url(#g)"/>
+        </svg>
+        <div>
+          <h1>WEG Billing Calculator</h1>
+          <div class="sub">Single‑file tool for HT bill + wind credits • Excel export with month sheets</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
+        <button id="addSheet">Add / Update Month Sheet</button>
+        <button id="downloadExcel">Download Excel</button>
+        <button class="ghost" id="resetAll">Reset</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Main HT Bill Inputs -->
+      <section class="card span-6">
+        <h2>HT Bill — Inputs <span class="help">Manual entries from utility bill</span></h2>
+        <div class="fields">
+          <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001"/></div>
+          <div class="f"><label>Demand Charges (₹) <span class="mono">B4</span></label><input type="number" id="B4" step="0.01"/></div>
+          <div class="f"><label>Energy Charges (₹) <span class="mono">C4</span></label><input type="number" id="C4" step="0.01"/></div>
+          <div class="f"><label>Night Rebate (₹) <span class="mono">D4</span></label><input type="number" id="D4" step="0.01"/></div>
+          <div class="f"><label>Fuel Charge (₹) <span class="mono">E4</span></label><input type="number" id="E4" step="0.01"/></div>
+          <div class="f"><label>PF Rebate (₹) <span class="mono">F4</span></label><input type="number" id="F4" step="0.01"/></div>
+          <div class="f"><label>EHV Rebate (₹) <span class="mono">G4</span></label><input type="number" id="G4" step="0.01"/></div>
+          <div class="f"><label>TOU (₹) <span class="mono">H4</span></label><input type="number" id="H4" step="0.01"/></div>
+          <div class="f"><label>GT Charges (₹) <span class="mono">I4</span></label><input type="number" id="I4" step="0.01"/></div>
+        </div>
+        <div class="hr"></div>
+        <div class="kpi">
+          <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4−F4−G4+H4+I4</span></h3><div class="v" id="A9v">₹0</div></div>
+          <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9×0.2</span></h3><div class="v" id="B9v">₹0</div></div>
+          <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">₹0</div></div>
+        </div>
+      </section>
+
+      <!-- Adjustments -->
+      <section class="card span-6">
+        <h2>Adjustments & Carry‑forward <span class="help">Manual entries</span></h2>
+        <div class="fields">
+          <div class="f sm"><label>Outstanding Arrears (₹) <span class="mono">D9</span></label><input type="number" id="D9" step="0.01"/></div>
+          <div class="f sm"><label>Freeze Amount (₹) <span class="mono">E9</span></label><input type="number" id="E9" step="0.01"/></div>
+          <div class="f sm"><label>Delayed Payment Charges (₹) <span class="mono">F9</span></label><input type="number" id="F9" step="0.01"/></div>
+          <div class="f sm"><label>Advance Payment / Adjust. (₹) <span class="mono">G9</span></label><input type="number" id="G9" step="0.01"/></div>
+        </div>
+        <div class="hr"></div>
+        <div class="kpi">
+          <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9−G9</span></h3><div class="v" id="H9v">₹0</div></div>
+          <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9−E9</span></h3><div class="v" id="I9v">₹0</div></div>
+          <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9−E9</span></h3><div class="v" id="A31v">₹0</div></div>
+        </div>
+      </section>
+
+      <!-- WEG Inputs -->
+      <section class="card span-6">
+        <h2>WEG — Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
+        <div class="fields">
+          <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01"/></div>
+          <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01"/></div>
+          <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01"/></div>
+        </div>
+        <details>
+          <summary class="muted">Monthly Generation (MWh) — expand</summary>
+          <div class="fields" style="margin-top:10px">
+            <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001"/></div>
+            <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001"/></div>
+            <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001"/></div>
+            <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001"/></div>
+            <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001"/></div>
+          </div>
+        </details>
+        <div class="hr"></div>
+        <div class="kpi">
+          <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1−C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
+          <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1−C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
+          <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
+        </div>
+      </section>
+
+      <!-- WEG Credits -->
+      <section class="card span-6">
+        <h2>Wind Credits & Debits <span class="help">Prior‐month adjustments</span></h2>
+        <div class="fields">
+          <div class="f sm"><label>Credit Board Charges (₹) <span class="mono">A24</span></label><input type="number" id="A24" step="0.01"/></div>
+          <div class="f sm"><label>Credit ED Charges (₹) <span class="mono">B24</span></label><input type="number" id="B24" step="0.01"/></div>
+          <div class="f sm"><label>Credit TDS (₹) <span class="mono">C24</span></label><input type="number" id="C24" step="0.01"/></div>
+          <div class="f sm"><label>Debit Board Charges (₹) <span class="mono">D24</span></label><input type="number" id="D24" step="0.01"/></div>
+          <div class="f sm"><label>Debit Electricity Duty (₹) <span class="mono">E24</span></label><input type="number" id="E24" step="0.01"/></div>
+          <div class="f sm"><label>Debit Wheeling Charges (₹) <span class="mono">F24</span></label><input type="number" id="F24" step="0.01"/></div>
+        </div>
+        <div class="hr"></div>
+        <div class="kpi">
+          <div class="box"><h3>Total Credit (₹) <span class="mono">A26 = A24+B24</span></h3><div class="v" id="A26v">₹0</div></div>
+          <div class="box"><h3>Total Debit (₹) <span class="mono">B26 = D24+E24+F24</span></h3><div class="v" id="B26v">₹0</div></div>
+          <div class="box"><h3>Net Wind Credit (₹) <span class="mono">C26 = A26−B26</span></h3><div class="v" id="C26v">₹0</div></div>
+        </div>
+        <div class="kpi">
+          <div class="box"><h3>Wind Rate (₹ / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">₹0</div></div>
+          <div class="box"><h3>Share of 4.5 MW WEG (₹) <span class="mono">F16 = B19×A18</span></h3><div class="v" id="F16v">₹0</div></div>
+          <div class="box"><h3>Share of 14.7 MW WEG (₹) <span class="mono">G16 = B19×C18</span></h3><div class="v" id="G16v">₹0</div></div>
+        </div>
+      </section>
+
+      <!-- Final Bill -->
+      <section class="card span-12">
+        <h2>Final Bill for IOM</h2>
+        <div class="kpi">
+          <div class="box"><h3 class="mono">Formula: C9 − F16 − G16 − C24 + A31 + F9</h3>
+            <div class="v" id="FINALv" style="font-size:30px">₹0</div>
+            <div class="muted">Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS + Balance Pending (prev) + Delay Charges</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
+  </div>
+
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+  <script>
+    // Utility helpers
+    const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
+    const KWH = new Intl.NumberFormat('en-IN', { maximumFractionDigits:0 });
+    const RATE = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:6 });
+
+    const $ = id => document.getElementById(id);
+    const num = id => {
+      const v = parseFloat($(id).value);
+      return Number.isFinite(v) ? v : 0;
+    };
+    const roundUp0 = x => Math.ceil(x);
+
+    function compute(){
+      // HT Bill
+      const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4');
+      const A9 = B4 + C4 + D4 + E4 - F4 - G4 + H4 + I4;
+      const B9 = A9 * 0.2;
+      const C9 = A9 + B9;
+      $('A9v').textContent = INR.format(A9);
+      $('B9v').textContent = INR.format(B9);
+      $('C9v').textContent = INR.format(C9);
+
+      // Adjustments
+      const D9=num('D9'), E9=num('E9'), F9=num('F9'), G9=num('G9');
+      const H9 = C9 + D9 + F9 - G9;
+      const I9 = H9 - E9;
+      const A31 = D9 - E9;
+      $('H9v').textContent = INR.format(H9);
+      $('I9v').textContent = INR.format(I9);
+      $('A31v').textContent = INR.format(A31);
+
+      // WEG Inputs
+      const B15=num('B15'), D15=num('D15'), C16=num('C16');
+      const A17=num('A17'), B17=num('B17'), C17=num('C17'), D17=num('D17'), E17=num('E17');
+      const bit_mwh = A17 + B17;
+      const nan_mwh = C17 + D17 + E17;
+      const A18 = roundUp0((bit_mwh)*1000*(B15/100)*(1-(C16/100)));
+      const C18 = roundUp0((nan_mwh)*1000*(D15/100)*(1-(C16/100)));
+      const A19 = A18 + C18;
+      $('A18v').textContent = KWH.format(A18) + ' kWh';
+      $('C18v').textContent = KWH.format(C18) + ' kWh';
+      $('A19v').textContent = KWH.format(A19) + ' kWh';
+
+      // Credits/Debits
+      const A24=num('A24'), B24=num('B24'), C24=num('C24'), D24=num('D24'), E24=num('E24'), F24=num('F24');
+      const A26 = A24 + B24;
+      const B26 = D24 + E24 + F24;
+      const C26 = A26 - B26;
+      $('A26v').textContent = INR.format(A26);
+      $('B26v').textContent = INR.format(B26);
+      $('C26v').textContent = INR.format(C26);
+
+      // Rates & Shares
+      const B19 = (A19===0) ? 0 : (C26 / A19);
+      const F16 = B19 * A18;
+      const G16 = B19 * C18;
+      $('B19v').textContent = RATE.format(B19) + ' /kWh';
+      $('F16v').textContent = INR.format(F16);
+      $('G16v').textContent = INR.format(G16);
+
+      // Final Bill for IOM
+      const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 − F16 − G16 − Credit TDS + Balance Pending + Delay Charges
+      $('FINALv').textContent = INR.format(FINAL);
+
+      return { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
+    }
+
+    // Attach inputs
+    document.querySelectorAll('input').forEach(el=>{
+      el.addEventListener('input', compute);
+    });
+
+    // Excel workbook in memory
+    let WB = XLSX.utils.book_new();
+    WB.Props = { Title: 'WEG Billing Workbook', Author: 'WEG Billing Calculator', CreatedDate: new Date() };
+
+    function buildSheetData(model, monthLabel){
+      const rows = [];
+      const r = (...a)=>rows.push(a);
+      r(['WEG Billing – Month', monthLabel]);
+      r(['Generated at', new Date().toLocaleString()]);
+      r([]);
+
+      r(['SECTION','FIELD','CELL','VALUE','UNITS/NOTES']);
+      // HT Bill
+      r(['HT Bill','Monthly Consumption','A4', model.A4, 'kWh']);
+      r(['HT Bill','Demand Charges','B4', model.B4, '₹']);
+      r(['HT Bill','Energy Charges','C4', model.C4, '₹']);
+      r(['HT Bill','Night Rebate','D4', model.D4, '₹']);
+      r(['HT Bill','Fuel Charge','E4', model.E4, '₹']);
+      r(['HT Bill','PF Rebate','F4', model.F4, '₹ (rebate)']);
+      r(['HT Bill','EHV Rebate','G4', model.G4, '₹ (rebate)']);
+      r(['HT Bill','TOU','H4', model.H4, '₹']);
+      r(['HT Bill','GT Charges','I4', model.I4, '₹']);
+      r(['HT Bill (calc)','Tot Consumption Charge','A9', model.A9, 'B4+C4+D4+E4−F4−G4+H4+I4']);
+      r(['HT Bill (calc)','ED @20%','B9', model.B9, 'A9×0.2']);
+      r(['HT Bill (calc)','Current Month Bill','C9', model.C9, 'A9+B9']);
+      r([]);
+
+      // Adjustments
+      r(['Adjust','Outstanding Arrears','D9', model.D9, '₹']);
+      r(['Adjust','Freeze Amount','E9', model.E9, '₹']);
+      r(['Adjust','Delayed Payment Charges','F9', model.F9, '₹']);
+      r(['Adjust','Advance Payment / Adjust.','G9', model.G9, '₹']);
+      r(['Adjust (calc)','Net Payable','H9', model.H9, 'C9+D9+F9−G9']);
+      r(['Adjust (calc)','Actual Amount to be Paid','I9', model.I9, 'H9−E9']);
+      r(['Adjust (calc)','Balance Pending from Previous Month','A31', model.A31, 'D9−E9']);
+      r([]);
+
+      // WEG Inputs
+      r(['WEG','Share Bitlavadia (%)','B15', model.B15, '%']);
+      r(['WEG','Share Nanisindhodi (%)','D15', model.D15, '%']);
+      r(['WEG','Transmission Loss (%)','C16', model.C16, '%']);
+      r(['WEG','Bitlavadia MWh #1','A17', model.A17, 'MWh']);
+      r(['WEG','Bitlavadia MWh #2','B17', model.B17, 'MWh']);
+      r(['WEG','Nanisindhodi MWh #1','C17', model.C17, 'MWh']);
+      r(['WEG','Nanisindhodi MWh #2','D17', model.D17, 'MWh']);
+      r(['WEG','Nanisindhodi MWh #3','E17', model.E17, 'MWh']);
+      r(['WEG (calc)','Bitlavadia Share (kWh)','A18', model.A18, 'ROUNDUP((A17+B17)*1000*B15%*(1−C16%),0)']);
+      r(['WEG (calc)','Nanisindhodi Share (kWh)','C18', model.C18, 'ROUNDUP((C17+D17+E17)*1000*D15%*(1−C16%),0)']);
+      r(['WEG (calc)','Total Allocated (kWh)','A19', model.A19, 'A18+C18']);
+      r([]);
+
+      // Credits & Debits
+      r(['Wind Credits','Credit Board Charges','A24', model.A24, '₹']);
+      r(['Wind Credits','Credit ED Charges','B24', model.B24, '₹']);
+      r(['Wind Credits','Credit TDS','C24', model.C24, '₹']);
+      r(['Wind Debits','Debit Board Charges','D24', model.D24, '₹']);
+      r(['Wind Debits','Debit Electricity Duty','E24', model.E24, '₹']);
+      r(['Wind Debits','Debit Wheeling Charges','F24', model.F24, '₹']);
+      r(['Wind (calc)','Total Credit','A26', model.A26, 'A24+B24']);
+      r(['Wind (calc)','Total Debit','B26', model.B26, 'D24+E24+F24']);
+      r(['Wind (calc)','Net Wind Credit','C26', model.C26, 'A26−B26']);
+      r(['Wind (calc)','Wind Rate (₹/kWh)','B19', model.B19, 'IF(A19=0,0,C26/A19)']);
+      r(['Wind (calc)','Share 4.5 MW (₹)','F16', model.F16, 'B19×A18']);
+      r(['Wind (calc)','Share 14.7 MW (₹)','G16', model.G16, 'B19×C18']);
+      r([]);
+
+      // Final
+      r(['FINAL','Final Bill for IOM','—', model.FINAL, 'C9 − F16 − G16 − C24 + A31 + F9']);
+
+      // Convert to sheet
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      // Fit columns
+      const widths = [18,32,8,16,36].map(w=>({wch:w}));
+      ws['!cols'] = widths;
+      return ws;
+    }
+
+    function monthLabel(){
+      const m = $('billMonth').value || '';
+      if(!m) return new Date().toISOString().slice(0,7);
+      return m; // YYYY-MM
+    }
+
+    $('addSheet').addEventListener('click', ()=>{
+      const model = compute();
+      const label = monthLabel();
+      const name = label;
+      const ws = buildSheetData(model, label);
+      // Replace if exists
+      const idx = WB.SheetNames.indexOf(name);
+      if(idx>=0){ WB.Sheets[name] = ws; }
+      else{ XLSX.utils.book_append_sheet(WB, ws, name); }
+      alert('Month sheet "'+name+'" added/updated.');
+    });
+
+    $('downloadExcel').addEventListener('click', ()=>{
+      const fname = 'WEG_Billing_'+(monthLabel())+'.xlsx';
+      XLSX.writeFile(WB, fname);
+    });
+
+    $('resetAll').addEventListener('click', ()=>{
+      document.querySelectorAll('input').forEach(el=>{ if(el.type!=="month") el.value=''; });
+      compute();
+    });
+
+    // initial compute
+    compute();
+  </script>
+</body>
+</html>
