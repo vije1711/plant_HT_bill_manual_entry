@@ -332,6 +332,28 @@
       __xlsxLoading = null;
       return ok;
     }
+
+    // Restore the small UX helper to show a temporary busy state on buttons.
+    // Many toolbar handlers call withBusy('buttonId', async () => { ... }).
+    async function withBusy(btnId, fn){
+      const btn = document.getElementById(btnId);
+      const prevDisabled = btn ? btn.disabled : false;
+      const prevText = btn ? btn.textContent : '';
+      if (btn){
+        btn.disabled = true;
+        btn.dataset.prevText = prevText;
+        btn.textContent = 'Working…';
+      }
+      try{
+        return await fn();
+      } finally {
+        if (btn){
+          btn.disabled = prevDisabled;
+          btn.textContent = btn.dataset.prevText || prevText;
+          delete btn.dataset.prevText;
+        }
+      }
+    }
   </script>
   <script>
     // Utility helpers
