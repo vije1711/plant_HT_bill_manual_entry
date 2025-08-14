@@ -32,13 +32,19 @@
       color:var(--ink);
     }
     .wrap{max-width:1200px;margin:32px auto;padding:0 20px}
-    header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+    header{
+      position:sticky;top:0;z-index:10;
+      backdrop-filter:saturate(150%) blur(8px);
+      background:linear-gradient(180deg, rgba(15,23,42,.92), rgba(15,23,42,.66));
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px;
+    }
     .brand{display:flex;align-items:center;gap:12px}
     .brand svg{width:34px;height:34px}
     .brand h1{margin:0;font-size:22px;letter-spacing:.3px}
     .sub{color:var(--ink);font-size:13.5px}
 
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:10;padding:8px 0}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;padding:8px 0}
     button, .ghost{
       border:0;border-radius:12px;padding:10px 14px;font-weight:600;letter-spacing:.2px;
       background:linear-gradient(145deg, rgba(167,139,250,.25), rgba(34,211,238,.25));
@@ -81,13 +87,13 @@
     .kpi{
       display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-top:6px
     }
-    .kpi .box{grid-column:span 12}
+    .kpi .box{grid-column:span 12;min-height:104px}
     @media(min-width:980px){.kpi .box{grid-column:span 4}}
     .box{
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
       border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px
     }
-    .box h3{margin:0;color:var(--muted);font-size:12.5px;font-weight:600}
+    .box h3{margin:0;color:var(--muted);font-size:12.5px;font-weight:600;white-space:normal;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
     .box .v{margin-top:8px;font-size:22px;font-weight:800}
     .unit{font-size:12px;color:var(--muted);margin-left:6px;font-weight:600}
 
@@ -398,18 +404,23 @@
       return { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
 
-    // Attach inputs
-    document.querySelectorAll('input[type="text"]').forEach(el=>{
-      el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
-      el.addEventListener('blur', ()=>parseInrInput(el));
-    });
-    document.querySelectorAll('input:not([type="text"])').forEach(el=>{
-      el.addEventListener('input', compute);
-    });
-
-    // Excel workbook in memory
-    let WB = XLSX.utils.book_new();
-    WB.Props = { Title: 'WEG Billing Workbook', Author: 'WEG Billing Calculator', CreatedDate: new Date() };
+    // Excel workbook in memory (lazy init)
+    let WB = null;
+    let wbWarned = false;
+    function getWB(){
+      if(!window.XLSX){
+        if(!wbWarned){
+          toast('Excel library failed to load. Check network/CDN.', 'bad');
+          wbWarned = true;
+        }
+        return null;
+      }
+      if(!WB){
+        WB = XLSX.utils.book_new();
+        WB.Props = { Title:'WEG Billing Workbook', Author:'WEG Billing Calculator', CreatedDate:new Date() };
+      }
+      return WB;
+    }
 
     const LS_KEY = 'weg-billing-v1';
 
@@ -418,7 +429,8 @@
       document.querySelectorAll('input').forEach(el=>{
         inputs[el.id] = el.value;
       });
-      const data = { inputs, sheets: WB.SheetNames.slice() };
+      const _wb = getWB();
+      const data = { inputs, sheets: _wb ? _wb.SheetNames.slice() : [] };
       localStorage.setItem(LS_KEY, JSON.stringify(data));
     }
 
@@ -437,7 +449,8 @@
           });
         }
         if(Array.isArray(data.sheets)){
-          WB.SheetNames = data.sheets;
+          const _wb = getWB();
+          if(_wb) _wb.SheetNames = data.sheets;
         }
         return true;
       }catch(err){
@@ -449,7 +462,9 @@
     function refreshSheetList(){
       const list = $('sheetList');
       list.innerHTML = '';
-      WB.SheetNames.forEach(name=>{
+      const _wb = getWB();
+      if(!_wb) return;
+      _wb.SheetNames.forEach(name=>{
         const pill=document.createElement('button');
         pill.className='pill';
         pill.textContent=name;
@@ -548,75 +563,92 @@
           if(el.type==='text') parseInrInput(el);
         });
       }
+ 
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('input[type="text"]').forEach(el=>{
+        el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
+        el.addEventListener('blur', ()=>parseInrInput(el));
+      });
+      document.querySelectorAll('input:not([type="text"])').forEach(el=>{
+        el.addEventListener('input', compute);
+      });
 
-    $('addSheet').addEventListener('click', ()=>{
-      const model = compute();
-      const label = monthLabel();
-      const name = label;
-      const ws = buildSheetData(model, label);
-      // Replace if exists
-      const idx = WB.SheetNames.indexOf(name);
-      if(idx>=0){ WB.Sheets[name] = ws; }
-      else{ XLSX.utils.book_append_sheet(WB, ws, name); }
-      toast('Month sheet "'+name+'" added/updated.');
-      refreshSheetList();
-    });
+      const xlsxInput = $('uploadXlsx');
 
-    $('downloadExcel').addEventListener('click', ()=>{
-      const fname = 'WEG_Billing_'+(monthLabel())+'.xlsx';
-      XLSX.writeFile(WB, fname);
-    });
-
-    const xlsxInput = $('uploadXlsx');
-    $('uploadExcel').addEventListener('click', ()=> xlsxInput.click());
-    xlsxInput.addEventListener('change', e=>{
-      const file = e.target.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = ev=>{
-        const data = new Uint8Array(ev.target.result);
-        const wb = XLSX.read(data, {type:'array'});
-        let added = 0;
-        wb.SheetNames.forEach(name=>{
-          if(!WB.SheetNames.includes(name)){
-            WB.SheetNames.push(name);
-            added++;
-          }
-          WB.Sheets[name] = wb.Sheets[name];
-        });
-        toast(`Workbook merged: ${added} added / ${WB.SheetNames.length} total.`, 'good');
+      $('addSheet').addEventListener('click', ()=>{
+        const _wb = getWB(); if(!_wb) return;
+        const model = compute();
+        const label = monthLabel();
+        const name = label;
+        const ws = buildSheetData(model, label);
+        const idx = _wb.SheetNames.indexOf(name);
+        if(idx>=0){ _wb.Sheets[name] = ws; }
+        else{ XLSX.utils.book_append_sheet(_wb, ws, name); }
+        toast('Month sheet "'+name+'" added/updated.');
         refreshSheetList();
-      };
-      reader.readAsArrayBuffer(file);
-      e.target.value = '';
-    });
+      });
+
+      $('downloadExcel').addEventListener('click', ()=>{
+        const _wb = getWB(); if(!_wb) return;
+        const fname = 'WEG_Billing_'+(monthLabel())+'.xlsx';
+        XLSX.writeFile(_wb, fname);
+        toast('Workbook downloaded.', 'good');
+      });
+
+      $('uploadExcel').addEventListener('click', ()=> xlsxInput.click());
+      xlsxInput.addEventListener('change', e=>{
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ev=>{
+          try{
+            const _wb = getWB(); if(!_wb) return;
+            const data = new Uint8Array(ev.target.result);
+            const wb = XLSX.read(data, {type:'array'});
+            let added = 0;
+            wb.SheetNames.forEach(name=>{
+              if(!_wb.SheetNames.includes(name)){
+                _wb.SheetNames.push(name);
+                added++;
+              }
+              _wb.Sheets[name] = wb.Sheets[name];
+            });
+            toast(`Workbook merged: ${added} added / ${_wb.SheetNames.length} total.`, 'good');
+            refreshSheetList();
+          }catch(err){
+            console.error(err);
+            toast('Upload failed','bad');
+          }finally{
+            e.target.value='';
+          }
+        };
+        reader.onerror = err=>{ console.error(err); toast('Upload failed','bad'); e.target.value=''; };
+        reader.readAsArrayBuffer(file);
+      });
 
       $('resetAll').addEventListener('click', ()=>{
         document.querySelectorAll('input').forEach(el=>{
           if(el.type!=="month"){
             el.value='';
             el.dataset.value='';
-        }
-      });
-      compute();
+          }
+        });
+        compute();
       });
 
-      // Pre-fill form with sample screenshot values
       $('resetSample').addEventListener('click', ()=>{
         fillSampleData();
         const model = compute();
-        // QA sanity checks for SAMPLE data
-        // Expected: A9 = 14350, C9 = 17220, FINAL = 16700
-        // These assertions run only when the Sample Data button is used
         console.assert(model.A9 === 14350, `A9 expected 14350, got ${model.A9}`);
         console.assert(model.C9 === 17220, `C9 expected 17220, got ${model.C9}`);
         console.assert(Math.round(model.FINAL) === 16700, `FINAL expected 16700, got ${model.FINAL}`);
       });
 
-    const restored = restore();
-    compute();
-    refreshSheetList();
-    if(restored) toast('Previous data restored.');
+      const restored = restore();
+      compute();
+      refreshSheetList();
+      if(restored) toast('Previous data restored.');
+    });
   </script>
 </body>
 </html>
