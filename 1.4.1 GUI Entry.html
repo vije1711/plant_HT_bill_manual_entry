@@ -110,6 +110,7 @@
     .hr{height:1px;background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03));margin:14px 0}
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:12px}
+    .pill button{padding:2px 8px}
     .pills{display:flex;gap:6px;flex-wrap:wrap}
     .right{float:right}
 
@@ -158,6 +159,7 @@
         </label>
         <button id="downloadExcel">Download Excel</button>
           <button class="ghost" id="resetAll">Reset</button>
+          <button class="ghost" id="clearSheets">Clear Sheets</button>
           <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
         </div>
       </header>
@@ -524,6 +526,7 @@
         inputs[el.id] = el.value;
       });
       const _wb = getWB();
+      canonicalizeWorkbook();
       const data = { inputs, sheets: _wb ? _wb.SheetNames.slice() : [] };
       localStorage.setItem(LS_KEY, JSON.stringify(data));
     }
@@ -556,20 +559,36 @@
     }
 
     function refreshSheetList(){
+      canonicalizeWorkbook();
       const list = $('sheetList');
       list.innerHTML = '';
       const _wb = getWB();
       if(!_wb) return;
-      const names = normalizeSheetNames(_wb.SheetNames || []);
-      _wb.SheetNames = names; // keep workbook canonical and deduped
+      const names = _wb.SheetNames || [];
       names.forEach(name=>{
-        const pill=document.createElement('button');
-        pill.className='pill';
-        pill.textContent=name;
-        pill.addEventListener('click', ()=>{
-          $('billMonth').value = name;
-          compute();
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        const btnGo = document.createElement('button');
+        btnGo.className = 'ghost';
+        btnGo.textContent = name;
+        btnGo.addEventListener('click', () => { $('billMonth').value = name; compute(); });
+
+        const btnDel = document.createElement('button');
+        btnDel.className = 'ghost';
+        btnDel.setAttribute('aria-label', `Remove ${name}`);
+        btnDel.textContent = '×';
+        btnDel.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if(!(await confirmModal(`Remove sheet "${name}" from the workbook?`))) return;
+          const wb = getWB(); if(!wb) return;
+          delete wb.Sheets[name];
+          wb.SheetNames = wb.SheetNames.filter(n => n !== name);
+          canonicalizeWorkbook();
+          toast(`Removed sheet: ${name}`, 'good');
+          refreshSheetList();
         });
+
+        pill.append(btnGo, btnDel);
         list.appendChild(pill);
       });
       persistDebounced();
@@ -687,6 +706,13 @@
         return Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b));
       }
 
+      function canonicalizeWorkbook(){
+        const wb = getWB(); if(!wb) return;
+        wb.SheetNames = normalizeSheetNames(
+          (wb.SheetNames || []).filter(n => !!wb.Sheets[n])
+        );
+      }
+
       function fillSampleData(){
         Object.entries(SAMPLE).forEach(([id,val])=>{
           const el = $(id);
@@ -746,7 +772,7 @@
         const exists = _wb.SheetNames.includes(label);
         _wb.Sheets[label] = ws;
         if (!exists) _wb.SheetNames.push(label);
-        _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
+        canonicalizeWorkbook();
         toast(`${exists ? 'Updated' : 'Added'} sheet: ${label}`, 'good');
         refreshSheetList();
       }));
@@ -757,25 +783,27 @@
         __dlInFlight = true;
         try{
           if (!(await loadXLSX())) return;
-          const _wb = getWB(); if(!_wb) return;
-          const auto = $('autoUpdateOnDownload')?.checked;
+        const _wb = getWB(); if(!_wb) return;
+        const auto = $('autoUpdateOnDownload')?.checked;
 
-          if (auto) {
-            const model = compute(true);
-            if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
-            const label = monthLabel();
-            const ws = buildSheetData(model, label);
-            const exists = _wb.SheetNames.includes(label);
-            _wb.Sheets[label] = ws;
-            if(!exists) _wb.SheetNames.push(label);
-          } else if ((_wb.SheetNames?.length || 0) === 0) {
-            toast('No sheets to download. Turn on auto‑update or add a month sheet first.', 'warn');
-            return;
-          }
+        if (auto) {
+          const model = compute(true);
+          if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
+          const label = monthLabel();
+          const ws = buildSheetData(model, label);
+          const exists = _wb.SheetNames.includes(label);
+          _wb.Sheets[label] = ws;
+          if(!exists) _wb.SheetNames.push(label);
+        }
 
-          _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
-          XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
-          toast('Workbook downloaded.', 'good');
+        canonicalizeWorkbook();
+        if ((_wb.SheetNames?.length || 0) === 0) {
+          toast('No sheets to download. Turn on auto‑update or add a month sheet first.', 'warn');
+          return;
+        }
+
+        XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
+        toast('Workbook downloaded.', 'good');
         } finally { __dlInFlight = false; }
       }));
 
@@ -809,7 +837,7 @@
               if(!_wb.SheetNames.includes(name)) _wb.SheetNames.push(name);
               replaced++;
             }
-            _wb.SheetNames = normalizeSheetNames(_wb.SheetNames);
+            canonicalizeWorkbook();
             toast(`Workbook merged: ${added} added, ${replaced} replaced.`, 'good');
             refreshSheetList();
           }catch(err){
@@ -821,6 +849,16 @@
         };
         reader.onerror = err=>{ console.error(err); toast('Upload failed','bad'); e.target.value=''; };
         reader.readAsArrayBuffer(file);
+      });
+
+      $('clearSheets').addEventListener('click', async () => {
+        if(!(await confirmModal('Remove ALL sheets from the workbook?'))) return;
+        const wb = getWB(); if(!wb) return;
+        (wb.SheetNames || []).forEach(n => delete wb.Sheets[n]);
+        wb.SheetNames = [];
+        canonicalizeWorkbook();
+        toast('All sheets cleared.', 'good');
+        refreshSheetList();
       });
 
       $('resetAll').addEventListener('click', ()=>{
