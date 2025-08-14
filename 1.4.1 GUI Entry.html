@@ -604,7 +604,13 @@
       // Pre-fill form with sample screenshot values
       $('resetSample').addEventListener('click', ()=>{
         fillSampleData();
-        compute();
+        const model = compute();
+        // QA sanity checks for SAMPLE data
+        // Expected: A9 = 14350, C9 = 17220, FINAL = 16700
+        // These assertions run only when the Sample Data button is used
+        console.assert(model.A9 === 14350, `A9 expected 14350, got ${model.A9}`);
+        console.assert(model.C9 === 17220, `C9 expected 17220, got ${model.C9}`);
+        console.assert(Math.round(model.FINAL) === 16700, `FINAL expected 16700, got ${model.FINAL}`);
       });
 
     const restored = restore();
