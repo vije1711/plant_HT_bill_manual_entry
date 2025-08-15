@@ -25,7 +25,7 @@
   function fmtMwh(v){ return MWH.format(Number.isFinite(v) ? v : 0); }
   function fmtRate(v){ return RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh'; }
 
-  function generateIOMPDF(model, monthLabel){
+  global.generateIOMPDF = function generateIOMPDF(model, monthStr){
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
     const vendorLines = model.vendorLines || [];
     const bankLines = model.bankLines || [];
@@ -37,7 +37,7 @@
         ],
         margin:[0,0,0,10]
       },
-      { text: `WEG Billing – ${monthLabel}`, style: 'header' },
+      { text: `WEG Billing – ${monthStr}`, style: 'header' },
       { text: 'HT Bill', style: 'subheader', margin: [0, 10, 0, 4] },
       {
         style: 'table',
@@ -142,11 +142,9 @@
         table: { margin: [0, 0, 0, 4] },
         bank: { fillColor: '#ffff00', color: 'black', bold: true }
       },
-      defaultStyle: { fontSize: 10 }
+      defaultStyle: { font: 'Noto', fontSize: 10 }
     };
-    global.pdfMake.createPdf(docDefinition).download(`IOM_${monthLabel}.pdf`);
-  }
-
-  global.generateIOMPDF = generateIOMPDF;
+    global.pdfMake.createPdf(docDefinition).download(`IOM_${monthStr}.pdf`);
+  };
   global.__iomPdfFmt = { fmtCurrency, fmtKwh, fmtMwh, fmtRate };
 })(typeof window !== 'undefined' ? window : globalThis);

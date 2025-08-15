@@ -284,6 +284,23 @@
   <!-- SheetJS for Excel export -->
   <!-- Prefer a local copy for offline/file:// usage; keep dynamic loader as fallback -->
   <script src="./xlsx.full.min.js"></script>
+  <!-- pdfMake and fonts for PDF export (local files only) -->
+  <script src="./pdfmake.min.js"></script>
+  <script src="./vfs_fonts.js"></script>
+  <script type="module">
+    import vfs from './vfs_noto_deva.js';
+    if (vfs && window.pdfMake) {
+      window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, vfs);
+      window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, {
+        Noto: {
+          normal: 'NotoSansDevanagari-Regular.ttf',
+          bold: 'NotoSansDevanagari-Bold.ttf',
+          italics: 'NotoSansDevanagari-Regular.ttf',
+          bolditalics: 'NotoSansDevanagari-Bold.ttf'
+        }
+      });
+    }
+  </script>
   <script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
@@ -334,59 +351,6 @@
       })();
       const ok = await __xlsxLoading;
       __xlsxLoading = null;
-      return ok;
-    }
-
-    // Single-flight, on-demand pdfMake loader
-    // Tries: ?pdf=override → ./pdfmake.min.js (local) → CDNs
-    let __pdfLoading = null;
-    async function loadPDF(){
-      if (window.pdfMake) return true;
-      if (__pdfLoading) return __pdfLoading;
-      __pdfLoading = (async () => {
-        const qp = new URLSearchParams(location.search);
-        const override = qp.get('pdf');
-        const urls = [
-          ...(override ? [override] : []),
-          './pdfmake.min.js',
-          'https://cdn.jsdelivr.net/npm/pdfmake@0.2.7/build/pdfmake.min.js',
-          'https://unpkg.com/pdfmake@0.2.7/build/pdfmake.min.js'
-        ];
-        let lastTried = '';
-        for(const src of urls){
-          lastTried = src;
-          try{
-            await new Promise((resolve, reject) => {
-              const s = document.createElement('script');
-              s.src = src;
-              s.async = true;
-              s.onload = resolve;
-              s.onerror = reject;
-              document.head.appendChild(s);
-            });
-            if(window.pdfMake) break;
-          }catch{/* try next */}
-        }
-        if(!window.pdfMake){
-          toast(`PDF library failed to load (last: ${lastTried}). You are likely offline or a CSP blocked CDNs. Place "pdfmake.min.js" next to this HTML or pass ?pdf=/path/to/pdfmake.min.js`, 'bad');
-          return false;
-        }
-        for(const src of ['./vfs_fonts.js','./vfs_noto_deva.js']){
-          try{
-            await new Promise((resolve, reject) => {
-              const s = document.createElement('script');
-              s.src = src;
-              s.async = true;
-              s.onload = resolve;
-              s.onerror = reject;
-              document.head.appendChild(s);
-            });
-          }catch{/* ignore */}
-        }
-        return true;
-      })();
-      const ok = await __pdfLoading;
-      __pdfLoading = null;
       return ok;
     }
 
@@ -897,11 +861,18 @@
         } finally { __dlInFlight = false; }
       }));
 
+            // Download IOM PDF
       $('downloadPDF').addEventListener('click', () => withBusy('downloadPDF', async () => {
-        if (!(await loadPDF())) return;
-        const m = compute(true);
-        if (!m) { toast('Cannot download: fix inputs first.', 'warn'); return; }
-        generateIOMPDF(m, monthLabel());
+        const model = compute(true);
+        if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
+
+        try {
+          window.generateIOMPDF(model, monthLabel());
+          toast('IOM PDF downloaded.', 'good');
+        } catch (e) {
+          console.error(e);
+          toast('PDF generation failed. See console for details.', 'bad');
+        }
       }));
 
       $('uploadExcel').addEventListener('click', () => withBusy('uploadExcel', async () => {
