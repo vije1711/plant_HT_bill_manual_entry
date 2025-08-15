@@ -866,11 +866,11 @@
         const model = compute(true);
         if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
         const label = monthLabel();
-        const canSavePicker = !!(window.showSaveFilePicker) && isSecureContext;
-
+        const canSavePicker = typeof window.showSaveFilePicker === 'function' && isSecureContext;
         try {
-          if (canSavePicker) {
-            const blob = await generateIOMPDFBlob(model, label);
+          if (canSavePicker && typeof window.generateIOMPDFBlob === 'function') {
+            const blob = await window.generateIOMPDFBlob(model, label);
+            if (!blob) throw new Error('No PDF generated.');
             const handle = await window.showSaveFilePicker({
               suggestedName: `IOM_${label}.pdf`,
               types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }]
@@ -880,7 +880,7 @@
             await ws.close();
             toast('IOM PDF saved to the chosen location.', 'good');
           } else {
-            generateIOMPDF(model, label);
+            window.generateIOMPDF(model, label);
             if (location.protocol === 'file:') {
               toast('Your browser saved the PDF to its default Downloads folder. For a Save As dialog, open this file via http://localhost or HTTPS.', 'info');
             } else {
@@ -888,6 +888,10 @@
             }
           }
         } catch (e) {
+          if (e.name === 'AbortError' || e.message === 'The user aborted a request.') {
+            toast('PDF save was cancelled.', 'info');
+            return;
+          }
           console.error(e);
           toast('PDF generation failed. See console for details.', 'bad');
         }
