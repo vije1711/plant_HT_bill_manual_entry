@@ -21,8 +21,10 @@ It is designed to run entirely in the browser without a server component.
 - `xlsx.full.min.js` - Bundled SheetJS library used for Excel import/export.
 
 ## Development Notes
-There is currently no build system or automated test suite.
-Running `npm test` will fail until a `package.json` file and tests are added.
+This project uses a `package.json` for dependency management and includes `jsdom` as a development dependency. A `test` script is provided to run the Node-based test suite.
+
+### Testing
+Install dependencies with `npm install` and run tests with `npm test`.
 
 ## License
 No license information has been provided.
