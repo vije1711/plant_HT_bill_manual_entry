@@ -17,6 +17,7 @@ It is designed to run entirely in the browser without a server component.
 3. Open `1.4.1 GUI Entry.html` in a modern web browser.
 4. Enter billing values in the provided fields.
 5. Use the **Compute** button to calculate totals, **Reset** to clear fields, and **Save**/**Restore** for working with stored data.
+6. Click **Download PDF** to export a printable PDF version of the bill.
 
 ## Repository Structure
 - `1.4.1 GUI Entry.html` - Main application interface and logic.
