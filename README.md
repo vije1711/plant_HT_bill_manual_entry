@@ -13,9 +13,10 @@ It is designed to run entirely in the browser without a server component.
 
 ## Getting Started
 1. Clone or download the repository.
-2. Open `1.4.1 GUI Entry.html` in a modern web browser.
-3. Enter billing values in the provided fields.
-4. Use the **Compute** button to calculate totals, **Reset** to clear fields, and **Save**/**Restore** for working with stored data.
+2. Run `npm install` to install dependencies (required before running tests).
+3. Open `1.4.1 GUI Entry.html` in a modern web browser.
+4. Enter billing values in the provided fields.
+5. Use the **Compute** button to calculate totals, **Reset** to clear fields, and **Save**/**Restore** for working with stored data.
 
 ## Repository Structure
 - `1.4.1 GUI Entry.html` - Main application interface and logic.
