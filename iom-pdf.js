@@ -25,8 +25,7 @@
   function fmtMwh(v){ return MWH.format(Number.isFinite(v) ? v : 0); }
   function fmtRate(v){ return RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh'; }
 
-  global.generateIOMPDF = function generateIOMPDF(model, monthStr){
-    if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
+  function buildIOMDocDefinition(model, monthStr){
     const vendorLines = model.vendorLines || [];
     const bankLines = model.bankLines || [];
     const content = [
@@ -134,7 +133,7 @@
       });
     }
 
-    const docDefinition = {
+    return {
       content,
       styles: {
         header: { fontSize: 16, bold: true, alignment: 'center' },
@@ -144,7 +143,28 @@
       },
       defaultStyle: { font: 'Noto', fontSize: 10 }
     };
-    global.pdfMake.createPdf(docDefinition).download(`IOM_${monthStr}.pdf`);
-  };
+  }
+
+  function generateIOMPDF(model, monthStr){
+    if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
+    global.pdfMake.createPdf(buildIOMDocDefinition(model, monthStr)).download(`IOM_${monthStr}.pdf`);
+  }
+
+  function generateIOMPDFOpen(model, monthStr){
+    if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
+    global.pdfMake.createPdf(buildIOMDocDefinition(model, monthStr)).open();
+  }
+
+  function generateIOMPDFBlob(model, monthStr){
+    if(!global.pdfMake){ console.error('pdfMake not loaded'); return Promise.reject(new Error('pdfMake not loaded')); }
+    return new Promise(resolve => {
+      global.pdfMake.createPdf(buildIOMDocDefinition(model, monthStr)).getBlob(resolve);
+    });
+  }
+
+  global.buildIOMDocDefinition = buildIOMDocDefinition;
+  global.generateIOMPDF = generateIOMPDF;
+  global.generateIOMPDFOpen = generateIOMPDFOpen;
+  global.generateIOMPDFBlob = generateIOMPDFBlob;
   global.__iomPdfFmt = { fmtCurrency, fmtKwh, fmtMwh, fmtRate };
 })(typeof window !== 'undefined' ? window : globalThis);
