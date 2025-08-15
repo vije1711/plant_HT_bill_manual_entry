@@ -284,24 +284,6 @@
   <!-- SheetJS for Excel export -->
   <!-- Prefer a local copy for offline/file:// usage; keep dynamic loader as fallback -->
   <script src="./xlsx.full.min.js"></script>
-  <!-- pdfMake and fonts for PDF export (local files only) -->
-  <script src="./pdfmake.min.js"></script>
-  <script src="./vfs_fonts.js"></script>
-  <script type="module">
-    import vfs from './vfs_noto_deva.js';
-    if (vfs && window.pdfMake) {
-      window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, vfs);
-      window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, {
-        Noto: {
-          normal: 'NotoSansDevanagari-Regular.ttf',
-          bold: 'NotoSansDevanagari-Bold.ttf',
-          italics: 'NotoSansDevanagari-Regular.ttf',
-          bolditalics: 'NotoSansDevanagari-Bold.ttf'
-        }
-      });
-    }
-  </script>
-  <script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
       const t = document.createElement('div');
@@ -354,14 +336,76 @@
       return ok;
     }
 
+    async function __loadScriptOnce(src){
+      if (document.querySelector(`script[data-src="${src}"]`)) return;
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.dataset.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
     async function ensurePDFReady(){
-      if (window.pdfMake) return true;
-      if (typeof window.loadPDF === 'function') {
-        try { await window.loadPDF(); } catch { /* ignore */ }
-        if (window.pdfMake) return true;
+      // 0) pdfMake present?
+      if (!window.pdfMake){
+        // try local offline file if not already injected by a static tag
+        try { await __loadScriptOnce('./pdfmake.min.js'); } catch(e){}
       }
-      toast('PDF generation requires including pdfmake.min.js and vfs_fonts.js.', 'warn');
-      return false;
+      if (!window.pdfMake){
+        toast('PDF engine missing: include ./pdfmake.min.js', 'bad');
+        return false;
+      }
+
+      // 1) Ensure VFS populated (base fonts)
+      const hasVfs = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
+      if (!hasVfs){
+        try {
+          await __loadScriptOnce('./vfs_fonts.js'); // optional but usually present
+        } catch(e){}
+      }
+
+      // 2) Try to merge Noto Devanagari (ESM). This may fail on file://; that’s okay.
+      try {
+        // If modules are supported, import and merge
+        if (!window.__NOTO_MERGED){
+          const mod = await import('./vfs_noto_deva.js');
+          if (mod && mod.default){
+            window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, mod.default);
+            window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, {
+              Noto: {
+                normal: 'NotoSansDevanagari-Regular.ttf',
+                bold: 'NotoSansDevanagari-Bold.ttf',
+                italics: 'NotoSansDevanagari-Regular.ttf',
+                bolditalics: 'NotoSansDevanagari-Bold.ttf'
+              }
+            });
+            window.__NOTO_MERGED = true;
+          }
+        }
+      } catch(e){
+        // Non-fatal: proceed with whatever VFS exists
+        if (window.DEV) console.warn('Noto VFS merge skipped:', e);
+      }
+
+      // 3) Ensure iom-pdf generator is present
+      if (typeof window.generateIOMPDF !== 'function' || typeof window.generateIOMPDFBlob !== 'function'){
+        try { await __loadScriptOnce('./iom-pdf.js'); } catch(e){}
+      }
+
+      // 4) Final checks + guidance
+      if (!window.pdfMake || !window.pdfMake.vfs || !Object.keys(window.pdfMake.vfs).length){
+        toast('PDF fonts/VFS not loaded. Ensure ./vfs_fonts.js or Noto VFS is present.', 'bad');
+        return false;
+      }
+      if (typeof window.generateIOMPDF !== 'function'){
+        toast('PDF template (iom-pdf.js) not loaded.', 'bad');
+        return false;
+      }
+      return true;
     }
 
     // Restore the small UX helper to show a temporary busy state on buttons.
@@ -873,15 +917,21 @@
 
             // Download IOM PDF
       $('downloadPDF').addEventListener('click', () => withBusy('downloadPDF', async () => {
-        const model = compute(true);
-        if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
-        if (!(await ensurePDFReady())) return;
-        const label = monthLabel();
-        const canSavePicker = typeof window.showSaveFilePicker === 'function' && isSecureContext;
         try {
-          if (canSavePicker && typeof window.generateIOMPDFBlob === 'function') {
+          // Ensure pdf engine + VFS + generator ready
+          const ready = await ensurePDFReady();
+          if (!ready) return;
+
+          // Validate inputs
+          const model = compute(true);
+          if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
+          const label = monthLabel();
+
+          const canSavePicker = (typeof window.showSaveFilePicker === 'function') && isSecureContext;
+          if (canSavePicker && typeof window.generateIOMPDFBlob === 'function'){
+            // Native Save As flow
             const blob = await window.generateIOMPDFBlob(model, label);
-            if (!blob) throw new Error('No PDF generated.');
+            if (!blob) throw new Error('No PDF generated');
             const handle = await window.showSaveFilePicker({
               suggestedName: `IOM_${label}.pdf`,
               types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }]
@@ -891,19 +941,20 @@
             await ws.close();
             toast('IOM PDF saved to the chosen location.', 'good');
           } else {
+            // Fallback: browser download to default Downloads
             window.generateIOMPDF(model, label);
             if (location.protocol === 'file:') {
-              toast('Your browser saved the PDF to its default Downloads folder. For a Save As dialog, open this file via http://localhost or HTTPS.', 'info');
+              toast('Saved to your default Downloads. For a Save As dialog, open via http://localhost or HTTPS.', 'info');
             } else {
-              toast('PDF saved to your browser’s default download location. Enable “Ask where to save each file” to choose a folder.', 'info');
+              toast('Saved to your default download location. Enable “Ask where to save each file” in browser settings to choose a folder.', 'info');
             }
           }
-        } catch (e) {
-          if (e.name === 'AbortError' || e.message === 'The user aborted a request.') {
+        } catch (e){
+          if (e?.name === 'AbortError') {
             toast('PDF save was cancelled.', 'info');
             return;
           }
-          console.error(e);
+          console.error('PDF save failed:', e);
           toast('PDF generation failed. See console for details.', 'bad');
         }
       }));
