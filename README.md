@@ -27,7 +27,10 @@ It is designed to run entirely in the browser without a server component.
 - `test/` - Node-based tests, currently including `basic.test.js` for sample calculations and PDF generation.
 
 ## Development Notes
-This project uses a `package.json` for dependency management and includes `jsdom` as a development dependency. A `test` script is provided to run the Node-based test suite.
+This project uses a `package.json` for dependency management and includes a `test` script to run the Node-based test suite.
+
+### Development Dependencies
+- `jsdom` – simulates a browser DOM so tests can run in Node.js without a real browser.
 
 ### Testing
 Install dependencies with `npm install` and run tests with `npm test`.
