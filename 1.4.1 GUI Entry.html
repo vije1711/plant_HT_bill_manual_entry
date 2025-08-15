@@ -354,6 +354,16 @@
       return ok;
     }
 
+    async function ensurePDFReady(){
+      if (window.pdfMake) return true;
+      if (typeof window.loadPDF === 'function') {
+        try { await window.loadPDF(); } catch { /* ignore */ }
+        if (window.pdfMake) return true;
+      }
+      toast('PDF generation requires including pdfmake.min.js and vfs_fonts.js.', 'warn');
+      return false;
+    }
+
     // Restore the small UX helper to show a temporary busy state on buttons.
     // Many toolbar handlers call withBusy('buttonId', async () => { ... }).
     async function withBusy(btnId, fn){
@@ -865,6 +875,7 @@
       $('downloadPDF').addEventListener('click', () => withBusy('downloadPDF', async () => {
         const model = compute(true);
         if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
+        if (!(await ensurePDFReady())) return;
         const label = monthLabel();
         const canSavePicker = typeof window.showSaveFilePicker === 'function' && isSecureContext;
         try {
