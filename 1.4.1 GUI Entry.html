@@ -158,9 +158,10 @@
           <span>Auto‑update month on Download</span>
         </label>
         <button id="downloadExcel">Download Excel</button>
-          <button class="ghost" id="resetAll">Reset</button>
-          <button class="ghost" id="clearSheets">Clear Sheets</button>
-          <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
+        <button id="downloadPDF">Download IOM PDF</button>
+        <button class="ghost" id="resetAll">Reset</button>
+        <button class="ghost" id="clearSheets">Clear Sheets</button>
+        <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
         </div>
       </header>
 
@@ -283,9 +284,6 @@
   <!-- SheetJS for Excel export -->
   <!-- Prefer a local copy for offline/file:// usage; keep dynamic loader as fallback -->
   <script src="./xlsx.full.min.js"></script>
-  <!-- pdfMake for PDF export -->
-  <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.7/build/pdfmake.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.7/build/vfs_fonts.js"></script>
   <script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
@@ -336,6 +334,47 @@
       })();
       const ok = await __xlsxLoading;
       __xlsxLoading = null;
+      return ok;
+    }
+
+    // Single-flight, on-demand pdfMake loader
+    async function loadPDF(){
+      if (window.pdfMake && window.pdfMake.createPdf) return true;
+      if (loadPDF.__p) return loadPDF.__p;
+      const qp = new URLSearchParams(location.search);
+      const override = qp.get('pdf');
+      const urls = [
+        ...(override ? [override] : []),
+        './pdfmake.min.js',
+        'https://cdn.jsdelivr.net/npm/pdfmake@0.2.7/build/pdfmake.min.js',
+        'https://unpkg.com/pdfmake@0.2.7/build/pdfmake.min.js'
+      ];
+      const vfsUrls = [
+        './vfs_fonts.js',
+        './vfs_noto_deva.js'
+      ];
+      loadPDF.__p = (async () => {
+        let last = '';
+        for (const src of urls){
+          last = src;
+          try {
+            await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src=src; s.async=true; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+            if (window.pdfMake && window.pdfMake.createPdf) break;
+          } catch {}
+        }
+        if (!(window.pdfMake && window.pdfMake.createPdf)) {
+          toast(`PDF library failed to load (last: ${last}). Place "pdfmake.min.js" next to this HTML or pass ?pdf=/path/pdfmake.min.js`, 'bad');
+          return false;
+        }
+        for (const src of vfsUrls){
+          try {
+            await new Promise((res, rej)=>{ const s=document.createElement('script'); s.src=src; s.async=true; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+          } catch {}
+        }
+        return true;
+      })();
+      const ok = await loadPDF.__p;
+      loadPDF.__p = null;
       return ok;
     }
 
@@ -844,6 +883,13 @@
         XLSX.writeFile(_wb, `WEG_Billing_${monthLabel()}.xlsx`);
         toast('Workbook downloaded.', 'good');
         } finally { __dlInFlight = false; }
+      }));
+
+      $('downloadPDF').addEventListener('click', () => withBusy('downloadPDF', async () => {
+        if (!(await loadPDF())) return;
+        const m = compute(true);
+        if (!m) { toast('Cannot create PDF: fix inputs first.', 'warn'); return; }
+        generateIOMPDF(m, monthLabel());
       }));
 
       $('uploadExcel').addEventListener('click', () => withBusy('uploadExcel', async () => {
