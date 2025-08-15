@@ -597,7 +597,19 @@
     function buildSheetData(model, monthLabel){
       const rows = [];
       const r = (...a)=>rows.push(a);
-      r(['WEG Billing – Month', monthLabel]);
+
+      // Emit TEXT cells for anything Excel could treat as a formula.
+      // IMPORTANT: do NOT prefix apostrophes; just use t:'s' so Excel stores literal text.
+      const DANGEROUS_LEAD = /^([=+\-@])/;
+      const looksLikeYYYYMM = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+      function forceText(v){
+        if (v == null || v === '') return { t:'s', v:'' };
+        const s = String(v);
+        if (DANGEROUS_LEAD.test(s) || looksLikeYYYYMM(s)) return { t:'s', v:s };
+        return { t:'s', v:s };
+      }
+
+      r([monthLabel]);
       r(['Generated at', new Date().toLocaleString()]);
       r([]);
 
@@ -613,8 +625,8 @@
       r(['HT Bill','TOU','H4', model.H4, '₹']);
       r(['HT Bill','GT Charges','I4', model.I4, '₹']);
       // mark calculated rows as currency so Excel formats them
-      r(['HT Bill (calc)','Tot Consumption Charge','A9', model.A9, '₹']);
-      r(['HT Bill (calc)','ED @20%','B9', model.B9, '₹']);
+      r(['HT Bill (calc)','Total Consumption Charge','A9', model.A9, '₹']);
+      r(['HT Bill (calc)','ED @ 20%','B9', model.B9, '₹']);
       r(['HT Bill (calc)','Current Month Bill','C9', model.C9, '₹']);
       r([]);
 
@@ -637,9 +649,9 @@
       r(['WEG','Nanisindhodi MWh #1','C17', model.C17, 'MWh']);
       r(['WEG','Nanisindhodi MWh #2','D17', model.D17, 'MWh']);
       r(['WEG','Nanisindhodi MWh #3','E17', model.E17, 'MWh']);
-      r(['WEG (calc)','Bitlavadia Share','A18', model.A18, 'kWh']);
-      r(['WEG (calc)','Nanisindhodi Share','C18', model.C18, 'kWh']);
-      r(['WEG (calc)','Total Allocated','A19', model.A19, 'kWh']);
+      r(['WEG (calc)','Bitlavadia Share (kWh)','A18', model.A18, 'kWh']);
+      r(['WEG (calc)','Nanisindhodi Share (kWh)','C18', model.C18, 'kWh']);
+      r(['WEG (calc)','Total Allocated (kWh)','A19', model.A19, 'kWh']);
       r([]);
 
       // Credits & Debits
@@ -652,7 +664,7 @@
       r(['Wind (calc)','Total Credit','A26', model.A26, '₹']);
       r(['Wind (calc)','Total Debit','B26', model.B26, '₹']);
       r(['Wind (calc)','Net Wind Credit','C26', model.C26, '₹']);
-      r(['Wind (calc)','Wind Rate','B19', model.B19, '₹/kWh']);
+      r(['Wind (calc)','Wind Rate (₹/kWh)','B19', model.B19, '₹/kWh']);
       r(['Wind (calc)','Share 4.5 MW (₹)','F16', model.F16, '₹']);
       r(['Wind (calc)','Share 14.7 MW (₹)','G16', model.G16, '₹']);
       r([]);
@@ -660,23 +672,46 @@
       // Final
       r(['FINAL','Final Bill for IOM','—', model.FINAL, '₹']);
 
-      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const valueCol = 3;           // VALUE column index
+      const firstDataRow = 4;       // data start (after month, "Generated at", blank, header)
+
+      // Build typed AOA: force TEXT in A,B,C,E; VALUE stays raw.
+      const typedRows = rows.map((row) => {
+        if (!row || !row.length) return row;
+        const out = row.slice();
+
+        // Force text on A,B,C,E
+        [0,1,2,4].forEach(ci => {
+          const v = out[ci];
+          if (v != null) out[ci] = forceText(v);
+        });
+
+        // Ensure VALUE blanks remain blank
+        if (out[valueCol] == null || out[valueCol] === '') out[valueCol] = { t:'z' };
+
+        return out;
+      });
+
+      // Create sheet and additionally force A1 (month) to text
+      const ws = XLSX.utils.aoa_to_sheet(typedRows);
+      if (rows[0] && rows[0][0] != null) ws['A1'] = forceText(rows[0][0]);
+
       // VALUE column formatting
-      const valueCol = 3; // zero-based index
-      const firstDataRow = 4; // skip header rows
       const lastRow = rows.length - 1;
       for (let r = firstDataRow; r <= lastRow; r++) {
         const addr = XLSX.utils.encode_cell({ r, c: valueCol });
         const cell = ws[addr];
         if (!cell || typeof cell.v !== 'number') continue;
-        const unit = rows[r][4];
+        // Read unit from the typed row so objects and primitives both work
+        const unitCell = typedRows[r] && typedRows[r][4];
+        const unit = unitCell && (unitCell.v ?? unitCell);
         if (unit === '%') {
           cell.v = cell.v / 100;
           cell.z = '0.00%';
         } else if (unit === '₹') {
-          cell.z = '₹#,##0.00';
+          cell.z = '#,##0.00'; // leave symbol to Excel UI/locale
         } else if (unit === '₹/kWh') {
-          cell.z = '₹#,##0.000000';
+          cell.z = '#,##0.000000';
         } else if (unit === 'MWh') {
           cell.z = '0.000';
         } else if (unit === 'kWh') {
@@ -686,9 +721,8 @@
         }
         cell.t = 'n';
       }
-      // Column widths and AutoFilter
+      // Column widths; keep AutoFilter disabled to avoid Excel turning it into a Table
       ws['!cols'] = [{wch:18},{wch:32},{wch:8},{wch:16},{wch:36}];
-      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:firstDataRow,c:0}, e:{r:lastRow,c:4} }) };
       return ws;
     }
 
