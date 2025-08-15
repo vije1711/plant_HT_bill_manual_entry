@@ -30,4 +30,4 @@ This project uses a `package.json` for dependency management and includes `jsdom
 Install dependencies with `npm install` and run tests with `npm test`.
 
 ## License
-No license information has been provided.
+This project is licensed under the ISC License. See [LICENSE](LICENSE).
