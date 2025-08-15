@@ -37,3 +37,6 @@ Install dependencies with `npm install` and run tests with `npm test`.
 
 ## License
 This project is licensed under the ISC License. See [LICENSE](LICENSE).
+
+## Contributing
+Contributions are welcome! Please extend the test suite where possible and run `npm test` before submitting any changes.
