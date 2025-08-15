@@ -596,18 +596,18 @@
 
     function buildSheetData(model, monthLabel){
       const rows = [];
-      const r = (...a)=>rows.push(a);
+      // Always push a row array, even if r(['a','b']) or r('a','b') is used.
+      function r(...cells){
+        const row = (cells.length === 1 && Array.isArray(cells[0])) ? cells[0] : cells;
+        rows.push(row);
+      }
 
-      // Emit TEXT cells for anything Excel could treat as a formula.
-      // Only coerce when needed; Excel stores plain text without special handling.
       const DANGEROUS_LEAD = /^([=+\-@])/;
       const looksLikeYYYYMM = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
       function forceText(v){
-        if (v == null) return v;
+        if (v == null) return '';
         const s = String(v);
-        if (s === '' || DANGEROUS_LEAD.test(s) || looksLikeYYYYMM(s))
-          return { t:'s', v:s, z:'@' };
-        return s;
+        return (DANGEROUS_LEAD.test(s) || looksLikeYYYYMM(s)) ? { t:'s', v:s, z:'@' } : s;
       }
 
       // Header row
@@ -674,35 +674,40 @@
       // Final
       r(['FINAL','Final Bill for IOM','—', model.FINAL, '₹']);
 
-      const valueCol = 3;           // VALUE column index
-      const firstDataRow = 4;       // data start (after month, "Generated at", blank, header)
+      const valueCol = 3;          // VALUE index
+      const NUM = x => (typeof x === 'number' ? x
+                : (x==='' || x==null ? null : Number(String(x).replace(/[, ]/g,''))));
 
-      // Build typed AOA: force TEXT in A,B,C,E; VALUE coerced to number
-      const NUM = (x) => (typeof x === 'number' ? x : (x===''||x==null ? null : Number(String(x).replace(/[, ]/g,''))));
-      const typedRows = rows.map((row) => {
-        if (!row || !row.length) return row;
+      const typedRows = rows.map(row => {
+        // Guard: row must be an array
+        if (!Array.isArray(row)) row = [String(row)];   // last-resort safety net
         const out = row.slice();
 
-        // Force text on A,B,C,E
-        [0,1,2,4].forEach(ci => { out[ci] = forceText(out[ci]); });
+        // A,B,C,E -> text
+        [0,1,2,4].forEach(ci => { if (ci in out) out[ci] = forceText(out[ci]); });
 
-        // VALUE -> numeric (null -> blank)
-        const n = NUM(out[valueCol]);
-        out[valueCol] = (n==null || !isFinite(n)) ? { t:'z' } : { t:'n', v:n };
-
+        // VALUE -> numeric or blank
+        if (valueCol in out) {
+          const n = NUM(out[valueCol]);
+          out[valueCol] = (n==null || !isFinite(n)) ? { t:'z' } : { t:'n', v:n };
+        }
         return out;
       });
 
-      // Create sheet and additionally force A1 (month) to text
-      const ws = XLSX.utils.aoa_to_sheet(typedRows);
-      if (rows[0] && rows[0][0] != null) ws['A1'] = forceText(rows[0][0]);
+      if (window.DEV) {
+        const bad = typedRows.find(r => !Array.isArray(r));
+        if (bad) console.error('Export row not array:', bad);
+      }
 
-      // VALUE column formatting
-      const lastRow = rows.length - 1;
-      const unitAt = (ri) => {
+      const ws = XLSX.utils.aoa_to_sheet(typedRows);
+
+      const firstDataRow = 4;                    // month, generated-at, blank, header
+      const lastRow = typedRows.length - 1;
+      const unitAt = ri => {
         const u = typedRows[ri] && typedRows[ri][4];
         return (u && u.v) || u || '';
       };
+
       for (let r = firstDataRow; r <= lastRow; r++) {
         const addr = XLSX.utils.encode_cell({ r, c: valueCol });
         const cell = ws[addr];
@@ -715,7 +720,8 @@
         else if (unit === 'kWh') { cell.z = '#,##0'; }
         else { cell.z = '#,##0.00'; }
       }
-      // Column widths and AutoFilter
+
+      // Column widths + proper AutoFilter over the 5 columns (A:E)
       ws['!cols'] = [{wch:18},{wch:32},{wch:8},{wch:16},{wch:36}];
       ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{ r:firstDataRow-1, c:0 }, e:{ r:lastRow, c:4 } }) };
       return ws;
