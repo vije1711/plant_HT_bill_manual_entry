@@ -599,17 +599,19 @@
       const r = (...a)=>rows.push(a);
 
       // Emit TEXT cells for anything Excel could treat as a formula.
-      // IMPORTANT: do NOT prefix apostrophes; just use t:'s' so Excel stores literal text.
+      // Only coerce when needed; Excel stores plain text without special handling.
       const DANGEROUS_LEAD = /^([=+\-@])/;
       const looksLikeYYYYMM = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
       function forceText(v){
-        if (v == null || v === '') return { t:'s', v:'' };
+        if (v == null) return v;
         const s = String(v);
-        if (DANGEROUS_LEAD.test(s) || looksLikeYYYYMM(s)) return { t:'s', v:s };
-        return { t:'s', v:s };
+        if (s === '' || DANGEROUS_LEAD.test(s) || looksLikeYYYYMM(s))
+          return { t:'s', v:s, z:'@' };
+        return s;
       }
 
-      r([monthLabel]);
+      // Header row
+      r(['WEG Billing – Month', monthLabel]);
       r(['Generated at', new Date().toLocaleString()]);
       r([]);
 
@@ -675,19 +677,18 @@
       const valueCol = 3;           // VALUE column index
       const firstDataRow = 4;       // data start (after month, "Generated at", blank, header)
 
-      // Build typed AOA: force TEXT in A,B,C,E; VALUE stays raw.
+      // Build typed AOA: force TEXT in A,B,C,E; VALUE coerced to number
+      const NUM = (x) => (typeof x === 'number' ? x : (x===''||x==null ? null : Number(String(x).replace(/[, ]/g,''))));
       const typedRows = rows.map((row) => {
         if (!row || !row.length) return row;
         const out = row.slice();
 
         // Force text on A,B,C,E
-        [0,1,2,4].forEach(ci => {
-          const v = out[ci];
-          if (v != null) out[ci] = forceText(v);
-        });
+        [0,1,2,4].forEach(ci => { out[ci] = forceText(out[ci]); });
 
-        // Ensure VALUE blanks remain blank
-        if (out[valueCol] == null || out[valueCol] === '') out[valueCol] = { t:'z' };
+        // VALUE -> numeric (null -> blank)
+        const n = NUM(out[valueCol]);
+        out[valueCol] = (n==null || !isFinite(n)) ? { t:'z' } : { t:'n', v:n };
 
         return out;
       });
@@ -698,31 +699,25 @@
 
       // VALUE column formatting
       const lastRow = rows.length - 1;
+      const unitAt = (ri) => {
+        const u = typedRows[ri] && typedRows[ri][4];
+        return (u && u.v) || u || '';
+      };
       for (let r = firstDataRow; r <= lastRow; r++) {
         const addr = XLSX.utils.encode_cell({ r, c: valueCol });
         const cell = ws[addr];
-        if (!cell || typeof cell.v !== 'number') continue;
-        // Read unit from the typed row so objects and primitives both work
-        const unitCell = typedRows[r] && typedRows[r][4];
-        const unit = unitCell && (unitCell.v ?? unitCell);
-        if (unit === '%') {
-          cell.v = cell.v / 100;
-          cell.z = '0.00%';
-        } else if (unit === '₹') {
-          cell.z = '#,##0.00'; // leave symbol to Excel UI/locale
-        } else if (unit === '₹/kWh') {
-          cell.z = '#,##0.000000';
-        } else if (unit === 'MWh') {
-          cell.z = '0.000';
-        } else if (unit === 'kWh') {
-          cell.z = '#,##0';
-        } else {
-          cell.z = '#,##0.00';
-        }
-        cell.t = 'n';
+        if (!cell || cell.t !== 'n') continue;
+        const unit = unitAt(r);
+        if (unit === '%') { cell.v = cell.v / 100; cell.z = '0.00%'; }
+        else if (unit === '₹') { cell.z = '₹#,##0.00'; }
+        else if (unit === '₹/kWh') { cell.z = '₹#,##0.000000'; }
+        else if (unit === 'MWh') { cell.z = '0.000'; }
+        else if (unit === 'kWh') { cell.z = '#,##0'; }
+        else { cell.z = '#,##0.00'; }
       }
-      // Column widths; keep AutoFilter disabled to avoid Excel turning it into a Table
+      // Column widths and AutoFilter
       ws['!cols'] = [{wch:18},{wch:32},{wch:8},{wch:16},{wch:36}];
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{ r:firstDataRow-1, c:0 }, e:{ r:lastRow, c:4 } }) };
       return ws;
     }
 
