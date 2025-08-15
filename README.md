@@ -9,6 +9,7 @@ It is designed to run entirely in the browser without a server component.
 - Local storage support for restoring previous sessions
 - Sample data loader for quick demonstrations
 - Import/export functionality powered by [SheetJS](https://sheetjs.com/) via `xlsx.full.min.js`
+- PDF export support for generating printable bills
 
 ## Getting Started
 1. Clone or download the repository.
@@ -19,6 +20,8 @@ It is designed to run entirely in the browser without a server component.
 ## Repository Structure
 - `1.4.1 GUI Entry.html` - Main application interface and logic.
 - `xlsx.full.min.js` - Bundled SheetJS library used for Excel import/export.
+- `iom-pdf.js` - PDF layout and export logic built on pdfmake.
+- `vfs_noto_deva.js` - Embedded Noto Sans Devanagari fonts for PDF output.
 
 ## Development Notes
 This project uses a `package.json` for dependency management and includes `jsdom` as a development dependency. A `test` script is provided to run the Node-based test suite.
