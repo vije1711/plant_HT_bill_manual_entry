@@ -288,36 +288,44 @@
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
   <script src="./vfs_noto_deva.js"></script>
-  <!-- Merge bundled VFS files and register fonts before PDF generation -->
   <script>
-    try {
-      if (window.pdfMake) {
-        if (window.vfs) {
-          if (pdfMake.addVirtualFileSystem) {
-            pdfMake.addVirtualFileSystem(window.vfs);
-          } else {
-            pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.vfs);
-          }
-        }
-        if (window.NOTO_VFS) {
-          if (pdfMake.addVirtualFileSystem) {
-            pdfMake.addVirtualFileSystem(window.NOTO_VFS);
-          } else {
-            pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
-          }
-          pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
-            Noto: {
-              normal: 'NotoSansDevanagari-Regular.ttf',
-              bold: 'NotoSansDevanagari-Bold.ttf',
-              italics: 'NotoSansDevanagari-Regular.ttf',
-              bolditalics: 'NotoSansDevanagari-Bold.ttf'
-            }
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('[PDF] VFS merge failed:', e);
+  (function ensurePdfVfsOnce(){
+    if (!window.pdfMake || window.__VFS_MERGED) return;
+
+    // 1) Merge base Roboto VFS from vfs_fonts.js (window.vfs)
+    if (window.vfs) {
+      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.vfs);
     }
+
+    // 2) Merge Noto Devanagari VFS (window.NOTO_VFS)
+    if (window.NOTO_VFS) {
+      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
+    }
+
+    // 3) Register fonts: prefer Noto; fallback to Roboto if Noto missing
+    var hasNoto =
+      !!(pdfMake.vfs &&
+         (pdfMake.vfs['NotoSansDevanagari-Regular.ttf'] ||
+          pdfMake.vfs['NotoSansDevanagari-Bold.ttf']));
+
+    pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
+      Noto: hasNoto
+        ? {
+            normal: 'NotoSansDevanagari-Regular.ttf',
+            bold: 'NotoSansDevanagari-Bold.ttf',
+            italics: 'NotoSansDevanagari-Regular.ttf',
+            bolditalics: 'NotoSansDevanagari-Bold.ttf'
+          }
+        : {
+            normal: 'Roboto-Regular.ttf',
+            bold: 'Roboto-Medium.ttf',
+            italics: 'Roboto-Italic.ttf',
+            bolditalics: 'Roboto-Italic.ttf'
+          }
+    });
+
+    window.__VFS_MERGED = true;
+  })();
   </script>
   <script src="./iom-pdf.js"></script>
   <script>
@@ -334,15 +342,10 @@
   </script>
   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const hasPdfMake = !!window.pdfMake;
-  const vfsCount   = hasPdfMake && window.pdfMake.vfs ? Object.keys(window.pdfMake.vfs).length : 0;
-  const hasFonts   = hasPdfMake && window.pdfMake.fonts ? true : false;
-  const hasNoto    = hasPdfMake && hasFonts && !!window.pdfMake.fonts.Noto;
-  console.log('[PDF] ready?:', {
-    hasPdfMake,
-    vfsCount,
-    hasNoto
-  });
+  var hasPdfMake = !!window.pdfMake;
+  var vfsCount   = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
+  var hasNoto    = hasPdfMake && pdfMake.fonts && !!pdfMake.fonts.Noto;
+  console.log('[PDF] ready?:', { hasPdfMake, vfsCount, hasNoto });
 });
 </script>
   <script>
@@ -386,66 +389,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pdfReady() {
-      // 1) engine present?
-      if (!window.pdfMake) {
-        toast('PDF engine missing (pdfmake.min.js).', 'bad');
-        return false;
-      }
-      // 2) one-time VFS merge
-      try {
-        if (!window.__VFS_MERGED) {
-          // Merge base VFS if exposed as window.vfs and pdfMake.vfs is empty or missing
-          const vfsEmpty = !(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
-          if (window.vfs && vfsEmpty) {
-            if (window.pdfMake.addVirtualFileSystem) {
-              window.pdfMake.addVirtualFileSystem(window.vfs);
-            } else {
-              window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, window.vfs);
-            }
-          }
-          // Merge Noto only if its TTFs are not already present
-          const hasNotoTTFs =
-            !!(window.pdfMake.vfs && (window.pdfMake.vfs['NotoSansDevanagari-Regular.ttf'] || window.pdfMake.vfs['NotoSansDevanagari-Bold.ttf']));
-          if (window.NOTO_VFS && !hasNotoTTFs) {
-            if (window.pdfMake.addVirtualFileSystem) {
-              window.pdfMake.addVirtualFileSystem(window.NOTO_VFS);
-            } else {
-              window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, window.NOTO_VFS);
-            }
-            window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, {
-              Noto: {
-                normal: 'NotoSansDevanagari-Regular.ttf',
-                bold: 'NotoSansDevanagari-Bold.ttf',
-                italics: 'NotoSansDevanagari-Regular.ttf',
-                bolditalics: 'NotoSansDevanagari-Bold.ttf'
-              }
-            });
-          }
-          // SAFETY FALLBACK: if Noto is still not registered (e.g., vfs_noto_deva.js missing),
-          // alias Noto to bundled Roboto so docs using { font: 'Noto' } still render.
-          if (!window.pdfMake.fonts || !window.pdfMake.fonts.Noto) {
-            const roboto = {
-              normal: 'Roboto-Regular.ttf',
-              bold: 'Roboto-Medium.ttf',
-              italics: 'Roboto-Italic.ttf',
-              bolditalics: 'Roboto-Italic.ttf'
-            };
-            window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, { Noto: roboto });
-          }
-          window.__VFS_MERGED = true;
-        }
-      } catch (e) {
-        console.warn('[PDF] VFS merge failed:', e);
-      }
-      // 3) final checks
-      const vfsOk = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
-      if (!vfsOk) {
-        toast('PDF fonts/VFS not loaded (vfs_fonts.js).', 'bad');
-        return false;
+      if (!window.pdfMake) { toast('Missing pdfmake.min.js', 'bad'); return false; }
+      if (!pdfMake.vfs || !Object.keys(pdfMake.vfs).length) {
+        toast('PDF fonts/VFS not loaded. Check vfs_fonts.js path.', 'bad'); return false;
       }
       if (typeof window.generateIOMPDF !== 'function') {
-        toast('PDF template (iom-pdf.js) missing.', 'bad');
-        return false;
+        toast('PDF template (iom-pdf.js) missing.', 'bad'); return false;
       }
       return true;
     }
