@@ -323,17 +323,18 @@
   </script>
   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const vfsCount = (window.pdfMake && pdfMake.vfs) ? Object.keys(pdfMake.vfs).length : 0;
+  const hasPdfMake = !!window.pdfMake;
+  const vfsCount = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
   const hasNoto = !!(pdfMake?.fonts?.Noto);
 
-  if (!window.pdfMake) {
+  console.log('[PDF]', 'pdfMake?', hasPdfMake, 'vfs entries', vfsCount, 'Noto registered?', hasNoto);
+
+  if (!hasPdfMake) {
     console.error('[PDF] pdfMake missing. Check <script src="./pdfmake.min.js"> path.');
     toast('PDF engine missing. Check pdfmake.min.js path.', 'bad');
   } else if (!vfsCount) {
     console.error('[PDF] pdfMake.vfs is empty. Ensure <script src="./vfs_fonts.js"> loaded and is the right file.');
     toast('PDF fonts/VFS not loaded. Verify vfs_fonts.js path & file.', 'bad');
-  } else {
-    console.log('[PDF] Ready. vfs entries =', vfsCount, 'Noto registered =', hasNoto);
   }
 });
 </script>
