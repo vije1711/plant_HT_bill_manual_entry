@@ -8,6 +8,9 @@ test('sample data calculations and PDF generation', async () => {
   let html = fs.readFileSync(path.join(__dirname, '..', '1.4.1 GUI Entry.html'), 'utf8');
   html = html.replace(/<script src="\.\/xlsx\.full\.min\.js"><\/script>/, '');
   html = html.replace(/<script src="\.\/iom-pdf\.js"><\/script>/, '');
+  html = html.replace(/<script src="\.\/pdfmake\.min\.js"><\/script>/, '');
+  html = html.replace(/<script src="\.\/vfs_fonts\.js"><\/script>/, '');
+  html = html.replace(/<script type="module">[\s\S]*?<\/script>/, '');
 
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
@@ -27,6 +30,7 @@ test('sample data calculations and PDF generation', async () => {
   assert.equal(model.C9, 17220);
   assert.equal(Math.round(model.FINAL), 16700);
 
+  assert.equal(typeof dom.window.pdfMake, 'undefined');
   global.pdfMake = { createPdf: () => ({ download: () => {} }) };
   require(path.join(__dirname, '..', 'iom-pdf.js'));
 
