@@ -362,6 +362,7 @@
         s.dataset.src = src;
         s.onload = resolve;
         s.onerror = (e) => {
+          document.head.removeChild(s);
           console.error('[PDF] Failed to load', src, e);
           reject(e);
         };
