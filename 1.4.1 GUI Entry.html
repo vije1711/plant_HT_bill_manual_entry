@@ -372,7 +372,6 @@
     async function ensurePDFReady(){
       // 0) pdfMake present?
       if (!window.pdfMake){
-        // try local offline file if not already injected by a static tag
         try { await __loadScriptOnce('./pdfmake.min.js'); } catch(e){}
       }
       if (!window.pdfMake){
@@ -381,17 +380,15 @@
       }
 
       // 1) Ensure VFS populated (base fonts)
-      const hasVfs = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
-      if (!hasVfs){
-        try {
-          await __loadScriptOnce('./vfs_fonts.js'); // optional but usually present
-        } catch(e){}
+      let vfsReady = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
+      if (!vfsReady){
+        try { await __loadScriptOnce('./vfs_fonts.js'); } catch(e){}
+        vfsReady = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
       }
 
       // 2) Try to merge Noto Devanagari (ESM). This may fail on file://; that’s okay.
-      try {
-        // If modules are supported, import and merge
-        if (!window.__NOTO_MERGED){
+      if (!window.__NOTO_MERGED){
+        try {
           const mod = await import('./vfs_noto_deva.js');
           if (mod && mod.default){
             window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, mod.default);
@@ -405,19 +402,20 @@
             });
             window.__NOTO_MERGED = true;
           }
+        } catch(e){
+          console.warn('[PDF] Noto VFS merge failed:', e);
         }
-      } catch(e){
-        // Non-fatal: proceed with whatever VFS exists
-        if (window.DEV) console.warn('Noto VFS merge skipped:', e);
       }
+      vfsReady = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
 
       // 3) Ensure iom-pdf generator is present
       if (typeof window.generateIOMPDF !== 'function' || typeof window.generateIOMPDFBlob !== 'function'){
-        try { await __loadScriptOnce('./iom-pdf.js'); } catch(e){}
+        try { await __loadScriptOnce('./iom-pdf.js'); } catch(e){ console.error('[PDF] Failed to load iom-pdf.js', e); }
       }
 
       // 4) Final checks + guidance
-      if (!window.pdfMake || !window.pdfMake.vfs || !Object.keys(window.pdfMake.vfs).length){
+      if (!vfsReady){
+        console.error('[PDF] VFS remains empty after all load attempts.');
         toast('PDF fonts/VFS not loaded. Ensure ./vfs_fonts.js or Noto VFS is present.', 'bad');
         return false;
       }
