@@ -421,6 +421,17 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             });
           }
+          // SAFETY FALLBACK: if Noto is still not registered (e.g., vfs_noto_deva.js missing),
+          // alias Noto to bundled Roboto so docs using { font: 'Noto' } still render.
+          if (!window.pdfMake.fonts || !window.pdfMake.fonts.Noto) {
+            const roboto = {
+              normal: 'Roboto-Regular.ttf',
+              bold: 'Roboto-Medium.ttf',
+              italics: 'Roboto-Italic.ttf',
+              bolditalics: 'Roboto-Italic.ttf'
+            };
+            window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, { Noto: roboto });
+          }
           window.__VFS_MERGED = true;
         }
       } catch (e) {
