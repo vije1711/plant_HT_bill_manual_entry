@@ -288,6 +288,7 @@
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
   <script src="./vfs_noto_deva.js"></script>
+  <!-- Merge Noto VFS + register fonts -->
   <script>
     try {
       if (window.pdfMake && window.NOTO_VFS) {
@@ -305,7 +306,7 @@
           }
         });
       }
-    } catch (e) { console.warn('Failed to merge Noto VFS', e); }
+    } catch (e) { console.warn('[PDF] Noto VFS merge failed:', e); }
   </script>
   <script src="./iom-pdf.js"></script>
   <script>
@@ -320,6 +321,22 @@
       },3000);
     }
   </script>
+  <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const vfsCount = (window.pdfMake && pdfMake.vfs) ? Object.keys(pdfMake.vfs).length : 0;
+  const hasNoto = !!(pdfMake?.fonts?.Noto);
+
+  if (!window.pdfMake) {
+    console.error('[PDF] pdfMake missing. Check <script src="./pdfmake.min.js"> path.');
+    toast('PDF engine missing. Check pdfmake.min.js path.', 'bad');
+  } else if (!vfsCount) {
+    console.error('[PDF] pdfMake.vfs is empty. Ensure <script src="./vfs_fonts.js"> loaded and is the right file.');
+    toast('PDF fonts/VFS not loaded. Verify vfs_fonts.js path & file.', 'bad');
+  } else {
+    console.log('[PDF] Ready. vfs entries =', vfsCount, 'Noto registered =', hasNoto);
+  }
+});
+</script>
   <script>
     // Single-flight, on-demand SheetJS loader
     // Tries: ?xlsx=override → ./xlsx.full.min.js (local) → CDNs
@@ -360,20 +377,11 @@
       return ok;
     }
 
-    function ensurePDFReady(){
-      if (!window.pdfMake) { toast('pdfMake not loaded. Include ./pdfmake.min.js', 'bad'); return false; }
-      if (!pdfMake.vfs || !Object.keys(pdfMake.vfs).length) {
-        toast('PDF fonts/VFS not loaded. Include ./vfs_fonts.js (and Noto VFS if needed).', 'bad');
-        return false;
-      }
-      if (!pdfMake.fonts?.Noto) {
-        toast('Noto fonts are not registered.', 'bad');
-        return false;
-      }
-      if (typeof window.generateIOMPDF !== 'function') {
-        toast('PDF template (iom-pdf.js) not loaded.', 'bad');
-        return false;
-      }
+    function pdfReady() {
+      if (!window.pdfMake) { toast('PDF engine missing (pdfmake.min.js).', 'bad'); return false; }
+      const vfsOk = !!(pdfMake.vfs && Object.keys(pdfMake.vfs).length);
+      if (!vfsOk) { toast('PDF fonts/VFS not loaded (vfs_fonts.js).', 'bad'); return false; }
+      if (typeof window.generateIOMPDF !== 'function') { toast('PDF template (iom-pdf.js) missing.', 'bad'); return false; }
       return true;
     }
 
@@ -399,12 +407,6 @@
       }
     }
 
-    function withTimeout(promise, ms, label='operation'){
-      return Promise.race([
-        promise,
-        new Promise((_, reject)=>setTimeout(()=>reject(new Error(label+' timed out')), ms))
-      ]);
-    }
   </script>
   <script>
     // Utility helpers
@@ -892,39 +894,41 @@
       }));
 
             // Download IOM PDF
-      $('downloadPDF').addEventListener('click', () => withBusy('downloadPDF', async () => {
-        if (!ensurePDFReady()) return;
-        const model = compute(true);
-        if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
-        const label = monthLabel();
-        const canSavePicker = (typeof window.showSaveFilePicker === 'function') && isSecureContext;
+      $('downloadPDF').addEventListener('click', () =>
+        withBusy('downloadPDF', async () => {
+          if (!pdfReady()) return;
+          const model = compute(true);
+          if (!model) { toast('Cannot download: fix inputs first.', 'warn'); return; }
 
-        try {
-          if (canSavePicker && typeof window.generateIOMPDFBlob === 'function') {
-            const blob = await withTimeout(window.generateIOMPDFBlob(model, label), 10000, 'PDF creation');
-            const handle = await window.showSaveFilePicker({
-              suggestedName: `IOM_${label}.pdf`,
-              types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }]
-            });
-            const ws = await handle.createWritable();
-            await ws.write(blob);
-            await ws.close();
-            toast('IOM PDF saved to the chosen location.', 'good');
-          } else {
-            // Fallback: default browser download to Downloads
-            window.generateIOMPDF(model, label);
-            if (location.protocol === 'file:') {
-              toast('Saved to your default Downloads. For a Save As dialog, open via http://localhost or HTTPS.', 'info');
+          const label = monthLabel();
+          const canPicker = typeof window.showSaveFilePicker === 'function' && isSecureContext;
+
+          try {
+            if (canPicker && typeof window.generateIOMPDFBlob === 'function') {
+              const blob = await window.generateIOMPDFBlob(model, label);
+              const handle = await window.showSaveFilePicker({
+                suggestedName: `IOM_${label}.pdf`,
+                types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }]
+              });
+              const ws = await handle.createWritable();
+              await ws.write(blob);
+              await ws.close();
+              toast('IOM PDF saved.', 'good');
             } else {
-              toast('Saved to your default download location. Enable “Ask where to save each file” to choose a folder.', 'info');
+              window.generateIOMPDF(model, label);
+              if (location.protocol === 'file:') {
+                toast('Saved to your browser’s Downloads. For a picker, run via http://localhost or HTTPS.', 'info');
+              } else {
+                toast('Saved to your default downloads. Enable “Ask where to save each file” for a dialog.', 'info');
+              }
             }
+          } catch (e) {
+            if (e?.name === 'AbortError') { toast('Save cancelled.', 'info'); return; }
+            console.error('[PDF] save failed:', e);
+            toast(e.message || 'PDF generation failed. See console for details.', 'bad');
           }
-        } catch (e) {
-          if (e?.name === 'AbortError') { toast('PDF save was cancelled.', 'info'); return; }
-          console.error('PDF save failed:', e);
-          toast(e.message || 'PDF generation failed. See console for details.', 'bad');
-        }
-      }));
+        })
+      );
 
       $('uploadExcel').addEventListener('click', () => withBusy('uploadExcel', async () => {
         if (!(await loadXLSX())) return;
