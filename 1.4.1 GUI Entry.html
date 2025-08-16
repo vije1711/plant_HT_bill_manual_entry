@@ -287,21 +287,27 @@
   <!-- pdfMake and fonts for PDF export (local, offline) -->
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
-  <script src="./iom-pdf.js"></script>
   <script src="./vfs_noto_deva.js"></script>
   <script>
-    if (window.NOTO_VFS && window.pdfMake) {
-      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
-      pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
-        Noto: {
-          normal: 'NotoSansDevanagari-Regular.ttf',
-          bold: 'NotoSansDevanagari-Bold.ttf',
-          italics: 'NotoSansDevanagari-Regular.ttf',
-          bolditalics: 'NotoSansDevanagari-Bold.ttf'
+    try {
+      if (window.pdfMake && window.NOTO_VFS) {
+        if (pdfMake.addVirtualFileSystem) {
+          pdfMake.addVirtualFileSystem(window.NOTO_VFS);
+        } else {
+          pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
         }
-      });
-    }
+        pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
+          Noto: {
+            normal: 'NotoSansDevanagari-Regular.ttf',
+            bold: 'NotoSansDevanagari-Bold.ttf',
+            italics: 'NotoSansDevanagari-Regular.ttf',
+            bolditalics: 'NotoSansDevanagari-Bold.ttf'
+          }
+        });
+      }
+    } catch (e) { console.warn('Failed to merge Noto VFS', e); }
   </script>
+  <script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
       const t = document.createElement('div');
