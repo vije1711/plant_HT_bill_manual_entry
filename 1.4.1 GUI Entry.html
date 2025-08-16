@@ -288,6 +288,38 @@
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
 
+  <script>
+    (function(){
+      if (window.__VFS_MERGED) return;
+      const hasPdfMake = !!window.pdfMake;
+      let vfsCount = 0, hasRoboto = false, hasNoto = false;
+      if (hasPdfMake) {
+        const merged = Object.assign({}, pdfMake.vfs || {});
+        if (window.vfs) Object.assign(merged, window.vfs);
+        if (window.NOTO_VFS) Object.assign(merged, window.NOTO_VFS);
+        pdfMake.vfs = merged;
+        vfsCount = Object.keys(merged).length;
+        hasRoboto = !!merged['Roboto-Regular.ttf'];
+        hasNoto = !!merged['NotoSansDevanagari-Regular.ttf'];
+        pdfMake.fonts = pdfMake.fonts || {};
+        pdfMake.fonts.Roboto = {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Bold.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-BoldItalic.ttf'
+        };
+        pdfMake.fonts.Noto = hasNoto ? {
+          normal: 'NotoSansDevanagari-Regular.ttf',
+          bold: 'NotoSansDevanagari-Bold.ttf',
+          italics: 'NotoSansDevanagari-Regular.ttf',
+          bolditalics: 'NotoSansDevanagari-Bold.ttf'
+        } : pdfMake.fonts.Roboto;
+        window.__VFS_MERGED = true;
+      }
+      console.log('[PDF] merge', { hasPdfMake, vfsCount, hasRoboto, hasNoto });
+    })();
+  </script>
+
 <script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
