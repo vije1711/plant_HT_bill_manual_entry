@@ -303,10 +303,9 @@
   </script>
   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  var hasPdfMake = !!window.pdfMake;
-  var vfsCount   = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
-  var hasNoto    = hasPdfMake && pdfMake.fonts && !!pdfMake.fonts.Noto;
-  console.log('[PDF] ready?:', { hasPdfMake, vfsCount, hasNoto });
+  const hasPdfMake = !!window.pdfMake;
+  const vfsCount = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
+  console.log('[PDF] ready?', { hasPdfMake, vfsCount });
 });
 </script>
   <script>
