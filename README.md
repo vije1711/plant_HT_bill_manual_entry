@@ -23,7 +23,6 @@ It is designed to run entirely in the browser without a server component.
 - `1.4.1 GUI Entry.html` - Main application interface and logic.
 - `xlsx.full.min.js` - Bundled SheetJS library used for Excel import/export.
 - `iom-pdf.js` - PDF layout and export logic built on pdfmake.
-- `vfs_noto_deva.js` - Embedded Noto Sans Devanagari fonts for PDF output.
 - `test/` - Node-based tests, currently including `basic.test.js` for sample calculations and PDF generation.
 
 ## Development Notes

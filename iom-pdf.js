@@ -917,14 +917,6 @@
   function fmtMwh(v){ return MWH.format(Number.isFinite(v) ? v : 0); }
   function fmtRate(v){ return RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh'; }
 
-  function pickDefaultFont(){
-    var pm = global.pdfMake;
-    var hasNoto   = !!(pm?.fonts?.Noto && (pm?.vfs?.['NotoSansDevanagari-Regular.ttf'] || pm?.vfs?.['NotoSansDevanagari-Bold.ttf']));
-    var hasRoboto = !!(pm?.vfs?.['Roboto-Regular.ttf']);
-    if (hasNoto)   return 'Noto';
-    if (hasRoboto) return 'Roboto';
-    return undefined; // let pdfMake fallback
-  }
 
   function buildIOMDocDefinition(model, monthStr){
     const vendorLines = model.vendorLines || [];
@@ -1047,25 +1039,22 @@
 
   function generateIOMPDF(model, monthStr){
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
-    var defaultFont = pickDefaultFont();
     var docDefinition = buildIOMDocDefinition(model, monthStr);
-    docDefinition.defaultStyle = defaultFont ? { font: defaultFont, fontSize: 10 } : { fontSize: 10 };
+    docDefinition.defaultStyle = { fontSize: 10 };
     global.pdfMake.createPdf(docDefinition).download(`IOM_${monthStr}.pdf`);
   }
 
   function generateIOMPDFOpen(model, monthStr){
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
-    var defaultFont = pickDefaultFont();
     var dd = buildIOMDocDefinition(model, monthStr);
-    dd.defaultStyle = defaultFont ? { font: defaultFont, fontSize: 10 } : { fontSize: 10 };
+    dd.defaultStyle = { fontSize: 10 };
     global.pdfMake.createPdf(dd).open();
   }
 
   function generateIOMPDFBlob(model, monthStr){
     if(!global.pdfMake) return Promise.reject(new Error('pdfMake not loaded'));
-    var defaultFont = pickDefaultFont();
     var dd = buildIOMDocDefinition(model, monthStr);
-    dd.defaultStyle = defaultFont ? { font: defaultFont, fontSize: 10 } : { fontSize: 10 };
+    dd.defaultStyle = { fontSize: 10 };
     return new Promise(resolve => global.pdfMake.createPdf(dd).getBlob(resolve));
   }
 
