@@ -380,11 +380,11 @@
         return false;
       }
 
-      // 1) Ensure VFS populated (base fonts)
-      let vfsReady = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
+      // 1) Ensure fonts/VFS populated (base fonts)
+      let vfsReady = !!(window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length);
       if (!vfsReady){
         try { await __loadScriptOnce('./vfs_fonts.js'); } catch(e){}
-        vfsReady = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
+        vfsReady = !!(window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length);
       }
 
       // 2) Try to merge Noto Devanagari (ESM). This may fail on file://; that’s okay.
@@ -392,7 +392,11 @@
         try {
           const mod = await import('./vfs_noto_deva.js');
           if (mod && mod.default){
-            window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, mod.default);
+            if (window.pdfMake.addVirtualFileSystem){
+              window.pdfMake.addVirtualFileSystem(mod.default);
+            } else {
+              window.pdfMake.vfs = Object.assign({}, window.pdfMake.vfs || {}, mod.default);
+            }
             window.pdfMake.fonts = Object.assign({}, window.pdfMake.fonts || {}, {
               Noto: {
                 normal: 'NotoSansDevanagari-Regular.ttf',
@@ -407,7 +411,7 @@
           console.warn('[PDF] Noto VFS merge failed:', e);
         }
       }
-      vfsReady = !!(window.pdfMake.vfs && Object.keys(window.pdfMake.vfs).length);
+      vfsReady = !!(window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length);
 
       // 3) Ensure iom-pdf generator is present
       if (typeof window.generateIOMPDF !== 'function' || typeof window.generateIOMPDFBlob !== 'function'){
@@ -416,8 +420,8 @@
 
       // 4) Final checks + guidance
       if (!vfsReady){
-        console.error('[PDF] VFS remains empty after all load attempts.');
-        toast('PDF fonts/VFS not loaded. Ensure ./vfs_fonts.js or Noto VFS is present.', 'bad');
+        console.error('[PDF] pdfMake.fonts remains empty after all load attempts.');
+        toast('PDF fonts not loaded. Ensure ./vfs_fonts.js or Noto VFS is present.', 'bad');
         return false;
       }
       if (typeof window.generateIOMPDF !== 'function'){
