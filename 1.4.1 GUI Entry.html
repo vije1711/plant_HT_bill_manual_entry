@@ -288,25 +288,36 @@
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
   <script src="./vfs_noto_deva.js"></script>
-  <!-- Merge Noto VFS + register fonts -->
+  <!-- Merge bundled VFS files and register fonts before PDF generation -->
   <script>
     try {
-      if (window.pdfMake && window.NOTO_VFS) {
-        if (pdfMake.addVirtualFileSystem) {
-          pdfMake.addVirtualFileSystem(window.NOTO_VFS);
-        } else {
-          pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
-        }
-        pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
-          Noto: {
-            normal: 'NotoSansDevanagari-Regular.ttf',
-            bold: 'NotoSansDevanagari-Bold.ttf',
-            italics: 'NotoSansDevanagari-Regular.ttf',
-            bolditalics: 'NotoSansDevanagari-Bold.ttf'
+      if (window.pdfMake) {
+        if (window.vfs) {
+          if (pdfMake.addVirtualFileSystem) {
+            pdfMake.addVirtualFileSystem(window.vfs);
+          } else {
+            pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.vfs);
           }
-        });
+        }
+        if (window.NOTO_VFS) {
+          if (pdfMake.addVirtualFileSystem) {
+            pdfMake.addVirtualFileSystem(window.NOTO_VFS);
+          } else {
+            pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
+          }
+          pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
+            Noto: {
+              normal: 'NotoSansDevanagari-Regular.ttf',
+              bold: 'NotoSansDevanagari-Bold.ttf',
+              italics: 'NotoSansDevanagari-Regular.ttf',
+              bolditalics: 'NotoSansDevanagari-Bold.ttf'
+            }
+          });
+        }
       }
-    } catch (e) { console.warn('[PDF] Noto VFS merge failed:', e); }
+    } catch (e) {
+      console.warn('[PDF] VFS merge failed:', e);
+    }
   </script>
   <script src="./iom-pdf.js"></script>
   <script>
