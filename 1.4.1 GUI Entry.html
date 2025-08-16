@@ -381,10 +381,16 @@
       }
 
       // 1) Ensure fonts/VFS populated (base fonts)
-      let vfsReady = !!(window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length);
+      let vfsReady = !!(
+        (window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length) ||
+        (window.pdfMake.vfs   && Object.keys(window.pdfMake.vfs).length)
+      );
       if (!vfsReady){
         try { await __loadScriptOnce('./vfs_fonts.js'); } catch(e){}
-        vfsReady = !!(window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length);
+        vfsReady = !!(
+          (window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length) ||
+          (window.pdfMake.vfs   && Object.keys(window.pdfMake.vfs).length)
+        );
       }
 
       // 2) Try to merge Noto Devanagari (ESM). This may fail on file://; that’s okay.
@@ -411,7 +417,10 @@
           console.warn('[PDF] Noto VFS merge failed:', e);
         }
       }
-      vfsReady = !!(window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length);
+      vfsReady = !!(
+        (window.pdfMake.fonts && Object.keys(window.pdfMake.fonts).length) ||
+        (window.pdfMake.vfs   && Object.keys(window.pdfMake.vfs).length)
+      );
 
       // 3) Ensure iom-pdf generator is present
       if (typeof window.generateIOMPDF !== 'function' || typeof window.generateIOMPDFBlob !== 'function'){
@@ -420,8 +429,8 @@
 
       // 4) Final checks + guidance
       if (!vfsReady){
-        console.error('[PDF] pdfMake.fonts remains empty after all load attempts.');
-        toast('PDF fonts not loaded. Ensure ./vfs_fonts.js or Noto VFS is present.', 'bad');
+        console.error('[PDF] pdfMake fonts/VFS remain empty after all load attempts.');
+        toast('PDF fonts/VFS not loaded. Ensure ./vfs_fonts.js or Noto VFS is present.', 'bad');
         return false;
       }
       if (typeof window.generateIOMPDF !== 'function'){
