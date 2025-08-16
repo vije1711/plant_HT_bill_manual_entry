@@ -1025,6 +1025,7 @@
       });
     }
 
+    const defaultFont = global.pdfMake?.fonts?.Noto ? 'Noto' : 'Roboto';
     return {
       content,
       styles: {
@@ -1033,7 +1034,7 @@
         table: { margin: [0, 0, 0, 4] },
         bank: { fillColor: '#ffff00', color: 'black', bold: true }
       },
-      defaultStyle: { font: 'Noto', fontSize: 10 }
+      defaultStyle: { font: defaultFont, fontSize: 10 }
     };
   }
 

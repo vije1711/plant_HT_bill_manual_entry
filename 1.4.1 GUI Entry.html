@@ -360,6 +360,10 @@
         toast('PDF fonts/VFS not loaded. Include ./vfs_fonts.js (and Noto VFS if needed).', 'bad');
         return false;
       }
+      if (!pdfMake.fonts?.Noto) {
+        toast('Noto fonts are not registered.', 'bad');
+        return false;
+      }
       if (typeof window.generateIOMPDF !== 'function') {
         toast('PDF template (iom-pdf.js) not loaded.', 'bad');
         return false;
