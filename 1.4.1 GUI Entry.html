@@ -288,6 +288,45 @@
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
 
+  <script>
+    (function () {
+      const hasPdfMake = !!window.pdfMake;
+      if (!hasPdfMake) {
+        console.log('[PDF] ready?', { hasPdfMake, vfsKeys: [], hasRoboto: false, hasNoto: false });
+        return;
+      }
+      const vfs = Object.assign({}, pdfMake.vfs || {});
+      if (window.vfs && typeof window.vfs === 'object') {
+        Object.assign(vfs, window.vfs);
+      }
+      let hasNoto = false;
+      if (window.NOTO_VFS && typeof window.NOTO_VFS === 'object') {
+        Object.assign(vfs, window.NOTO_VFS);
+        pdfMake.fonts = pdfMake.fonts || {};
+        pdfMake.fonts.Noto = {
+          normal: 'NotoSans-Regular.ttf',
+          bold: 'NotoSans-Bold.ttf',
+          italics: 'NotoSans-Italic.ttf',
+          bolditalics: 'NotoSans-BoldItalic.ttf',
+        };
+        hasNoto = true;
+      }
+      pdfMake.vfs = vfs;
+      pdfMake.fonts = pdfMake.fonts || {};
+      if (!pdfMake.fonts.Roboto) {
+        pdfMake.fonts.Roboto = {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Medium.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-MediumItalic.ttf',
+        };
+      }
+      const hasRoboto = !!pdfMake.fonts.Roboto;
+      const vfsKeys = Object.keys(pdfMake.vfs || {});
+      console.log('[PDF] ready?', { hasPdfMake, vfsKeys, hasRoboto, hasNoto });
+    })();
+  </script>
+
 <script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
@@ -299,15 +338,8 @@
         t.classList.add('hide');
         t.addEventListener('transitionend',()=>t.remove());
       },3000);
-    }
+  }
   </script>
-  <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const hasPdfMake = !!window.pdfMake;
-  const vfsCount = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
-  console.log('[PDF] ready?', { hasPdfMake, vfsCount });
-});
-</script>
   <script>
     // Single-flight, on-demand SheetJS loader
     // Tries: ?xlsx=override → ./xlsx.full.min.js (local) → CDNs
