@@ -10,7 +10,8 @@ test('sample data calculations and PDF generation', async () => {
   html = html.replace(/<script src="\.\/iom-pdf\.js"><\/script>/, '');
   html = html.replace(/<script src="\.\/pdfmake\.min\.js"><\/script>/, '');
   html = html.replace(/<script src="\.\/vfs_fonts\.js"><\/script>/, '');
-  html = html.replace(/<script type="module">[\s\S]*?<\/script>/, '');
+  html = html.replace(/<script src="\.\/vfs_noto_deva\.js"><\/script>/, '');
+  html = html.replace(/<script>\s*if \(window.NOTO_VFS[\s\S]*?<\/script>/, '');
 
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
