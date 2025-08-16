@@ -287,47 +287,50 @@
   <!-- pdfMake and fonts for PDF export (local, offline) -->
   <script src="./pdfmake.min.js"></script>
   <script src="./vfs_fonts.js"></script>
-  <script src="./vfs_noto_deva.js"></script>
-  <script>
-  (function ensurePdfVfsOnce(){
-    if (!window.pdfMake || window.__VFS_MERGED) return;
+  <script src="./vfs_noto_deva.js"></script> <!-- optional -->
 
-    // 1) Merge base Roboto VFS from vfs_fonts.js (window.vfs)
-    if (window.vfs) {
-      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.vfs);
-    }
+<script>
+(function ensurePdfVfsOnce(){
+  if (!window.pdfMake || window.__VFS_MERGED) return;
 
-    // 2) Merge Noto Devanagari VFS (window.NOTO_VFS)
-    if (window.NOTO_VFS) {
-      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
-    }
+  // 1) Merge base Roboto VFS (from vfs_fonts.js) + optional Noto VFS
+  if (window.vfs)      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.vfs);
+  if (window.NOTO_VFS) pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, window.NOTO_VFS);
 
-    // 3) Register fonts: prefer Noto; fallback to Roboto if Noto missing
-    var hasNoto =
-      !!(pdfMake.vfs &&
-         (pdfMake.vfs['NotoSansDevanagari-Regular.ttf'] ||
-          pdfMake.vfs['NotoSansDevanagari-Bold.ttf']));
+  // 2) Register font families using exact keys that exist in vfs
+  var hasRoboto = !!(pdfMake.vfs && pdfMake.vfs['Roboto-Regular.ttf']);
+  var hasNoto   = !!(pdfMake.vfs && (pdfMake.vfs['NotoSansDevanagari-Regular.ttf'] || pdfMake.vfs['NotoSansDevanagari-Bold.ttf']));
 
+  if (hasRoboto) {
     pdfMake.fonts = Object.assign({}, pdfMake.fonts || {}, {
-      Noto: hasNoto
-        ? {
-            normal: 'NotoSansDevanagari-Regular.ttf',
-            bold: 'NotoSansDevanagari-Bold.ttf',
-            italics: 'NotoSansDevanagari-Regular.ttf',
-            bolditalics: 'NotoSansDevanagari-Bold.ttf'
-          }
-        : {
-            normal: 'Roboto-Regular.ttf',
-            bold: 'Roboto-Medium.ttf',
-            italics: 'Roboto-Italic.ttf',
-            bolditalics: 'Roboto-Italic.ttf'
-          }
+      Roboto: {
+        normal:      'Roboto-Regular.ttf',
+        bold:        'Roboto-Medium.ttf',
+        italics:     'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-Italic.ttf'
+      }
     });
+  }
 
-    window.__VFS_MERGED = true;
-  })();
-  </script>
-  <script src="./iom-pdf.js"></script>
+  // Prefer Noto if present; otherwise alias Noto → Roboto so { font: 'Noto' } never crashes
+  if (hasNoto) {
+    pdfMake.fonts = Object.assign({}, pdfMake.fonts, {
+      Noto: {
+        normal:      'NotoSansDevanagari-Regular.ttf',
+        bold:        'NotoSansDevanagari-Bold.ttf',
+        italics:     'NotoSansDevanagari-Regular.ttf',
+        bolditalics: 'NotoSansDevanagari-Bold.ttf'
+      }
+    });
+  } else if (pdfMake.fonts && pdfMake.fonts.Roboto) {
+    pdfMake.fonts.Noto = pdfMake.fonts.Roboto;
+  }
+
+  window.__VFS_MERGED = true;
+})();
+</script>
+
+<script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
       const t = document.createElement('div');

@@ -917,6 +917,15 @@
   function fmtMwh(v){ return MWH.format(Number.isFinite(v) ? v : 0); }
   function fmtRate(v){ return RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh'; }
 
+  function pickDefaultFont(){
+    var pm = global.pdfMake;
+    var hasNoto   = !!(pm?.fonts?.Noto && (pm?.vfs?.['NotoSansDevanagari-Regular.ttf'] || pm?.vfs?.['NotoSansDevanagari-Bold.ttf']));
+    var hasRoboto = !!(pm?.vfs?.['Roboto-Regular.ttf']);
+    if (hasNoto)   return 'Noto';
+    if (hasRoboto) return 'Roboto';
+    return undefined; // let pdfMake fallback
+  }
+
   function buildIOMDocDefinition(model, monthStr){
     const vendorLines = model.vendorLines || [];
     const bankLines = model.bankLines || [];
@@ -1025,7 +1034,6 @@
       });
     }
 
-    const defaultFont = global.pdfMake?.fonts?.Noto ? 'Noto' : 'Roboto';
     return {
       content,
       styles: {
@@ -1033,26 +1041,32 @@
         subheader: { fontSize: 13, bold: true },
         table: { margin: [0, 0, 0, 4] },
         bank: { fillColor: '#ffff00', color: 'black', bold: true }
-      },
-      defaultStyle: { font: defaultFont, fontSize: 10 }
+      }
     };
   }
 
   function generateIOMPDF(model, monthStr){
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
-    global.pdfMake.createPdf(buildIOMDocDefinition(model, monthStr)).download(`IOM_${monthStr}.pdf`);
+    var defaultFont = pickDefaultFont();
+    var docDefinition = buildIOMDocDefinition(model, monthStr);
+    docDefinition.defaultStyle = defaultFont ? { font: defaultFont, fontSize: 10 } : { fontSize: 10 };
+    global.pdfMake.createPdf(docDefinition).download(`IOM_${monthStr}.pdf`);
   }
 
   function generateIOMPDFOpen(model, monthStr){
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
-    global.pdfMake.createPdf(buildIOMDocDefinition(model, monthStr)).open();
+    var defaultFont = pickDefaultFont();
+    var dd = buildIOMDocDefinition(model, monthStr);
+    dd.defaultStyle = defaultFont ? { font: defaultFont, fontSize: 10 } : { fontSize: 10 };
+    global.pdfMake.createPdf(dd).open();
   }
 
   function generateIOMPDFBlob(model, monthStr){
-    if(!global.pdfMake){ console.error('pdfMake not loaded'); return Promise.reject(new Error('pdfMake not loaded')); }
-    return new Promise(resolve => {
-      global.pdfMake.createPdf(buildIOMDocDefinition(model, monthStr)).getBlob(resolve);
-    });
+    if(!global.pdfMake) return Promise.reject(new Error('pdfMake not loaded'));
+    var defaultFont = pickDefaultFont();
+    var dd = buildIOMDocDefinition(model, monthStr);
+    dd.defaultStyle = defaultFont ? { font: defaultFont, fontSize: 10 } : { fontSize: 10 };
+    return new Promise(resolve => global.pdfMake.createPdf(dd).getBlob(resolve));
   }
 
   global.buildIOMDocDefinition = buildIOMDocDefinition;
