@@ -355,19 +355,33 @@
 
     async function __loadScriptOnce(src){
       if (document.querySelector(`script[data-src="${src}"]`)) return;
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = true;
-        s.dataset.src = src;
-        s.onload = resolve;
-        s.onerror = (e) => {
-          document.head.removeChild(s);
-          console.error('[PDF] Failed to load', src, e);
-          reject(e);
-        };
-        document.head.appendChild(s);
-      });
+      let s;
+      try {
+        await Promise.race([
+          new Promise((resolve, reject) => {
+            s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.dataset.src = src;
+            s.onload = resolve;
+            s.onerror = (e) => {
+              document.head.removeChild(s);
+              console.error('[PDF] Failed to load', src, e);
+              reject(e);
+            };
+            document.head.appendChild(s);
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 10000)
+          )
+        ]);
+      } catch (e) {
+        if (e?.message === 'timeout') {
+          if (s && s.parentNode) document.head.removeChild(s);
+          console.error('[PDF] Timed out loading', src);
+        }
+        throw e;
+      }
     }
 
     async function ensurePDFReady(){
