@@ -960,6 +960,7 @@
             toast('IOM PDF saved to the chosen location.', 'good');
           } else {
             // Fallback: browser download to default Downloads
+            if (typeof window.generateIOMPDF !== 'function') throw new Error('generateIOMPDF not available');
             window.generateIOMPDF(model, label);
             if (location.protocol === 'file:') {
               toast('Saved to your default Downloads. For a Save As dialog, open via http://localhost or HTTPS.', 'info');
@@ -972,7 +973,7 @@
             toast('PDF save was cancelled.', 'info');
             return;
           }
-          console.error('PDF save failed:', e);
+          console.error('[PDF] save failed:', e);
           toast('PDF generation failed. See console for details.', 'bad');
         }
       }));
