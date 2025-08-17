@@ -214,10 +214,12 @@
     .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
     .sec { break-inside: avoid; margin: 7mm 0 0; }
     .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
-    .kv { display:grid; grid-template-columns: 1fr auto auto; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
-    .kv .label { color:#374151; }
-    .kv .value { font-weight:600; }
-    .kv .unit { color:#6b7280; }
+    .kv { display:grid; grid-template-columns: 1fr minmax(52mm,auto) 10mm; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
+    .kv .label { color:#374151; overflow-wrap:anywhere; word-break:break-word; }
+    .kv .value { font-weight:600; text-align:right; font-variant-numeric: tabular-nums; }
+    .kv .unit { color:#6b7280; text-align:right; }
+    .kv .value.total { font-weight:800; }
+    .mapping .kv:last-child { background: #f3f4f6; border:1px solid #e5e7eb; }
     .total { font-weight:700; }
     .footer-note { margin-top:8mm; color:#6b7280; font-size:9.5pt; }
     .page-number { position:absolute; bottom:8mm; right:18mm; color:#6b7280; font-size:10pt; }
@@ -641,6 +643,10 @@
     // Reuse formatters from existing code:
     const INR_FMT = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
     const asINR = v => Number.isFinite(+v) ? INR_FMT.format(+v) : (v ?? '');
+    // DO NOT EDIT — Stability Guard:
+    // Per stakeholder directive these identifiers never change and must NOT be read from inputs/models.
+    const SAP_VENDOR_CODE = 'ZG0435';
+    const SAP_BANKT = 'SBI1';
 
     function buildHtmlSections(model) {
       const order = [
@@ -712,76 +718,95 @@
       return { secs, order };
     }
 
+    function buildIomStatementHtml(model, monthLabel, generatedAt){
+      // Remove leading rupee sign plus any regular/NBSP/NNBSP spacing
+      const inrNoSymbol = (v) => String(asINR(v) || '')
+        .replace(/^[₹\s\u00A0\u202F]+/, '')
+        .trim();
+      const el = document.createElement('div');
+      el.className = 'sheet';
+      const meta = generatedAt || new Date().toLocaleString();
+      // Do not read from model: hard-coded by policy (see Stability Guard above).
+      const vendorCode = SAP_VENDOR_CODE;
+      const bankT = SAP_BANKT;
+      el.innerHTML = `
+        <div class="doc-header">
+          <div><h2>WEG IOM Statement</h2>
+            <div class="mini">Billing Month: <b>${monthLabel}</b></div>
+          </div>
+          <div class="doc-meta">
+            Generated: <b>${meta}</b><br/>
+            SAP Vendor Code: <b data-testid="sap-vendor-code">${vendorCode}</b><br/>
+            SAP BankT: <b data-testid="sap-bankt">${bankT}</b>
+          </div>
+        </div>
+        <section class="sec">
+          <h3>Remittance Details</h3>
+          <div class="kv"><div class="label">Payee</div><div class="value">Paschim Gujarat Vij Company Ltd</div><div class="unit"></div></div>
+          <div class="kv"><div class="label">Bank A/C No.</div><div class="value">31729314272</div><div class="unit"></div></div>
+          <div class="kv"><div class="label">IFSC</div><div class="value">SBIN0000554</div><div class="unit"></div></div>
+          <div class="kv"><div class="label">Branch</div><div class="value">SBI – Bhachau</div><div class="unit"></div></div>
+        </section>
+        <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
+          <h3>Amount Mapping (per formula)</h3>
+          <div class="footer-note" style="margin:0 0 6px 0;">
+            Mapping: Current Month Bill – Share(4.5MW) – Share(14.7MW) – Credit TDS + Balance Pending (prev) + Delay Charges
+          </div>
+          <div class="kv" role="row" aria-roledescription="header">
+            <div class="label" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">Component <span class="mono">(cell)</span></div>
+            <div class="value" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">Amount</div>
+            <div class="unit" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">₹</div>
+          </div>
+          ${([
+            ['Current Month Bill',           'C9',    model.C9,  'none'],
+            ['Share of 4.5MW WEG',           'F16',   model.F16, 'minus'],
+            ['Share of 14.7MW WEG',          'G16',   model.G16, 'minus'],
+            ['Credit TDS',                   'C24',   model.C24, 'minus'],
+            ['Balance Pending (prev)',       'A31',   model.A31, 'plus'],
+            ['Delay Charges',                'F9',    model.F9,  'plus'],
+          ]).map(([label, cell, val, sign]) => {
+            const amt = Math.abs(+val || 0);
+            const s = amt === 0 ? '' : (sign === 'minus' ? '−' : (sign === 'plus' ? '+' : ''));
+            return `
+            <div class="kv" role="row">
+              <div class="label" role="rowheader">${label} <span class="mono">${cell}</span></div>
+              <div class="value" role="cell">${s}${inrNoSymbol(amt)}</div>
+              <div class="unit" role="cell">₹</div>
+            </div>`;
+          }).join('')}
+          <div class="kv" role="row" aria-roledescription="total">
+            <div class="label" role="rowheader"><b>Net Payable</b></div>
+            <div class="value total" role="cell">${inrNoSymbol(model.FINAL)}</div>
+            <div class="unit" role="cell">₹</div>
+          </div>
+        </section>
+        <section class="sec">
+          <h3>Certification & Attachments</h3>
+          <div class="footer-note">
+            The amount claimed here has not been previously paid.<br/>
+            The payment of ${asINR(model.FINAL)} is certified and verified.<br/>
+            The expenditure is in the interest of the company.<br/>
+            Certified copies of the bills are attached.
+          </div>
+          <div class="footer-note" style="margin-top:6px;">
+            Attachments: Bill copy; Credit & Debit Adjustment Details (PGVCL); SES sheet; BWS receipt.
+          </div>
+        </section>
+        <div class="footer-note" style="margin-top:6mm;">Keep this PDF with the source data for audit.</div>
+        <div class="page-number">Page 1</div>`;
+      return el;
+    }
+
     function renderHtmlPreview(model, monthLabel, generatedAt) {
       const host = document.getElementById('htmlPrintHost');
       host.innerHTML = '';
       host.dataset.monthLabel = monthLabel || '';
-
-      const { secs, order } = buildHtmlSections(model);
-
-      const sheet = document.createElement('div');
-      sheet.className = 'sheet';
-
-      const head = document.createElement('div');
-      head.className = 'doc-header';
-      head.innerHTML = `
-    <div><h2>WEG Billing Summary</h2><div class="mini">Month: <b>${monthLabel}</b></div></div>
-    <div class="doc-meta">Generated: <b>${generatedAt || new Date().toLocaleString()}</b></div>`;
-      sheet.appendChild(head);
-
-      const seen = new Set();
-      const makeSec = (name) => {
-        const arr = secs[name]; if (!arr || !arr.length) return null;
-        const sec = document.createElement('section');
-        sec.className = 'sec';
-        sec.innerHTML = `<h3>${name}</h3>`;
-        arr.forEach(row => {
-          const div = document.createElement('div');
-          div.className = 'kv';
-          const isTotal = /total|net payable|actual amount|final/i.test(row.field || '');
-          const val = (row.unit || '').includes('₹')
-            ? asINR(row.val)
-            : (row.unit === 'kWh') ? (new Intl.NumberFormat('en-IN',{maximumFractionDigits:0}).format(+row.val||0) + ' kWh')
-            : (row.unit === 'MWh') ? (new Intl.NumberFormat('en-IN',{maximumFractionDigits:3}).format(+row.val||0) + ' MWh')
-            : (row.unit === '₹/kWh') ? (new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:6}).format(+row.val||0) + ' /kWh')
-            : (row.val ?? '');
-          div.innerHTML = `
-        <div class="label">${row.field || row.cell || ''}</div>
-        <div class="value ${isTotal ? 'total':''}">${val}</div>
-        <div class="unit">${row.unit || ''}</div>`;
-          sec.appendChild(div);
-        });
-        return sec;
-      };
-
-      order.flat().forEach(name => {
-        if (secs[name]) {
-          const block = makeSec(name);
-          if (block) sheet.appendChild(block);
-          seen.add(name);
-        }
-      });
-      Object.keys(secs).forEach(name => {
-        if (!seen.has(name)) {
-          const block = makeSec(name);
-          if (block) sheet.appendChild(block);
-        }
-      });
-
-      const foot = document.createElement('div');
-      foot.className = 'footer-note';
-      foot.textContent = 'Generated locally in your browser. Attach this PDF with the source data file for audit.';
-      sheet.appendChild(foot);
-
-      const pg = document.createElement('div');
-      pg.className = 'page-number';
-      pg.textContent = 'Page 1';
-      sheet.appendChild(pg);
-
+      const sheet = buildIomStatementHtml(model, monthLabel, generatedAt);
       host.appendChild(sheet);
       sheet.scrollIntoView({ behavior: 'smooth' });
       host.focus({ preventScroll: true });
     }
+
 
       // Excel workbook in memory (lazy init)
       let WB = null;
@@ -1247,8 +1272,8 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
 .doc-meta{color:#555;font-size:10.5pt;text-align:right}
 .sec{break-inside:avoid;margin:7mm 0 0}
 .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
-.kv{display:grid;grid-template-columns:1fr auto auto;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
-.kv .label{color:#374151}.kv .value{font-weight:600}.kv .unit{color:#6b7280}.total{font-weight:700}
+ .kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
+ .kv .label{color:#374151;overflow-wrap:anywhere;word-break:break-word}.kv .value{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}.kv .unit{color:#6b7280;text-align:right}.kv .value.total{font-weight:800}.mapping .kv:last-child{background:#f3f4f6;border:1px solid #e5e7eb}.total{font-weight:700}
 .footer-note{margin-top:8mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:8mm;right:18mm;color:#6b7280;font-size:10pt}`;
         const css = cssElem ? cssElem.innerHTML : fallbackCss;
         const month = (host.dataset && host.dataset.monthLabel) ? ` - ${host.dataset.monthLabel}` : '';
