@@ -204,7 +204,7 @@
       background: #fff;
       color: #111;
       border: 1px solid rgba(0,0,0,.12);
-      padding: 16mm 18mm;
+      padding: 16mm 18mm 22mm; /* bottom padding to avoid footer overlap */
       position: relative;
       font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
@@ -221,6 +221,13 @@
     .kv .value.total { font-weight:800; }
     .mapping .kv:last-child { background: #f3f4f6; border:1px solid #e5e7eb; }
     .total { font-weight:700; }
+    /* Signatures */
+    .signatures { break-inside: avoid; }
+    .sigs { display:grid; grid-template-columns: 1fr 1fr; gap:6mm; margin-top:6mm; }
+    .sig { text-align:left; }
+    .sig.right { text-align:right; }
+    .sig .line { border-top:1px solid #d1d5db; height:0; margin:14mm 0 2mm; }
+    .sig .role { color:#111; font-weight:600; }
     .footer-note { margin-top:8mm; color:#6b7280; font-size:9.5pt; }
     .page-number { position:absolute; bottom:8mm; right:18mm; color:#6b7280; font-size:10pt; }
 
@@ -780,20 +787,38 @@
             <div class="unit" role="cell">₹</div>
           </div>
         </section>
-        <section class="sec">
-          <h3>Certification & Attachments</h3>
+        <section class="sec" role="region" aria-labelledby="cert-h">
+          <h3 id="cert-h">Certification & Attachments</h3>
           <div class="footer-note">
             The amount claimed here has not been previously paid.<br/>
             The payment of ${asINR(model.FINAL)} is certified and verified.<br/>
             The expenditure is in the interest of the company.<br/>
-            Certified copies of the bills are attached.
+            Certified copies of the bills are attached.<br/>
+            <span data-testid="receipt-note">Bill received via central post.</span>
           </div>
           <div class="footer-note" style="margin-top:6px;">
             Attachments: Bill copy; Credit & Debit Adjustment Details (PGVCL); SES sheet; BWS receipt.
           </div>
         </section>
+        <section class="sec signatures" role="group" aria-labelledby="sig-h">
+          <h3 id="sig-h">Authorizations & Signatures</h3>
+          <div class="sigs">
+            <div class="sig">
+              <div class="line" aria-hidden="true"></div>
+              <div class="role" data-testid="sig-dgm-om">DGM (O&amp;M)/WIC, Samakhiali</div>
+            </div>
+            <div class="sig right">
+              <div class="line" aria-hidden="true"></div>
+              <div class="role" data-testid="sig-sm-ele">Senior Manager (ELE)</div>
+            </div>
+            <div class="sig">
+              <div class="line" aria-hidden="true"></div>
+              <div class="role" data-testid="sig-dgm-fa">DGM (F&amp;A), Jaipur</div>
+            </div>
+          </div>
+        </section>
         <div class="footer-note" style="margin-top:6mm;">Keep this PDF with the source data for audit.</div>
-        <div class="page-number">Page 1</div>`;
+        <div class="page-number" aria-hidden="true">Page 1</div>`;
       return el;
     }
 
@@ -1266,15 +1291,16 @@
         const fallbackCss = `
 @page{size:A4;margin:14mm}
 body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
-.sheet{width:210mm;min-height:297mm;padding:16mm 18mm;position:relative}
+.sheet{width:210mm;min-height:297mm;padding:16mm 18mm 22mm;position:relative}
 .doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8mm}
 .doc-header .left h2{margin:0;font-size:18pt}
 .doc-meta{color:#555;font-size:10.5pt;text-align:right}
 .sec{break-inside:avoid;margin:7mm 0 0}
-.sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
+ .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
  .kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
  .kv .label{color:#374151;overflow-wrap:anywhere;word-break:break-word}.kv .value{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}.kv .unit{color:#6b7280;text-align:right}.kv .value.total{font-weight:800}.mapping .kv:last-child{background:#f3f4f6;border:1px solid #e5e7eb}.total{font-weight:700}
-.footer-note{margin-top:8mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:8mm;right:18mm;color:#6b7280;font-size:10pt}`;
+ .signatures{break-inside:avoid} .sigs{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:6mm}.sig{text-align:left}.sig.right{text-align:right}.sig .line{border-top:1px solid #d1d5db;height:0;margin:14mm 0 2mm}.sig .role{color:#111;font-weight:600}
+ .footer-note{margin-top:8mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:8mm;right:18mm;color:#6b7280;font-size:10pt}`;
         const css = cssElem ? cssElem.innerHTML : fallbackCss;
         const month = (host.dataset && host.dataset.monthLabel) ? ` - ${host.dataset.monthLabel}` : '';
         const html = `
