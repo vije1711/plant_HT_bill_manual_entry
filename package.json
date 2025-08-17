@@ -2,7 +2,6 @@
   "name": "plant_ht_bill_manual_entry",
   "version": "1.0.0",
   "description": "This repository contains a single-page web application for manual entry and calculation of high-tension (HT) electricity bills. It is designed to run entirely in the browser without a server component.",
-  "main": "iom-pdf.js",
   "scripts": {
     "test": "node --test"
   },
