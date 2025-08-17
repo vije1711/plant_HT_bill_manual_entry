@@ -281,63 +281,225 @@
     </div>
   </div>
 
-  <!-- SheetJS for Excel export -->
-  <!-- Prefer a local copy for offline/file:// usage; keep dynamic loader as fallback -->
-  <script src="./xlsx.full.min.js"></script>
-  <!-- pdfMake and fonts for PDF export (local, offline) -->
-  <script src="./pdfmake.min.js"></script>
-  <script src="./vfs_fonts.js"></script>
-
-  <script>
-    (function(){
-      if (window.__VFS_MERGED) return;
-      const hasPdfMake = !!window.pdfMake;
-      let vfsCount = 0, hasRoboto = false, hasNoto = false;
-      if (hasPdfMake) {
-        const merged = Object.assign({}, pdfMake.vfs || {});
-        if (window.vfs) Object.assign(merged, window.vfs);
-        if (window.NOTO_VFS) Object.assign(merged, window.NOTO_VFS);
-        pdfMake.vfs = merged;
-        vfsCount = Object.keys(merged).length;
-        hasRoboto = !!merged['Roboto-Regular.ttf'];
-        hasNoto = !!merged['NotoSansDevanagari-Regular.ttf'];
-        pdfMake.fonts = pdfMake.fonts || {};
-        pdfMake.fonts.Roboto = {
-          normal: 'Roboto-Regular.ttf',
-          bold: 'Roboto-Bold.ttf',
-          italics: 'Roboto-Italic.ttf',
-          bolditalics: 'Roboto-BoldItalic.ttf'
-        };
-        pdfMake.fonts.Noto = hasNoto ? {
-          normal: 'NotoSansDevanagari-Regular.ttf',
-          bold: 'NotoSansDevanagari-Bold.ttf',
-          italics: 'NotoSansDevanagari-Regular.ttf',
-          bolditalics: 'NotoSansDevanagari-Bold.ttf'
-        } : pdfMake.fonts.Roboto;
-        window.__VFS_MERGED = true;
-      }
-      console.log('[PDF] merge', { hasPdfMake, vfsCount, hasRoboto, hasNoto });
-    })();
-  </script>
-
-<script src="./iom-pdf.js"></script>
   <script>
     function toast(msg, type='info'){
+      const host = document.getElementById('toasts');
+      if(!host){
+        try{ console.warn('[toast] container #toasts not found; message:', msg); }catch(_){ }
+        return;
+      }
       const t = document.createElement('div');
       t.className = `toast ${type}`;
       t.textContent = msg;
-      document.getElementById('toasts').appendChild(t);
+      host.appendChild(t);
       setTimeout(()=>{
         t.classList.add('hide');
         t.addEventListener('transitionend',()=>t.remove());
       },3000);
     }
   </script>
+
+  <!-- SheetJS for Excel export -->
+  <!-- Prefer a local copy for offline/file:// usage; keep dynamic loader as fallback -->
+  <script src="./xlsx.full.min.js"></script>
+  <!-- pdfMake and fonts for PDF export (local, offline) -->
+  <script src="./pdfmake.min.js"></script>
+  <script src="./vfs_fonts.js"></script>
+  <script src="./vfs_noto_deva.js"></script>
+
+  <script>
+    (function(){
+      // Single source of truth for required font mapping keys
+      const NEED_KEYS = ['normal','bold','italics','bolditalics'];
+      function hasNotoTtf(){
+        return !!(pdfMake && pdfMake.vfs &&
+          (pdfMake.vfs['NotoSansDevanagari-Regular.ttf'] || pdfMake.vfs['NotoSansDevanagari-Bold.ttf']));
+        }
+      function deepFreeze(obj){
+        if(!obj || typeof obj !== 'object') return obj;
+        Object.freeze(obj);
+        // for potential nested objects in future
+        // Object.getOwnPropertyNames(obj).forEach(p=>{
+        //   if(obj[p] && typeof obj[p] === 'object' && !Object.isFrozen(obj[p])) deepFreeze(obj[p]);
+        // });
+        return obj;
+      }
+      function getDefaultFontName(){
+        // Pure resolver: choose without mutating.
+        if(hasNotoTtf() && pdfMake.fonts && fontFilesExist(pdfMake.fonts.Noto)){
+          return 'Noto';
+        }
+        return 'Roboto';
+      }
+      function fontFilesExist(familyDef){
+        if(!familyDef || !pdfMake || !pdfMake.vfs) return false;
+        return NEED_KEYS.every(k => familyDef[k] && pdfMake.vfs[familyDef[k]]);
+      }
+      function missingFontKeys(familyDef){
+        if(!familyDef || !pdfMake || !pdfMake.vfs) return NEED_KEYS.slice();
+        const missing=[];
+        for(const k of NEED_KEYS){
+          const name=familyDef[k];
+          if(!name || !pdfMake.vfs[name]) missing.push(k);
+        }
+        return missing;
+      }
+      function validateFontMapping(familyDef){
+        const miss = missingFontKeys(familyDef);
+        const mapped = (familyDef && typeof familyDef === 'object')
+          ? NEED_KEYS.reduce((acc,k)=>{acc[k]=familyDef[k]||null;return acc;}, {})
+          : {};
+        return { ok: miss.length===0, missing: miss, mapped };
+      }
+      function buildRoboto(){
+        const v = (name) => (pdfMake.vfs && pdfMake.vfs[name]) ? name : null;
+        const pick = (...cands) => cands.find(v) || null;
+        const mapping = {
+          normal: v('Roboto-Regular.ttf'),
+          italics: pick('Roboto-Italic.ttf','Roboto-MediumItalic.ttf','Roboto-BoldItalic.ttf'),
+          bold: pick('Roboto-Medium.ttf','Roboto-Bold.ttf'),
+          bolditalics: pick('Roboto-MediumItalic.ttf','Roboto-Italic.ttf','Roboto-BoldItalic.ttf')
+        };
+        return fontFilesExist(mapping) ? mapping : null;
+      }
+      function ensureFontMappings(){
+        // Defensive no-op if prerequisites aren’t ready (keeps this helper safe to reuse)
+        if(!pdfMake || !pdfMake.vfs){
+          return;
+        }
+        pdfMake.fonts = pdfMake.fonts || {};
+        // Roboto: rebuild if missing/invalid
+        if(!pdfMake.fonts.Roboto || !fontFilesExist(pdfMake.fonts.Roboto)){
+          const rebuilt = buildRoboto();
+          if(rebuilt){
+            const frozen = deepFreeze(rebuilt);
+            if(pdfMake.fonts.Roboto !== frozen) pdfMake.fonts.Roboto = frozen;
+          }
+        }
+        // Noto: only register if TTFs exist; otherwise keep Roboto
+        if(!pdfMake.fonts.Noto || !fontFilesExist(pdfMake.fonts.Noto)){
+          const rebuiltNoto = hasNotoTtf() ? {
+            normal: 'NotoSansDevanagari-Regular.ttf',
+            bold: 'NotoSansDevanagari-Bold.ttf',
+            italics: 'NotoSansDevanagari-Regular.ttf',
+            bolditalics: 'NotoSansDevanagari-Bold.ttf'
+          } : pdfMake.fonts.Roboto;
+          if(rebuiltNoto && fontFilesExist(rebuiltNoto)){
+            // If we’re falling back to Roboto, avoid sharing object references.
+            const candidate = hasNotoTtf() ? rebuiltNoto : Object.assign({}, rebuiltNoto);
+            const frozen = deepFreeze(candidate);
+            if(pdfMake.fonts.Noto !== frozen) pdfMake.fonts.Noto = frozen;
+          }
+        }
+      }
+      let __toastUntil = 0;
+      function toastOnce(msg, type){
+        const now = Date.now();
+        if(now < __toastUntil) return;
+        __toastUntil = now + 1500;
+        toast(msg, type);
+      }
+      // Idempotent assignment to avoid overwriting an existing debouncer
+      if (!window.toastOnce) {
+        window.toastOnce = toastOnce;
+      }
+      try{
+        if(window.__VFS_MERGED || !window.pdfMake) return;
+        const merged = Object.assign({}, pdfMake.vfs || {});
+        if(window.vfs) Object.assign(merged, window.vfs);
+        const hasNotoObj = !!(window.NOTO_VFS && typeof window.NOTO_VFS === 'object');
+        if(hasNotoObj) Object.assign(merged, window.NOTO_VFS);
+        pdfMake.vfs = merged;
+        // Centralize mapping fixes before resolving default font
+        ensureFontMappings();
+        const vfsOk = !!(pdfMake && pdfMake.vfs && Object.keys(pdfMake.vfs).length);
+        if(!vfsOk){
+          console.warn('[PDF] vfs empty after merge', {
+            hasPdfMake: !!window.pdfMake,
+            hasBaseVfs: !!window.vfs,
+            hasNotoObj: hasNotoObj
+          });
+          toastOnce('PDF fonts/VFS not loaded. Check vfs_fonts.js path.', 'bad');
+          return;
+        }
+        const notoAvailable = hasNotoTtf();
+        const defaultFontName = getDefaultFontName();
+        const want = (defaultFontName === 'Noto') ? pdfMake.fonts.Noto : pdfMake.fonts.Roboto;
+        const v = validateFontMapping(want);
+        if(!v.ok){
+          console.warn('[PDF] No usable font mapping in VFS', {
+            defaultFontName,
+            missingKeys: v.missing,
+            expectedFiles: v.mapped
+          });
+          toastOnce('PDF fonts not usable. Check vfs_fonts.js.', 'bad');
+          return;
+        }
+        window.__IOM_DEFAULT_FONT = defaultFontName;
+        window.__VFS_MERGED = true;
+        console.log('[PDF] merge', {
+          hasPdfMake: !!window.pdfMake,
+          vfsCount: Object.keys(pdfMake.vfs || {}).length,
+          hasRoboto: !!(pdfMake.vfs && pdfMake.vfs['Roboto-Regular.ttf']),
+          hasNotoTtf: notoAvailable,
+          hasNotoFont: !!(pdfMake.fonts && pdfMake.fonts.Noto),
+          defaultFontName,
+          fellBackToRoboto: (defaultFontName === 'Roboto' && !notoAvailable)
+        });
+      }catch(e){
+        console.warn('[PDF] VFS merge failed', e);
+      }
+
+      const __PDFREADY_CODES = Object.freeze({
+        NO_ENGINE: 'NO_ENGINE',
+        NO_VFS: 'NO_VFS',
+        NO_TEMPLATE: 'NO_TEMPLATE',
+        MISSING_DEFAULT_FONT: 'MISSING_DEFAULT_FONT'
+      });
+      window.pdfReady = function(opts){
+        const quiet = !!(opts && opts.quiet);
+        const onError = (opts && typeof opts.onError === 'function') ? opts.onError : null;
+        const maybeToast = (msg, type) => { if(!quiet) toastOnce(msg, type); };
+        if(!window.pdfMake){
+          if(onError) onError(__PDFREADY_CODES.NO_ENGINE);
+          maybeToast('Missing pdfmake.min.js', 'bad'); return false;
+        }
+        if(!pdfMake.vfs || !Object.keys(pdfMake.vfs).length){
+          if(onError) onError(__PDFREADY_CODES.NO_VFS);
+          maybeToast('PDF fonts/VFS not loaded. Check vfs_fonts.js path.', 'bad'); return false;
+        }
+        if(typeof window.generateIOMPDF !== 'function'){
+          if(onError) onError(__PDFREADY_CODES.NO_TEMPLATE);
+          maybeToast('PDF template (iom-pdf.js) missing.', 'bad'); return false;
+        }
+        const resolvedFontName = window.__IOM_DEFAULT_FONT || getDefaultFontName();
+        const fam = pdfMake.fonts && pdfMake.fonts[resolvedFontName];
+        const v = validateFontMapping(fam);
+        if(!fam || !v.ok){
+          try{ console.warn('[PDF] default font mapping invalid', { resolvedFontName, missingKeys: v.missing, expectedFiles: v.mapped }); }catch(_){ }
+          if(onError) onError(__PDFREADY_CODES.MISSING_DEFAULT_FONT);
+          maybeToast('PDF default font missing files in VFS.', 'bad');
+          return false;
+        }
+        return true;
+      };
+      // Expose stable, immutable error codes
+      try {
+        Object.defineProperty(window.pdfReady, 'CODES', {
+          value: __PDFREADY_CODES, writable: false, configurable: false, enumerable: true
+        });
+      } catch(_){
+        window.pdfReady.CODES = __PDFREADY_CODES;
+      }
+    })();
+  </script>
+<script src="./iom-pdf.js"></script>
   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const hasPdfMake = !!window.pdfMake;
-  const vfsCount = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
-  console.log('[PDF] ready?', { hasPdfMake, vfsCount });
+  var hasPdfMake = !!window.pdfMake;
+  var vfsCount = hasPdfMake && pdfMake.vfs ? Object.keys(pdfMake.vfs).length : 0;
+  var hasNotoFont = hasPdfMake && pdfMake.fonts && !!pdfMake.fonts.Noto;
+  console.log('[PDF] ready?', { hasPdfMake, vfsCount, hasNotoFont });
 });
 </script>
   <script>
@@ -378,17 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const ok = await __xlsxLoading;
       __xlsxLoading = null;
       return ok;
-    }
-
-    function pdfReady() {
-      if (!window.pdfMake) { toast('Missing pdfmake.min.js', 'bad'); return false; }
-      if (!pdfMake.vfs || !Object.keys(pdfMake.vfs).length) {
-        toast('PDF fonts/VFS not loaded. Check vfs_fonts.js path.', 'bad'); return false;
-      }
-      if (typeof window.generateIOMPDF !== 'function') {
-        toast('PDF template (iom-pdf.js) missing.', 'bad'); return false;
-      }
-      return true;
     }
 
     // Restore the small UX helper to show a temporary busy state on buttons.
