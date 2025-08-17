@@ -9,7 +9,7 @@ It is designed to run entirely in the browser without a server component.
 - Local storage support for restoring previous sessions
 - Sample data loader for quick demonstrations
 - Import/export functionality powered by [SheetJS](https://sheetjs.com/) via `xlsx.full.min.js`
-- PDF export support for generating printable bills
+- PDF export via browser print for generating printable bills
 
 ## Getting Started
 1. Clone or download the repository.
@@ -17,13 +17,12 @@ It is designed to run entirely in the browser without a server component.
 3. Open `1.4.1 GUI Entry.html` in a modern web browser.
 4. Enter billing values in the provided fields.
 5. Use the **Compute** button to calculate totals, **Reset** to clear fields, and **Save**/**Restore** for working with stored data.
-6. Click **Download PDF** to export a printable PDF version of the bill.
+6. Use **Render Preview** and **Save as PDF** to export a printable PDF version of the bill.
 
 ## Repository Structure
 - `1.4.1 GUI Entry.html` - Main application interface and logic.
 - `xlsx.full.min.js` - Bundled SheetJS library used for Excel import/export.
-- `iom-pdf.js` - PDF layout and export logic built on pdfmake.
-- `test/` - Node-based tests, currently including `basic.test.js` for sample calculations and PDF generation.
+- `test/` - Node-based tests, currently including `basic.test.js` for sample calculations.
 
 ## Development Notes
 This project uses a `package.json` for dependency management and includes a `test` script to run the Node-based test suite.
