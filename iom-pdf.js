@@ -918,10 +918,9 @@
   function fmtRate(v){ return RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh'; }
 
 
-  function buildIOMDocDefinition(model, monthStr, options){
+  function buildIOMDocDefinition(model, monthStr){
     const vendorLines = model.vendorLines || [];
     const bankLines = model.bankLines || [];
-    const fontName = (options && options.fontName) || (global.__IOM_DEFAULT_FONT || (global.pdfMake?.fonts?.Noto ? 'Noto' : 'Roboto'));
     const content = [
       {
         columns: [
@@ -1034,51 +1033,29 @@
         subheader: { fontSize: 13, bold: true },
         table: { margin: [0, 0, 0, 4] },
         bank: { fillColor: '#ffff00', color: 'black', bold: true }
-      },
-      defaultStyle: { font: fontName, fontSize: 10 }
+      }
     };
   }
 
   function generateIOMPDF(model, monthStr){
-    if (typeof global !== 'undefined' && typeof global.pdfReady === 'function' && !global.pdfReady()) return;
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
-    try {
-      var docDefinition = buildIOMDocDefinition(model, monthStr, { fontName: (global.__IOM_DEFAULT_FONT || undefined) });
-      global.pdfMake.createPdf(docDefinition).download(`IOM_${monthStr}.pdf`);
-    } catch (err) {
-      console.error('[PDF] generation failed', err);
-      if (typeof global.toastOnce === 'function') {
-        global.toastOnce('PDF generation failed. See console for details.', 'bad');
-      }
-    }
+    var docDefinition = buildIOMDocDefinition(model, monthStr);
+    docDefinition.defaultStyle = { fontSize: 10 };
+    global.pdfMake.createPdf(docDefinition).download(`IOM_${monthStr}.pdf`);
   }
 
   function generateIOMPDFOpen(model, monthStr){
-    if (typeof global !== 'undefined' && typeof global.pdfReady === 'function' && !global.pdfReady()) return;
     if(!global.pdfMake){ console.error('pdfMake not loaded'); return; }
-    try {
-      var dd = buildIOMDocDefinition(model, monthStr, { fontName: (global.__IOM_DEFAULT_FONT || undefined) });
-      global.pdfMake.createPdf(dd).open();
-    } catch (err) {
-      console.error('[PDF] generation failed', err);
-      if (typeof global.toastOnce === 'function') {
-        global.toastOnce('PDF generation failed. See console for details.', 'bad');
-      }
-    }
+    var dd = buildIOMDocDefinition(model, monthStr);
+    dd.defaultStyle = { fontSize: 10 };
+    global.pdfMake.createPdf(dd).open();
   }
 
   function generateIOMPDFBlob(model, monthStr){
-    if (typeof global !== 'undefined' && typeof global.pdfReady === 'function' && !global.pdfReady({ quiet: true })) return Promise.reject(new Error('PDF not ready'));
     if(!global.pdfMake) return Promise.reject(new Error('pdfMake not loaded'));
-    try {
-      var dd = buildIOMDocDefinition(model, monthStr, { fontName: (global.__IOM_DEFAULT_FONT || undefined) });
-      return new Promise(resolve => global.pdfMake.createPdf(dd).getBlob(resolve));
-    } catch (err) {
-      if (typeof global.toastOnce === 'function') {
-        global.toastOnce('PDF generation failed. See console for details.', 'bad');
-      }
-      return Promise.reject(err);
-    }
+    var dd = buildIOMDocDefinition(model, monthStr);
+    dd.defaultStyle = { fontSize: 10 };
+    return new Promise(resolve => global.pdfMake.createPdf(dd).getBlob(resolve));
   }
 
   global.buildIOMDocDefinition = buildIOMDocDefinition;
