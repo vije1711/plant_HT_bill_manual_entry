@@ -503,7 +503,7 @@
           const hints = {
             [window.pdfReady?.CODES?.NO_ENGINE]: 'pdfmake.min.js missing',
             [window.pdfReady?.CODES?.NO_VFS]: 'vfs_fonts.js missing',
-            [window.pdfReady?.CODES?.NO_TEMPLATE]: 'iom-pdf.js missing',
+            [window.pdfReady?.CODES?.NO_TEMPLATE]: 'iom-pdf.js missing (not required for smoke)',
             [window.pdfReady?.CODES?.MISSING_DEFAULT_FONT]: 'default font files missing'
           };
           console.warn('[PDF][SMOKE] not ready', { code, hint: hints[code] || '' });
@@ -511,9 +511,22 @@
       }
       window.logPdfNotReady = logPdfNotReady;
 
+      // Engine/VFS-only readiness for smoke: template is optional
+      function engineReadyOnly(){
+        if (!window.pdfMake) {
+          logPdfNotReady(window.pdfReady?.CODES?.NO_ENGINE || 'NO_ENGINE');
+          return false;
+        }
+        if (!pdfMake.vfs || !Object.keys(pdfMake.vfs).length) {
+          logPdfNotReady(window.pdfReady?.CODES?.NO_VFS || 'NO_VFS');
+          return false;
+        }
+        return true;
+      }
+
       function generatePDFSmoke(){
-        const ok = (typeof window.pdfReady === 'function') && window.pdfReady({ quiet: true, onError: logPdfNotReady });
-        if (!ok || !window.pdfMake) return;
+        const ok = engineReadyOnly();
+        if (!ok) return;
         try {
           const dd = { content: ['PDF OK'], defaultStyle: { fontSize: 10 } };
           window.pdfMake.createPdf(dd).open();
