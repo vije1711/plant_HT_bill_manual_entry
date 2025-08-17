@@ -5,8 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WEG Billing Calculator</title>
-  <!-- Main styles including print rules; id must remain unique -->
-  <style id="print-css">
+  <style>
     :root{
       --bg:#0f172a;          /* slate-900 */
       --card:#111827;        /* gray-900 */
@@ -128,41 +127,6 @@
     .hint{display:none;color:var(--bad);font-size:11px;margin-top:4px}
     .warn-text{display:none;color:var(--muted);font-size:11px;margin-top:4px}
     .invalid{border-color:var(--bad)!important}
-
-    /* A4 page layout for HTML preview */
-    .sheet {
-      width: 210mm;
-      min-height: 297mm;
-      margin: 12px auto;
-      background: #fff;
-      color: #111;
-      border: 1px solid rgba(0,0,0,.12);
-      padding: 16mm 18mm;
-      position: relative;
-      font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8mm; }
-    .doc-header h2 { margin:0; font-size:18pt; }
-    .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
-    .sec { break-inside: avoid; margin: 7mm 0 0; }
-    .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
-    .kv { display:grid; grid-template-columns: 1fr auto auto; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
-    .kv .label { color:#374151; }
-    .kv .value { font-weight:600; }
-    .kv .unit { color:#6b7280; }
-    .total { font-weight:700; }
-    .footer-note { margin-top:8mm; color:#6b7280; font-size:9.5pt; }
-    .page-number { position:absolute; bottom:8mm; right:18mm; color:#6b7280; font-size:10pt; }
-
-    /* Print rules: hide only UI chrome, keep the A4 preview visible */
-    @media print {
-      @page { size: A4; margin: 14mm; }
-      header, .toolbar, .card:not(.sheet), #toasts { display:none !important; }
-      .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0; page-break-after:always;
-               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .sheet:last-child { page-break-after:auto; }
-    }
   </style>
 </head>
 <body>
@@ -195,14 +159,10 @@
         </label>
         <button id="downloadExcel">Download Excel</button>
         <button id="downloadPDF">Download IOM PDF</button>
-        <button id="renderHtml">Render Preview</button>
-        <label class="pill"><input type="checkbox" id="autoPrintHtml" /> Auto-print after render</label>
-        <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
-        <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF View</button>
         <button id="pdfSmokeBtn" style="display:none">PDF Smoke Test</button>
-        <button class="ghost" id="resetAll">Reset</button>
-        <button class="ghost" id="clearSheets">Clear Sheets</button>
-        <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
+          <button class="ghost" id="resetAll">Reset</button>
+          <button class="ghost" id="clearSheets">Clear Sheets</button>
+          <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
         </div>
       </header>
 
@@ -311,7 +271,6 @@
   <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
   </div>
 
-  <div id="htmlPrintHost" role="region" aria-label="A4 print preview" aria-busy="false" tabindex="-1"></div>
   <div id="toasts" role="status" aria-live="polite"></div>
   <div id="modal" role="dialog" aria-modal="true" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1100; align-items:center; justify-content:center;">
     <div style="background:var(--card); color:var(--ink); padding:16px; border-radius:12px; min-width:300px; box-shadow:var(--shadow)">
@@ -811,151 +770,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
 
-    // Reuse formatters from existing code:
-    const INR_FMT = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
-    const asINR = v => Number.isFinite(+v) ? INR_FMT.format(+v) : (v ?? '');
-
-    function buildHtmlSections(model) {
-      const order = [
-        ['HT Bill','HT Bill (calc)'],
-        ['Adjust','Adjust (calc)'],
-        ['WEG','WEG (calc)'],
-        ['Wind Credits','Wind Debits','Wind (calc)'],
-        ['FINAL']
-      ];
-      const secs = {};
-      const add = (s, field, cell, val, unit='') => {
-        (secs[s] ||= []).push({ field, cell, val, unit });
-      };
-
-      // HT Bill
-      add('HT Bill','Monthly Consumption','A4', model.A4,'kWh');
-      add('HT Bill','Demand Charges','B4', model.B4,'₹');
-      add('HT Bill','Energy Charges','C4', model.C4,'₹');
-      add('HT Bill','Night Rebate','D4', model.D4,'₹');
-      add('HT Bill','Fuel Charge','E4', model.E4,'₹');
-      add('HT Bill','PF Rebate','F4', model.F4,'₹');
-      add('HT Bill','EHV Rebate','G4', model.G4,'₹');
-      add('HT Bill','TOU','H4', model.H4,'₹');
-      add('HT Bill','GT Charges','I4', model.I4,'₹');
-
-      add('HT Bill (calc)','Total Consumption Charge','A9', model.A9,'₹');
-      add('HT Bill (calc)','ED @ 20%','B9', model.B9,'₹');
-      add('HT Bill (calc)','Current Month Bill','C9', model.C9,'₹');
-
-      // Adjust
-      add('Adjust','Outstanding Arrears','D9', model.D9,'₹');
-      add('Adjust','Freeze Amount','E9', model.E9,'₹');
-      add('Adjust','Delayed Payment Charges','F9', model.F9,'₹');
-      add('Adjust','Advance Payment / Adjust.','G9', model.G9,'₹');
-      add('Adjust (calc)','Net Payable','H9', model.H9,'₹');
-      add('Adjust (calc)','Actual Amount to be Paid','I9', model.I9,'₹');
-      add('Adjust (calc)','Balance Pending from Previous Month','A31', model.A31,'₹');
-
-      // WEG
-      add('WEG','Share Bitlavadia (%)','B15', model.B15,'%');
-      add('WEG','Share Nanisindhodi (%)','D15', model.D15,'%');
-      add('WEG','Transmission Loss (%)','C16', model.C16,'%');
-      add('WEG','Bitlavadia MWh #1','A17', model.A17,'MWh');
-      add('WEG','Bitlavadia MWh #2','B17', model.B17,'MWh');
-      add('WEG','Nanisindhodi MWh #1','C17', model.C17,'MWh');
-      add('WEG','Nanisindhodi MWh #2','D17', model.D17,'MWh');
-      add('WEG','Nanisindhodi MWh #3','E17', model.E17,'MWh');
-      add('WEG (calc)','Bitlavadia Share (kWh)','A18', model.A18,'kWh');
-      add('WEG (calc)','Nanisindhodi Share (kWh)','C18', model.C18,'kWh');
-      add('WEG (calc)','Total Allocated (kWh)','A19', model.A19,'kWh');
-
-      // Wind Credits / Debits
-      add('Wind Credits','Credit Board Charges','A24', model.A24,'₹');
-      add('Wind Credits','Credit ED Charges','B24', model.B24,'₹');
-      add('Wind Credits','Credit TDS','C24', model.C24,'₹');
-      add('Wind Debits','Debit Board Charges','D24', model.D24,'₹');
-      add('Wind Debits','Debit Electricity Duty','E24', model.E24,'₹');
-      add('Wind Debits','Debit Wheeling Charges','F24', model.F24,'₹');
-      add('Wind (calc)','Total Credit','A26', model.A26,'₹');
-      add('Wind (calc)','Total Debit','B26', model.B26,'₹');
-      add('Wind (calc)','Net Wind Credit','C26', model.C26,'₹');
-      add('Wind (calc)','Wind Rate (₹/kWh)','B19', model.B19,'₹/kWh');
-      add('Wind (calc)','Share 4.5 MW (₹)','F16', model.F16,'₹');
-      add('Wind (calc)','Share 14.7 MW (₹)','G16', model.G16,'₹');
-
-      // FINAL
-      add('FINAL','Final Bill for IOM','—', model.FINAL,'₹');
-
-      return { secs, order };
-    }
-
-    function renderHtmlPreview(model, monthLabel, generatedAt) {
-      const host = document.getElementById('htmlPrintHost');
-      host.innerHTML = '';
-      host.dataset.monthLabel = monthLabel || '';
-
-      const { secs, order } = buildHtmlSections(model);
-
-      const sheet = document.createElement('div');
-      sheet.className = 'sheet';
-
-      const head = document.createElement('div');
-      head.className = 'doc-header';
-      head.innerHTML = `
-    <div><h2>WEG Billing Summary</h2><div class="mini">Month: <b>${monthLabel}</b></div></div>
-    <div class="doc-meta">Generated: <b>${generatedAt || new Date().toLocaleString()}</b></div>`;
-      sheet.appendChild(head);
-
-      const seen = new Set();
-      const makeSec = (name) => {
-        const arr = secs[name]; if (!arr || !arr.length) return null;
-        const sec = document.createElement('section');
-        sec.className = 'sec';
-        sec.innerHTML = `<h3>${name}</h3>`;
-        arr.forEach(row => {
-          const div = document.createElement('div');
-          div.className = 'kv';
-          const isTotal = /total|net payable|actual amount|final/i.test(row.field || '');
-          const val = (row.unit || '').includes('₹')
-            ? asINR(row.val)
-            : (row.unit === 'kWh') ? (new Intl.NumberFormat('en-IN',{maximumFractionDigits:0}).format(+row.val||0) + ' kWh')
-            : (row.unit === 'MWh') ? (new Intl.NumberFormat('en-IN',{maximumFractionDigits:3}).format(+row.val||0) + ' MWh')
-            : (row.unit === '₹/kWh') ? (new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:6}).format(+row.val||0) + ' /kWh')
-            : (row.val ?? '');
-          div.innerHTML = `
-        <div class="label">${row.field || row.cell || ''}</div>
-        <div class="value ${isTotal ? 'total':''}">${val}</div>
-        <div class="unit">${row.unit || ''}</div>`;
-          sec.appendChild(div);
-        });
-        return sec;
-      };
-
-      order.flat().forEach(name => {
-        if (secs[name]) {
-          const block = makeSec(name);
-          if (block) sheet.appendChild(block);
-          seen.add(name);
-        }
-      });
-      Object.keys(secs).forEach(name => {
-        if (!seen.has(name)) {
-          const block = makeSec(name);
-          if (block) sheet.appendChild(block);
-        }
-      });
-
-      const foot = document.createElement('div');
-      foot.className = 'footer-note';
-      foot.textContent = 'Generated locally in your browser. Attach this PDF with the source data file for audit.';
-      sheet.appendChild(foot);
-
-      const pg = document.createElement('div');
-      pg.className = 'page-number';
-      pg.textContent = 'Page 1';
-      sheet.appendChild(pg);
-
-      host.appendChild(sheet);
-      sheet.scrollIntoView({ behavior: 'smooth' });
-      host.focus({ preventScroll: true });
-    }
-
       // Excel workbook in memory (lazy init)
       let WB = null;
   function getWB(){
@@ -1328,175 +1142,6 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       );
 
-      // Centralize busy-state toggling to avoid drift
-      function setBusy(el, on){
-        if(!el) return;
-        el.setAttribute('aria-busy', on ? 'true' : 'false');
-      }
-      // Ensure print flows always recover even if 'afterprint' is not fired by the browser
-      function onPrintLifecycle({ host, reenable }) {
-        let done = false;
-        const finish = () => {
-          if (done) return;
-          done = true;
-          try { setBusy(host, false); } catch(_) {}
-          try { reenable?.(); } catch(_) {}
-          window.removeEventListener('afterprint', finish, { once: true });
-          window.removeEventListener('focus', finish, { once: true });
-          document.removeEventListener('visibilitychange', onVis, { once: true });
-        };
-        const onVis = () => { if (document.visibilityState === 'visible') finish(); };
-        window.addEventListener('afterprint', finish, { once: true });
-        window.addEventListener('focus', finish, { once: true });
-        document.addEventListener('visibilitychange', onVis, { once: true });
-        // safety net (some environments never emit any of the above)
-        setTimeout(finish, 10000);
-        return finish;
-      }
-
-      const btnRender = document.getElementById('renderHtml');
-      const btnSave = document.getElementById('saveHtmlPdf');
-      const btnOpen = document.getElementById('openHtmlPdf');
-      const chkAuto = document.getElementById('autoPrintHtml');
-      const setDisabled = (el, on) => {
-        if (!el) return;
-        el.disabled = !!on;
-        if (on) el.setAttribute('aria-disabled', 'true');
-        else el.removeAttribute('aria-disabled');
-      };
-      const disablePrintActions = () => {
-        setDisabled(btnSave, true);
-        setDisabled(btnOpen, true);
-      };
-      disablePrintActions();
-
-      function monthLabelStr(){
-        const m = document.getElementById('billMonth')?.value;
-        if (m && /^\d{4}-(0[1-9]|1[0-2])$/.test(m)) return m;
-        const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      }
-
-      if (btnRender) btnRender.addEventListener('click', () => withBusy('renderHtml', async () => {
-        const host = document.getElementById('htmlPrintHost');
-        if (!host) return;
-        if (host.getAttribute('aria-busy') === 'true') {
-          toast('Preview is busy, please wait…', 'info');
-          return;
-        }
-        try {
-          setBusy(host, true);
-          setDisabled(btnRender, true);
-          const model = compute(true);
-          if (!model) {
-            setBusy(host, false);
-            if (typeof disablePrintActions === 'function') disablePrintActions();
-            toast('Fix highlighted inputs before rendering.', 'warn');
-            return;
-          }
-          renderHtmlPreview(model, monthLabelStr(), new Date().toLocaleString());
-          const hasPreview = !!document.querySelector('#htmlPrintHost .sheet');
-          setDisabled(btnSave, !hasPreview);
-          setDisabled(btnOpen, !hasPreview);
-          if (chkAuto?.checked) {
-            // Ensure layout has painted before invoking print
-            requestAnimationFrame(() => setTimeout(() => window.print(), 100));
-          }
-        } finally {
-          setBusy(host, false);
-          setDisabled(btnRender, false);
-        }
-      }));
-
-      if (btnSave) btnSave.addEventListener('click', () => {
-        const host = document.getElementById('htmlPrintHost');
-        if (!host) { toast('Please render a preview first.', 'warn'); return; }
-        if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
-        if (!host.querySelector('.sheet')) {
-          toast('Please render a preview first.', 'warn');
-          return;
-        }
-        // prevent re-entrancy while printing
-        setDisabled(btnSave, true);
-        setDisabled(btnOpen, true);
-        setBusy(host, true);
-        onPrintLifecycle({
-          host,
-          reenable: () => {
-            setDisabled(btnSave, false);
-            setDisabled(btnOpen, false);
-          }
-        });
-        // Use browser print on the visible on-page preview
-        window.print();
-      });
-
-      if (btnOpen) btnOpen.addEventListener('click', () => {
-        const host = document.getElementById('htmlPrintHost');
-        if (!host) { toast('Please render a preview first.', 'warn'); return; }
-        if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
-        if (!host.querySelector('.sheet')) { toast('Please render a preview first.', 'warn'); return; }
-        // Open a print-only view (clean tab)
-        // prevent re-entrancy while spawning child window
-        setDisabled(btnSave, true);
-        setDisabled(btnOpen, true);
-        setBusy(host, true);
-        const cssElems = document.querySelectorAll('#print-css');
-        if (cssElems.length > 1 && !window.__printCssWarned) {
-          console.warn('Multiple #print-css elements found; using the first.');
-          window.__printCssWarned = true;
-        }
-        const cssElem = cssElems[0];
-        const fallbackCss = `
-@page{size:A4;margin:14mm}
-body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
-.sheet{width:210mm;min-height:297mm;padding:16mm 18mm;position:relative}
-.doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8mm}
-.doc-header .left h2{margin:0;font-size:18pt}
-.doc-meta{color:#555;font-size:10.5pt;text-align:right}
-.sec{break-inside:avoid;margin:7mm 0 0}
-.sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
-.kv{display:grid;grid-template-columns:1fr auto auto;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
-.kv .label{color:#374151}.kv .value{font-weight:600}.kv .unit{color:#6b7280}.total{font-weight:700}
-.footer-note{margin-top:8mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:8mm;right:18mm;color:#6b7280;font-size:10pt}`;
-        const css = cssElem ? cssElem.innerHTML : fallbackCss;
-        const month = (host.dataset && host.dataset.monthLabel) ? ` - ${host.dataset.monthLabel}` : '';
-        const html = `
-    <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><title>WEG Billing PDF${month}</title>
-    <style>${css}</style>
-    <script>window.addEventListener('afterprint',()=>{ try{ window.close(); }catch(_){} });<\/script>
-    </head><body onload="setTimeout(()=>window.print(),100)">${host.innerHTML}</body></html>`;
-        try{
-          const w = window.open('', '_blank');
-          if (!w) { alert('Popup blocked.\nEnable popups for this file and try again.\nTip: in Chrome/Edge, check the address bar icon or press Ctrl+J.'); setBusy(host, false); return; }
-          try { w.opener = null; } catch(_) {}
-          w.document.open(); w.document.write(html); w.document.close();
-          onPrintLifecycle({
-            host,
-            reenable: () => {
-              setDisabled(btnSave, false);
-              setDisabled(btnOpen, false);
-            }
-          });
-        } catch(e) {
-          alert('Could not open print view: ' + e.message);
-          setBusy(host, false);
-          setDisabled(btnSave, false);
-          setDisabled(btnOpen, false);
-        }
-      });
-
-      // Re-disable print actions if inputs change after a render
-      document.querySelectorAll('input, select, textarea').forEach(el => {
-        el.addEventListener('input', disablePrintActions, { passive: true });
-        el.addEventListener('change', disablePrintActions, { passive: true });
-      });
-
-      // Also disable on programmatic mutations triggered by toolbar actions
-      ['resetSample','resetAll','addSheet','clearSheets'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', disablePrintActions);
-      });
-
       $('uploadExcel').addEventListener('click', () => withBusy('uploadExcel', async () => {
         if (!(await loadXLSX())) return;
         $('uploadXlsx').click();
@@ -1530,7 +1175,6 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
             canonicalizeWorkbook();
             toast(`Workbook merged: ${added} added, ${replaced} replaced.`, 'good');
             refreshSheetList();
-            if (typeof disablePrintActions === 'function') disablePrintActions();
           }catch(err){
             console.error(err);
             toast('Upload failed','bad');
