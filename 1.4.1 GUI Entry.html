@@ -39,17 +39,14 @@
       backdrop-filter:saturate(150%) blur(8px);
       background:linear-gradient(180deg, rgba(15,23,42,.92), rgba(15,23,42,.66));
       border-bottom:1px solid rgba(255,255,255,.08);
-      display:grid;
-      grid-template-columns:minmax(260px,auto) 1fr;
-      align-items:start;
-      gap:16px;
-      margin-bottom:18px;
+      display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px;
     }
     .brand{display:flex;align-items:center;gap:12px}
     .brand svg{width:34px;height:34px}
     .brand h1{margin:0;font-size:22px;letter-spacing:.3px}
     .sub{color:var(--ink);font-size:13.5px}
 
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;padding:8px 0}
     button, .ghost{
       border:0;border-radius:12px;padding:10px 14px;font-weight:600;letter-spacing:.2px;
       background:linear-gradient(145deg, rgba(167,139,250,.25), rgba(34,211,238,.25));
@@ -136,8 +133,6 @@
     /* Toolbar group layout */
     .toolbar{
       display:flex; flex-wrap:wrap; gap:12px; align-items:center;
-      overflow:hidden;
-      padding:8px 0;
     }
     .group{
       display:flex; align-items:center; gap:10px;
@@ -145,19 +140,16 @@
       border-radius:999px;
       background:rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.08);
-      flex-wrap:wrap;
-      max-width:100%;
     }
     .group .label{
       font-size:11px; letter-spacing:.06em; text-transform:uppercase;
       color:var(--muted); margin-right:2px;
-      min-width:90px;
     }
     /* Compact on narrow screens */
     @media (max-width: 980px){
-      header{ grid-template-columns: 1fr; }
       .group{ width:100%; border-radius:14px; }
       .toolbar > label.pill{ width:100%; }
+      .group .label{ min-width:110px; }
     }
 
     /* A4 page layout for HTML preview */
