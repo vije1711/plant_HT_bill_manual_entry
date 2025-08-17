@@ -129,6 +129,29 @@
     .warn-text{display:none;color:var(--muted);font-size:11px;margin-top:4px}
     .invalid{border-color:var(--bad)!important}
 
+
+    /* Toolbar group layout */
+    .toolbar{
+      display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+    }
+    .group{
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .group .label{
+      font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+      color:var(--muted); margin-right:2px;
+    }
+    /* Compact on narrow screens */
+    @media (max-width: 980px){
+      .group{ width:100%; border-radius:14px; }
+      .toolbar > label.pill{ width:100%; }
+      .group .label{ min-width:110px; }
+    }
+
     /* A4 page layout for HTML preview */
     .sheet {
       width: 210mm;
@@ -184,24 +207,40 @@
         </div>
       </div>
       <div class="toolbar">
+        <!-- Month -->
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
         <div id="sheetList" class="pills"></div>
-        <button id="addSheet">Add / Update Month Sheet</button>
-        <button id="uploadExcel">Upload Excel</button>
-        <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
-        <label class="pill" id="autoUpdateToggle">
-          <input type="checkbox" id="autoUpdateOnDownload" checked />
-          <span>Auto‑update month on Download</span>
-        </label>
-        <button id="downloadExcel">Download Excel</button>
-          <button id="renderHtml">Render Preview</button>
-        <label class="pill"><input type="checkbox" id="autoPrintHtml" /> Auto-print after render</label>
-        <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
-        <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF View</button>
-          <button class="ghost" id="resetAll">Reset</button>
-        <button class="ghost" id="clearSheets">Clear Sheets</button>
-        <button id="resetSample">Sample Data</button><!-- fills fields with example screenshot values -->
+
+        <!-- Workbook group -->
+        <div class="group" aria-label="Workbook">
+          <span class="label">Workbook</span>
+          <button id="addSheet">Add / Update Month Sheet</button>
+          <button id="uploadExcel">Upload Excel</button>
+          <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
+          <label class="pill" id="autoUpdateToggle">
+            <input type="checkbox" id="autoUpdateOnDownload" checked />
+            <span>Auto-update on Download</span>
+          </label>
+          <button id="downloadExcel">Download Excel</button>
         </div>
+
+        <!-- Preview & Print group -->
+        <div class="group" aria-label="Preview and Print">
+          <span class="label">Preview & Print</span>
+          <button id="renderHtml">Render Preview</button>
+          <label class="pill"><input type="checkbox" id="autoPrintHtml" /> Auto-print</label>
+          <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
+          <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF View</button>
+        </div>
+
+        <!-- Utilities group -->
+        <div class="group" aria-label="Utilities">
+          <span class="label">Utilities</span>
+          <button id="resetSample">Sample Data</button>
+          <button class="ghost" id="resetAll">Reset</button>
+          <button class="ghost" id="clearSheets">Clear Sheets</button>
+        </div>
+      </div>
       </header>
 
     <div class="grid">
