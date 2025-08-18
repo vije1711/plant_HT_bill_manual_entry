@@ -10,10 +10,14 @@ test('static head title and fallback info-bar rule are present', () => {
     /<title>\s*IOM\s*-\s*HT\s*Bill\s*Calculator\s*<\/title>/i.test(src),
     'Static <title> must be "IOM - HT Bill Calculator"'
   );
-  // Fallback CSS must include .info-bar styling (single line + ellipsis)
+  // Fallback CSS must allow wrapping (no truncation) and intra-token breaking
   assert.ok(
-    /\.info-bar\{[^}]*white-space:nowrap;[^}]*text-overflow:ellipsis/si.test(src),
-    'Fallback CSS must style .info-bar for nowrap + ellipsis'
+    /\.info-bar\{[^}]*white-space:\s*normal;[^}]*overflow:\s*visible;[^}]*text-overflow:\s*clip/si.test(src),
+    'Fallback CSS must style .info-bar for wrapping'
+  );
+  assert.ok(
+    /\.info-bar\{[^}]*overflow-wrap:\s*anywhere/si.test(src) || /\.info-bar\{[^}]*word-break:\s*break-word/si.test(src),
+    'Fallback CSS must enable intra-token wrapping (overflow-wrap:anywhere or word-break:break-word)'
   );
   // Fallback CSS must style the document title using the current selector
   assert.ok(
@@ -33,11 +37,18 @@ test('static head title and fallback info-bar rule are present', () => {
   // Export HTML template must explicitly set color-scheme meta to light
   assert.ok(/<meta\s+name=["']color-scheme["']\s+content=["']light["']\s*>/i.test(src), 'Export HTML must set color-scheme=light');
 
-  // Primary print CSS (#print-css) should also enforce nowrap + ellipsis on .info-bar
+  // Primary print CSS must allow wrapping and intra-token breaking
   assert.ok(
-    /\.info-bar\s*\{[^}]*white-space:\s*nowrap;[^}]*text-overflow:\s*ellipsis/si.test(cssBlock),
-    'Primary #print-css must style .info-bar for nowrap + ellipsis'
+    /\.info-bar\s*\{[^}]*white-space:\s*normal;[^}]*overflow:\s*visible;[^}]*text-overflow:\s*clip/si.test(cssBlock),
+    'Primary #print-css must style .info-bar for wrapping'
   );
+  assert.ok(
+    /\.info-bar[^}]*overflow-wrap:\s*anywhere/si.test(cssBlock) || /\.info-bar[^}]*word-break:\s*break-word/si.test(cssBlock),
+    'Primary #print-css must enable intra-token wrapping (overflow-wrap:anywhere or word-break:break-word)'
+  );
+  // Guard against regressions to truncation
+  assert.ok(!/\.info-bar[^}]*white-space:\s*nowrap/si.test(cssBlock), 'No nowrap on .info-bar');
+  assert.ok(!/\.info-bar[^}]*text-overflow:\s*ellipsis/si.test(cssBlock), 'No ellipsis on .info-bar');
 
   // Fallback export window must set its own title correctly
   assert.ok(

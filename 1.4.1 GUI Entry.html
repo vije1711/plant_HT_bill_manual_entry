@@ -216,7 +216,7 @@
     .doc-header .company { font-weight:700; }
     .doc-header .dept { font-size:11pt; }
     .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
-    .info-bar { background:#f3f4f6; border:1px solid #e5e7eb; padding:2mm 4mm; margin-bottom:8mm; font-size:10.5pt; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .info-bar { background:#f3f4f6; border:1px solid #e5e7eb; padding:2mm 4mm; margin-bottom:8mm; font-size:10.5pt; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; word-break:break-word; }
     @media print { .info-bar { overflow:visible; text-overflow:clip; } }
     .sec { break-inside: avoid; margin: 7mm 0 0; }
     .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
@@ -761,13 +761,6 @@
           title="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI – Bhachau"
           aria-label="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI – Bhachau"
         >Please pay to <b>Paschim&nbsp;Gujarat&nbsp;Vij&nbsp;Company&nbsp;Ltd</b> (Vendor Code: <b>${vendorCode}</b>). Bank A/C No.: <b>31729314272</b>; RTGS/NEFT IFSC: <b>SBIN0000554</b>; Branch: <b>SBI – Bhachau</b></div>
-        <section class="sec">
-          <h3>Remittance Details</h3>
-          <div class="kv"><div class="label">Payee</div><div class="value">Paschim Gujarat Vij Company Ltd</div><div class="unit"></div></div>
-          <div class="kv"><div class="label">Bank A/C No.</div><div class="value">31729314272</div><div class="unit"></div></div>
-          <div class="kv"><div class="label">IFSC</div><div class="value">SBIN0000554</div><div class="unit"></div></div>
-          <div class="kv"><div class="label">Branch</div><div class="value">SBI – Bhachau</div><div class="unit"></div></div>
-        </section>
         <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
           <h3>Amount Mapping (per formula)</h3>
           <div class="footer-note" style="margin:0 0 6px 0;">
@@ -1311,10 +1304,10 @@
 @page{size:A4;margin:14mm}
 body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
 .sheet{width:210mm;min-height:297mm;padding:16mm 18mm 22mm;position:relative}
-.doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8mm}
+.doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4mm}
 .doc-header h2{margin:2mm 0 0;font-size:18pt}
 .doc-meta{color:#555;font-size:10.5pt;text-align:right}
-.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:8mm;font-size:10.5pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:8mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
 @media print{.info-bar{overflow:visible;text-overflow:clip}}
 .sec{break-inside:avoid;margin:7mm 0 0}
  .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
