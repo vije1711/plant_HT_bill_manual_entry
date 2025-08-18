@@ -312,37 +312,8 @@
       </div>
       </header>
 
-    <div class="grid">
-      <!-- Rates Manager -->
-      <section class="card span-12" id="ratesCard">
-        <h2>Rates Manager (Tariffs &amp; PO Rates)</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <button id="importRates">Load/Import</button>
-          <button id="downloadTariffs" class="ghost">Download Tariffs</button>
-          <button id="downloadPoRates" class="ghost">Download PO Rates</button>
-          <button id="editRates" class="ghost">Edit Rates</button>
-          <button id="saveRates">Save</button>
-          <button id="exportCsv" class="ghost">Export CSV</button>
-        </div>
-        <div class="hr"></div>
-        <table id="ratesTable" style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead>
-            <tr>
-              <th style="text-align:left;">Service</th>
-              <th>Qty (B)</th>
-              <th>Tariff (C)</th>
-              <th>Amt (D)</th>
-              <th>Contract Rate (E)</th>
-              <th>Unit Adj (F)</th>
-              <th>Amount SES (G)</th>
-            </tr>
-          </thead>
-          <tbody id="ratesBody"></tbody>
-        </table>
-        <div id="parityBadge" class="pill" style="margin-top:8px;">ΣD ₹0.00 | ΣG ₹0.00 | Δ ₹0.00</div>
-        <input type="file" id="ratesFile" accept="application/json" style="display:none" multiple>
-      </section>
-      <!-- Main HT Bill Inputs -->
+      <div class="grid">
+        <!-- Main HT Bill Inputs -->
       <section class="card span-6">
         <h2>HT Bill — Inputs <span class="help">Manual entries from utility bill</span></h2>
         <div class="fields">
@@ -431,18 +402,47 @@
         </div>
       </section>
 
-      <!-- Final Bill -->
-      <section class="card span-12">
-        <h2>Final Bill for IOM</h2>
-        <div class="kpi">
-          <div class="box"><h3 class="mono">Formula: C9 − F16 − G16 − C24 + A31 + F9</h3>
-            <div class="v" id="FINALv" style="font-size:30px">₹0</div>
-            <div class="muted">Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS + Balance Pending (prev) + Delay Charges</div>
+        <!-- Final Bill -->
+        <section class="card span-12">
+          <h2>Final Bill for IOM</h2>
+          <div class="kpi">
+            <div class="box"><h3 class="mono">Formula: C9 − F16 − G16 − C24 + A31 + F9</h3>
+              <div class="v" id="FINALv" style="font-size:30px">₹0</div>
+              <div class="muted">Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS + Balance Pending (prev) + Delay Charges</div>
+            </div>
           </div>
-        </div>
-      </section>
-      <!-- Long Text for SAP -->
-      <section class="card span-12" aria-labelledby="sapLongTextH">
+        </section>
+        <!-- Rates Manager -->
+        <section class="card span-12" id="ratesCard">
+          <h2>Rates Manager (Tariffs &amp; PO Rates)</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <button id="importRates">Load/Import</button>
+            <button id="downloadTariffs" class="ghost">Download Tariffs</button>
+            <button id="downloadPoRates" class="ghost">Download PO Rates</button>
+            <button id="editRates" class="ghost">Edit Rates</button>
+            <button id="saveRates">Save</button>
+            <button id="exportCsv" class="ghost">Export CSV</button>
+          </div>
+          <div class="hr"></div>
+          <table id="ratesTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;">Service</th>
+                <th>Qty (B)</th>
+                <th>Tariff (C)</th>
+                <th>Amt (D)</th>
+                <th>Contract Rate (E)</th>
+                <th>Unit Adj (F)</th>
+                <th>Amount SES (G)</th>
+              </tr>
+            </thead>
+            <tbody id="ratesBody"></tbody>
+          </table>
+          <div id="parityBadge" class="pill" style="margin-top:8px;">ΣD ₹0.00 | ΣG ₹0.00 | Δ ₹0.00</div>
+          <input type="file" id="ratesFile" accept="application/json" style="display:none" multiple>
+        </section>
+        <!-- Long Text for SAP -->
+        <section class="card span-12" aria-labelledby="sapLongTextH">
         <h2 id="sapLongTextH">Long Text for SAP</h2>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
           <button id="genSapText">Generate</button>
@@ -590,6 +590,20 @@
       { code:'ARREAR_ENERGY', name:'Arrear Energy' },
       { code:'WIND_ENERGY_CREDIT', name:'Wind Energy Credit' }
     ];
+    const SERVICE_HINTS = {
+      EC_SLAB1: 'Hint: from “Energy Charges” (HT Bill → C4)',
+      TOD_PEAK: 'Hint: from “TOU” (HT Bill → H4)',
+      TOD_NIGHT_REBATE: 'Hint: from “EHV Rebate” (HT Bill → G4)',
+      PF_CHARGE_SLAB1: 'Hint: Enter Power Factor (e.g., 0.997)',
+      ARREAR_ED: 'Hint: Enter Consumption Charges (base for ED)'
+    };
+    const QTY_PLACEHOLDERS = {
+      PF_CHARGE_SLAB1: 'Enter Power Factor (e.g., 0.997)',
+      EC_SLAB1: 'kWh billed',
+      TOD_PEAK: 'kWh @ TOU (peak)',
+      TOD_NIGHT_REBATE: 'kWh (night rebate)',
+      ARREAR_ED: 'Consumption Charges (₹)'
+    };
     const SERVICE_CODES = SERVICE_LIST.map(s=>s.code);
 
     const DEFAULT_TARIFFS = {
@@ -668,9 +682,12 @@
         const tr=document.createElement('tr');
         const qtyAttrs = s.code==='PF_CHARGE_SLAB1' ? 'step="0.000001"' : 'step="0.01"';
         const qtyDis = s.code==='FCA' ? 'disabled' : '';
+        const hint = SERVICE_HINTS[s.code];
+        const hintHtml = hint ? `<div class="muted" style="font-size:11px">${hint}</div>` : '';
+        const ph = QTY_PLACEHOLDERS[s.code] ? `placeholder="${QTY_PLACEHOLDERS[s.code]}"` : '';
         tr.innerHTML=`
-          <td><span class="mono">${s.code}</span><div class="muted">${s.name}</div></td>
-          <td><input type="number" ${qtyAttrs} id="qty_${s.code}" ${qtyDis}/></td>
+          <td><span class="mono">${s.code}</span><div class="muted">${s.name}</div>${hintHtml}</td>
+          <td><input type="number" ${qtyAttrs} id="qty_${s.code}" ${qtyDis} ${ph}/></td>
           <td><input type="number" step="0.000001" id="tar_${s.code}" disabled/></td>
           <td><span id="d_${s.code}" class="muted">—</span></td>
           <td><input type="number" step="0.000001" id="po_${s.code}" disabled/></td>
