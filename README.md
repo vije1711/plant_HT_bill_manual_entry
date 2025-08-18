@@ -15,9 +15,16 @@ It is designed to run entirely in the browser without a server component.
 1. Clone or download the repository.
 2. Run `npm install` to install dependencies (required before running tests).
 3. Open `1.4.1 GUI Entry.html` in a modern web browser.
-4. Enter billing values in the provided fields.
-5. Use the **Compute** button to calculate totals, **Reset** to clear fields, and **Save**/**Restore** for working with stored data.
-6. Use **Render Preview** and **Save as PDF** to export a printable PDF version of the bill.
+4. Enter billing values in the form. Totals are recalculated automatically as you type.
+5. Use toolbar buttons to load sample data, reset the form, import or export sheets, and generate printable previews. See [Using the Application](#using-the-application) for details.
+
+## Using the Application
+- **Add / Update Month Sheet** – store the current bill in an in-memory workbook.
+- **Upload Excel** – import an existing workbook.
+- **Download Excel** – export the workbook with all saved sheets.
+- **Sample Data** – populate the form with demonstration values.
+- **Reset** – clear the current form; **Clear Sheets** removes all stored sheets.
+- **Render Preview** – generate a printable view of the bill; **Save as PDF** downloads that preview as a PDF.
 
 ## Repository Structure
 - `1.4.1 GUI Entry.html` - Main application interface and logic.
