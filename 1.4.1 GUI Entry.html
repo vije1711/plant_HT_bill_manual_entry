@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WEG Billing Calculator</title>
+  <title>IOM - HT Bill Calculator</title>
   <!-- Main styles including print rules; id must remain unique -->
   <style id="print-css">
     :root{
@@ -22,6 +22,8 @@
       --shadow: 0 20px 50px rgba(0,0,0,.45);
       --radius: 18px;
     }
+    /* Force a light palette for export */
+    :root { color-scheme: light only; }
     *{box-sizing:border-box}
     :focus-visible{outline:var(--ring);outline-offset:2px}
     html,body{height:100%}
@@ -209,9 +211,13 @@
       font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
 
-    .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8mm; }
-    .doc-header h2 { margin:0; font-size:18pt; }
+    .doc-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:4mm; }
+    .doc-header h2 { margin:2mm 0 0; font-size:18pt; }
+    .doc-header .company { font-weight:700; }
+    .doc-header .dept { font-size:11pt; }
     .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
+    .info-bar { background:#f3f4f6; border:1px solid #e5e7eb; padding:2mm 4mm; margin-bottom:8mm; font-size:10.5pt; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    @media print { .info-bar { overflow:visible; text-overflow:clip; } }
     .sec { break-inside: avoid; margin: 7mm 0 0; }
     .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
     .kv { display:grid; grid-template-columns: 1fr minmax(52mm,auto) 10mm; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
@@ -235,7 +241,7 @@
     @media print {
       @page { size: A4; margin: 14mm; }
       header, .toolbar, .card:not(.sheet), #toasts { display:none !important; }
-      .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0; page-break-after:always;
+      .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 22mm 0; page-break-after:always;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .sheet:last-child { page-break-after:auto; }
     }
@@ -733,20 +739,28 @@
       const el = document.createElement('div');
       el.className = 'sheet';
       const meta = generatedAt || new Date().toLocaleString();
+      const metaISO = (() => { try { const d = generatedAt ? new Date(generatedAt) : new Date(); return isNaN(d) ? new Date().toISOString() : d.toISOString(); } catch { return new Date().toISOString(); } })();
       // Do not read from model: hard-coded by policy (see Stability Guard above).
       const vendorCode = SAP_VENDOR_CODE;
       const bankT = SAP_BANKT;
+      try { document.title = `IOM - HT Bill – ${monthLabel}`; } catch {}
       el.innerHTML = `
         <div class="doc-header">
-          <div><h2>WEG IOM Statement</h2>
+          <div>
+            <div class="company">GAIL (India) Limited – Samakhiali, Gujarat</div>
+            <div class="dept">Electrical Department</div>
+            <h2 role="heading" aria-level="1">IOM - HT Bill</h2>
             <div class="mini">Billing Month: <b>${monthLabel}</b></div>
           </div>
           <div class="doc-meta">
-            Generated: <b>${meta}</b><br/>
-            SAP Vendor Code: <b data-testid="sap-vendor-code">${vendorCode}</b><br/>
-            SAP BankT: <b data-testid="sap-bankt">${bankT}</b>
+            Generation Date: <b><time datetime="${metaISO}">${meta}</time></b>
           </div>
         </div>
+        <div
+          class="info-bar"
+          title="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI – Bhachau"
+          aria-label="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI – Bhachau"
+        >Please pay to <b>Paschim&nbsp;Gujarat&nbsp;Vij&nbsp;Company&nbsp;Ltd</b> (Vendor Code: <b>${vendorCode}</b>). Bank A/C No.: <b>31729314272</b>; RTGS/NEFT IFSC: <b>SBIN0000554</b>; Branch: <b>SBI – Bhachau</b></div>
         <section class="sec">
           <h3>Remittance Details</h3>
           <div class="kv"><div class="label">Payee</div><div class="value">Paschim Gujarat Vij Company Ltd</div><div class="unit"></div></div>
@@ -819,6 +833,11 @@
         </section>
         <div class="footer-note" style="margin-top:6mm;">Keep this PDF with the source data for audit.</div>
         <div class="page-number" aria-hidden="true">Page 1</div>`;
+      // Accessibility: hide decorative page number from AT if present
+      try {
+        const pn = el.querySelector('.page-number');
+        if (pn) pn.setAttribute('aria-hidden','true');
+      } catch {}
       return el;
     }
 
@@ -1293,8 +1312,10 @@
 body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
 .sheet{width:210mm;min-height:297mm;padding:16mm 18mm 22mm;position:relative}
 .doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8mm}
-.doc-header .left h2{margin:0;font-size:18pt}
+.doc-header h2{margin:2mm 0 0;font-size:18pt}
 .doc-meta{color:#555;font-size:10.5pt;text-align:right}
+.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:8mm;font-size:10.5pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media print{.info-bar{overflow:visible;text-overflow:clip}}
 .sec{break-inside:avoid;margin:7mm 0 0}
  .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
  .kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
@@ -1302,9 +1323,9 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
  .signatures{break-inside:avoid} .sigs{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:6mm}.sig{text-align:left}.sig.right{text-align:right}.sig .line{border-top:1px solid #d1d5db;height:0;margin:14mm 0 2mm}.sig .role{color:#111;font-weight:600}
  .footer-note{margin-top:8mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:8mm;right:18mm;color:#6b7280;font-size:10pt}`;
         const css = cssElem ? cssElem.innerHTML : fallbackCss;
-        const month = (host.dataset && host.dataset.monthLabel) ? ` - ${host.dataset.monthLabel}` : '';
+        const month = (host.dataset && host.dataset.monthLabel) ? ` – ${host.dataset.monthLabel}` : '';
         const html = `
-    <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><title>WEG Billing PDF${month}</title>
+    <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><title>IOM - HT Bill${month}</title>
     <style>${css}</style>
     <script>window.addEventListener('afterprint',()=>{ try{ window.close(); }catch(_){} });<\/script>
     </head><body onload="setTimeout(()=>window.print(),100)">${host.innerHTML}</body></html>`;

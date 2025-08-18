@@ -11,6 +11,5 @@ test('receipt note present and SAP constants immutable', () => {
   const el = dom.window.buildIomStatementHtml(model, 'Jan', '2025-01-01');
   const note = el.querySelector('[data-testid="receipt-note"]');
   assert.equal(note && note.textContent.trim(), 'Bill received via central post.');
-  assert.equal(el.querySelector('[data-testid="sap-vendor-code"]').textContent.trim(), 'ZG0435');
-  assert.equal(el.querySelector('[data-testid="sap-bankt"]').textContent.trim(), 'SBI1');
+  assert.match(el.querySelector('.info-bar').textContent, /Vendor Code:\s*ZG0435/);
 });
