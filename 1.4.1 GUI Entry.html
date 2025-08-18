@@ -313,6 +313,35 @@
       </header>
 
     <div class="grid">
+      <!-- Rates Manager -->
+      <section class="card span-12" id="ratesCard">
+        <h2>Rates Manager (Tariffs &amp; PO Rates)</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button id="importRates">Load/Import</button>
+          <button id="downloadTariffs" class="ghost">Download Tariffs</button>
+          <button id="downloadPoRates" class="ghost">Download PO Rates</button>
+          <button id="editRates" class="ghost">Edit Rates</button>
+          <button id="saveRates">Save</button>
+          <button id="exportCsv" class="ghost">Export CSV</button>
+        </div>
+        <div class="hr"></div>
+        <table id="ratesTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Service</th>
+              <th>Qty (B)</th>
+              <th>Tariff (C)</th>
+              <th>Amt (D)</th>
+              <th>Contract Rate (E)</th>
+              <th>Unit Adj (F)</th>
+              <th>Amount SES (G)</th>
+            </tr>
+          </thead>
+          <tbody id="ratesBody"></tbody>
+        </table>
+        <div id="parityBadge" class="pill" style="margin-top:8px;">ΣD ₹0.00 | ΣG ₹0.00 | Δ ₹0.00</div>
+        <input type="file" id="ratesFile" accept="application/json" style="display:none" multiple>
+      </section>
       <!-- Main HT Bill Inputs -->
       <section class="card span-6">
         <h2>HT Bill — Inputs <span class="help">Manual entries from utility bill</span></h2>
@@ -543,6 +572,261 @@
     };
     const roundUp0 = x => Math.ceil(x);
 
+    const SERVICE_LIST = [
+      { code:'FIXED_METER_RENT', name:'Fixed Meter Rent' },
+      { code:'MD_SLAB1', name:'MD Slab 1' },
+      { code:'MD_SLAB2', name:'MD Slab 2' },
+      { code:'MD_SLAB3', name:'MD Slab 3' },
+      { code:'PENAL_ABOVE_CD', name:'Penal Above CD' },
+      { code:'EC_SLAB1', name:'Energy Charge Slab 1' },
+      { code:'FCA', name:'FCA' },
+      { code:'TOD_PEAK', name:'TOD Peak' },
+      { code:'TOD_NIGHT_REBATE', name:'TOD Night Rebate' },
+      { code:'PF_CHARGE_SLAB1', name:'PF Charge Slab 1' },
+      { code:'ARREAR_FCA', name:'Arrear FCA' },
+      { code:'ARREAR_ED', name:'Arrear ED' },
+      { code:'ARREAR_CESS', name:'Arrear Cess' },
+      { code:'ARREAR_PF', name:'Arrear PF' },
+      { code:'ARREAR_ENERGY', name:'Arrear Energy' },
+      { code:'WIND_ENERGY_CREDIT', name:'Wind Energy Credit' }
+    ];
+    const SERVICE_CODES = SERVICE_LIST.map(s=>s.code);
+
+    const DEFAULT_TARIFFS = {
+      FIXED_METER_RENT:0,
+      MD_SLAB1:150,
+      MD_SLAB2:260,
+      MD_SLAB3:475,
+      PENAL_ABOVE_CD:0,
+      EC_SLAB1:4.2,
+      FCA:2.45,
+      TOD_PEAK:0.85,
+      TOD_NIGHT_REBATE:0.015,
+      PF_CHARGE_SLAB1:0.0235,
+      ARREAR_FCA:1,
+      ARREAR_ED:0.2,
+      ARREAR_CESS:1,
+      ARREAR_PF:1,
+      ARREAR_ENERGY:1,
+      WIND_ENERGY_CREDIT:0
+    };
+
+    const DEFAULT_PO_RATES = {
+      FIXED_METER_RENT:750,
+      MD_SLAB1:150,
+      MD_SLAB2:260,
+      MD_SLAB3:475,
+      PENAL_ABOVE_CD:370,
+      EC_SLAB1:4.2,
+      FCA:1.81,
+      TOD_PEAK:0.85,
+      TOD_NIGHT_REBATE:0.43,
+      PF_CHARGE_SLAB1:0.02,
+      ARREAR_FCA:1,
+      ARREAR_ED:1,
+      ARREAR_CESS:1,
+      ARREAR_PF:1,
+      ARREAR_ENERGY:1,
+      WIND_ENERGY_CREDIT:-1
+    };
+
+    let tariffs = { version:1, meta:{supplier:'PGVCL',currency:'INR'}, effective:'', rates:{...DEFAULT_TARIFFS} };
+    let poRates = { version:1, meta:{po_number:'',currency:'INR'}, rates:{...DEFAULT_PO_RATES} };
+    let sesRows = [];
+
+    function sanitizeRates(obj, defaults){
+      obj = obj || {};
+      obj.rates = obj.rates || {};
+      const unknown = Object.keys(obj.rates).filter(k=>!SERVICE_CODES.includes(k));
+      if(unknown.length) toast(`Unknown service codes: ${unknown.join(', ')}`, 'warn');
+      unknown.forEach(k=>delete obj.rates[k]);
+      SERVICE_CODES.forEach(code=>{ if(!(code in obj.rates)) obj.rates[code] = defaults[code] ?? 0; });
+      return obj;
+    }
+
+    function loadRates(){
+      let t=null,p=null;
+      try{ t = JSON.parse(localStorage.getItem('tariffs.v1')); }catch{}
+      try{ p = JSON.parse(localStorage.getItem('po_rates.v1')); }catch{}
+      if(!t) toast('Tariff defaults loaded; Save to persist.', 'info');
+      if(!p) toast('PO rate defaults loaded; Save to persist.', 'info');
+      tariffs = sanitizeRates(t || tariffs, DEFAULT_TARIFFS);
+      poRates = sanitizeRates(p || poRates, DEFAULT_PO_RATES);
+    }
+
+    function updateRatesFromInputs(){
+      SERVICE_LIST.forEach(s=>{
+        const tEl=$('tar_'+s.code); if(tEl) tariffs.rates[s.code]=parseFloat(tEl.value)||0;
+        const pEl=$('po_'+s.code); if(pEl) poRates.rates[s.code]=parseFloat(pEl.value)||0;
+      });
+    }
+
+    function renderRatesTable(){
+      const body=$('ratesBody'); if(!body) return;
+      body.innerHTML='';
+      SERVICE_LIST.forEach(s=>{
+        const tr=document.createElement('tr');
+        const qtyAttrs = s.code==='PF_CHARGE_SLAB1' ? 'step="0.000001"' : 'step="0.01"';
+        const qtyDis = s.code==='FCA' ? 'disabled' : '';
+        tr.innerHTML=`
+          <td><span class="mono">${s.code}</span><div class="muted">${s.name}</div></td>
+          <td><input type="number" ${qtyAttrs} id="qty_${s.code}" ${qtyDis}/></td>
+          <td><input type="number" step="0.000001" id="tar_${s.code}" disabled/></td>
+          <td><span id="d_${s.code}" class="muted">—</span></td>
+          <td><input type="number" step="0.000001" id="po_${s.code}" disabled/></td>
+          <td><span id="f_${s.code}" class="muted">—</span></td>
+          <td><span id="g_${s.code}" class="muted">—</span></td>`;
+        body.appendChild(tr);
+      });
+      SERVICE_LIST.forEach(s=>{
+        $('tar_'+s.code).value = tariffs.rates[s.code];
+        $('po_'+s.code).value = poRates.rates[s.code];
+      });
+      body.querySelectorAll('input').forEach(el=>el.addEventListener('input', compute));
+      computeSes();
+    }
+
+    function toggleEditRates(){
+      const editing = $('tar_'+SERVICE_CODES[0])?.disabled;
+      SERVICE_LIST.forEach(s=>{
+        $('tar_'+s.code)?.toggleAttribute('disabled', !editing);
+        $('po_'+s.code)?.toggleAttribute('disabled', !editing);
+      });
+      const btn=$('editRates'); if(btn) btn.textContent = editing ? 'Done' : 'Edit Rates';
+    }
+
+    function saveRates(){
+      if(!$('ratesCard')) return;
+      updateRatesFromInputs();
+      tariffs.effective = monthLabel();
+      localStorage.setItem('tariffs.v1', JSON.stringify(tariffs));
+      localStorage.setItem('po_rates.v1', JSON.stringify(poRates));
+      downloadJson(tariffs,'tariffs.json');
+      downloadJson(poRates,'po_rates.json');
+      toast('Rates saved.', 'good');
+      compute();
+    }
+
+    function handleImport(ev){
+      const files=ev.target.files; if(!files) return;
+      Array.from(files).forEach(file=>{
+        const reader=new FileReader();
+        reader.onload=()=>{
+          try{
+            const data=JSON.parse(reader.result);
+            if(data.meta && data.meta.supplier){
+              tariffs = sanitizeRates(data, DEFAULT_TARIFFS);
+              toast('Tariffs loaded.', 'good');
+            }else if(data.meta && 'po_number' in data.meta){
+              poRates = sanitizeRates(data, DEFAULT_PO_RATES);
+              toast('PO rates loaded.', 'good');
+            }else{
+              toast('Unknown rates file.', 'warn');
+            }
+            renderRatesTable();
+          }catch{ toast('Malformed JSON.', 'warn'); }
+        };
+        reader.readAsText(file);
+      });
+      ev.target.value='';
+    }
+
+    function downloadJson(obj,name){
+      const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+    }
+
+    function exportCsv(){
+      computeSes();
+      if(!sesRows.length){ toast('No data for CSV.', 'warn'); return; }
+      const note=monthLabel();
+      const lines=['ServiceCode,ServiceName,UnitAdjusted,ContractRate,AmountSES,Note'];
+      sesRows.forEach(r=>{
+        if(Math.abs(r.ses)<=0.004) return;
+        const qty=r.code==='PF_CHARGE_SLAB1'?r.adj.toFixed(6):r.adj.toFixed(2);
+        lines.push(`${r.code},${r.name},${qty},${r.rate.toFixed(2)},${r.ses.toFixed(2)},${note}`);
+      });
+      const csv=lines.join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=`SES_${note}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+    }
+
+    function computeSes(){
+      const body=$('ratesBody'); if(!body) return;
+      sesRows=[];
+      let totalD=0,totalG=0,dEnergy=0;
+      SERVICE_LIST.forEach(s=>{
+        const qtyEl=$('qty_'+s.code);
+        const tarEl=$('tar_'+s.code);
+        const poEl=$('po_'+s.code);
+        const dEl=$('d_'+s.code);
+        const fEl=$('f_'+s.code);
+        const gEl=$('g_'+s.code);
+        let B=parseFloat(qtyEl?.value)||0;
+        const C=parseFloat(tarEl?.value)||0;
+        const E=parseFloat(poEl?.value)||0;
+        let D=0,F=0,G=0;
+        if(s.code==='FCA'){
+          B=parseFloat($('qty_EC_SLAB1')?.value)||0;
+          if(qtyEl) qtyEl.value=B;
+          D=B*C;
+          F=E?D/E:0;
+        }else if(s.code==='TOD_NIGHT_REBATE'){
+          D=-B*C;
+          F=E?D/E:0;
+        }else if(s.code==='PF_CHARGE_SLAB1'){
+          const pf=B;
+          D=-((pf-0.95)*dEnergy/2);
+          F=E?D/E:0;
+        }else if(s.code.startsWith('ARREAR_')){
+          D=B*C;
+          F=D;
+        }else if(s.code==='WIND_ENERGY_CREDIT'){
+          D=B*C;
+          F=E?D/E:0;
+        }else{
+          D=B*C;
+          F=E?D/E:0;
+        }
+        if(s.code==='EC_SLAB1') dEnergy=D;
+        G=(s.code==='WIND_ENERGY_CREDIT')?D:E*F;
+        totalD+=D; totalG+=G;
+        sesRows.push({code:s.code,name:s.name,adj:F,rate:E,ses:G});
+        if(dEl) dEl.textContent = Math.abs(D)<0.005 ? '—' : INR.format(D);
+        if(fEl){const prec=s.code==='PF_CHARGE_SLAB1'?6:2; fEl.textContent=Math.abs(F)<0.005?'—':F.toFixed(prec);}
+        if(gEl) gEl.textContent = Math.abs(G)<0.005 ? '—' : INR.format(G);
+      });
+      const badge=$('parityBadge');
+      if(badge){
+        badge.textContent=`ΣD ${INR.format(totalD)} | ΣG ${INR.format(totalG)} | Δ ${INR.format(totalG-totalD)}`;
+        badge.classList.remove('good','bad');
+        badge.classList.add(Math.abs(totalG-totalD)<=0.05?'good':'bad');
+      }
+    }
+
+    function initRatesManager(){
+      if(!$('ratesCard')) return;
+      loadRates();
+      renderRatesTable();
+      $('importRates')?.addEventListener('click', ()=>$('ratesFile')?.click());
+      $('ratesFile')?.addEventListener('change', handleImport);
+      $('downloadTariffs')?.addEventListener('click', ()=>{updateRatesFromInputs();downloadJson(tariffs,'tariffs.json');});
+      $('downloadPoRates')?.addEventListener('click', ()=>{updateRatesFromInputs();downloadJson(poRates,'po_rates.json');});
+      $('editRates')?.addEventListener('click', toggleEditRates);
+      $('saveRates')?.addEventListener('click', saveRates);
+      $('exportCsv')?.addEventListener('click', exportCsv);
+    }
+
     const toInr = v => INR.format(Number.isFinite(v) ? v : 0);
       const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
     function parseInrInput(el){
@@ -669,6 +953,7 @@
       // Final Bill for IOM
       const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 − F16 − G16 − Credit TDS + Balance Pending + Delay Charges
       $('FINALv').textContent = toInr(FINAL);
+      computeSes();
       persistDebounced();
       return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL };
     }
@@ -1186,6 +1471,7 @@
       }
 
     document.addEventListener('DOMContentLoaded', () => {
+      initRatesManager();
       document.querySelectorAll('input[type="text"]').forEach(el=>{
         el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
         el.addEventListener('blur', ()=>parseInrInput(el));
