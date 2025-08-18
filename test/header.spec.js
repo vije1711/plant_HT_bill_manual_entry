@@ -52,5 +52,5 @@ test('header and remittance bar render correctly', () => {
 
   // Quick guard that print CSS reserves footer space
   const cssSource = html.toString();
-  assert.ok(cssSource.includes('padding:0 0 22mm 0'), 'Print padding for footer must exist');
+  assert.ok(cssSource.includes('padding:0 0 16mm 0'), 'Print padding for footer must exist');
 });

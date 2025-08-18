@@ -239,11 +239,21 @@
 
     /* Print rules: hide only UI chrome, keep the A4 preview visible */
     @media print {
-      @page { size: A4; margin: 14mm; }
+      @page { size: A4; margin: 12mm; }
       header, .toolbar, .card:not(.sheet), #toasts { display:none !important; }
-      .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 22mm 0; page-break-after:always;
+      .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside: avoid;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .sheet:last-child { page-break-after:auto; }
+      .sheet:not(:last-of-type) { break-after: page; page-break-after: always; }
+      /* Tighten vertical rhythm for single-page fit (print-only) */
+      .doc-header { margin-bottom:2mm; }
+      .doc-header h2 { margin:1mm 0 0; }
+      .info-bar { margin-bottom:6mm; }
+      .sec { margin:5mm 0 0; }
+      .sigs { gap:4mm; margin-top:4mm; }
+      .sig .line { margin:10mm 0 2mm; }
+      .footer-note { margin-top:6mm; }
+      .page-number { bottom:6mm; font-size:9pt; }
+      .sheet { font-size:13px; }
     }
   </style>
 </head>
@@ -1303,18 +1313,19 @@
         const fallbackCss = `
 @page{size:A4;margin:14mm}
 body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
-.sheet{width:210mm;min-height:297mm;padding:16mm 18mm 22mm;position:relative}
+.sheet{width:210mm;min-height:297mm;padding:12mm 14mm 16mm;position:relative;font:13px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 .doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4mm}
-.doc-header h2{margin:2mm 0 0;font-size:18pt}
+.doc-header h2{margin:1mm 0 0;font-size:18pt}
 .doc-meta{color:#555;font-size:10.5pt;text-align:right}
-.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:8mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
+.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:6mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
 @media print{.info-bar{overflow:visible;text-overflow:clip}}
-.sec{break-inside:avoid;margin:7mm 0 0}
+.sheet:not(:last-of-type){break-after:page;page-break-after:always}
+.sec{break-inside:avoid;margin:5mm 0 0}
  .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
  .kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
  .kv .label{color:#374151;overflow-wrap:anywhere;word-break:break-word}.kv .value{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}.kv .unit{color:#6b7280;text-align:right}.kv .value.total{font-weight:800}.mapping .kv:last-child{background:#f3f4f6;border:1px solid #e5e7eb}.total{font-weight:700}
- .signatures{break-inside:avoid} .sigs{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:6mm}.sig{text-align:left}.sig.right{text-align:right}.sig .line{border-top:1px solid #d1d5db;height:0;margin:14mm 0 2mm}.sig .role{color:#111;font-weight:600}
- .footer-note{margin-top:8mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:8mm;right:18mm;color:#6b7280;font-size:10pt}`;
+ .signatures{break-inside:avoid} .sigs{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:4mm}.sig{text-align:left}.sig.right{text-align:right}.sig .line{border-top:1px solid #d1d5db;height:0;margin:10mm 0 2mm}.sig .role{color:#111;font-weight:600}
+ .footer-note{margin-top:6mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:6mm;right:18mm;color:#6b7280;font-size:9pt}`;
         const css = cssElem ? cssElem.innerHTML : fallbackCss;
         const month = (host.dataset && host.dataset.monthLabel) ? ` – ${host.dataset.monthLabel}` : '';
         const html = `
