@@ -412,6 +412,16 @@
           </div>
         </div>
       </section>
+      <!-- Long Text for SAP -->
+      <section class="card span-12" aria-labelledby="sapLongTextH">
+        <h2 id="sapLongTextH">Long Text for SAP</h2>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button id="genSapText">Generate</button>
+          <button id="copySapText" class="ghost">Copy</button>
+        </div>
+        <textarea id="sapText" rows="14" readonly aria-label="SAP long text" style="width:100%;"></textarea>
+        <div class="muted" style="margin-top:4px;">Click Generate, review, then Copy and paste into SAP.</div>
+      </section>
     </div>
 
   <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
@@ -1103,7 +1113,51 @@
           if(el.type==='text') parseInrInput(el);
         });
       }
- 
+
+      function prevMonthLabel(label){
+        try{
+          const [y,m] = String(label || '').split('-').map(n=>parseInt(n,10));
+          if(!y || !m) return label;
+          const d = new Date(y, m - 1, 1);
+          d.setMonth(d.getMonth() - 1);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          return `${yyyy}-${mm}`;
+        }catch{ return label; }
+      }
+
+      function buildSapLongText(model, billMonth){
+        const prev = prevMonthLabel(billMonth);
+        const amt = v => `${INR.format(Number(v || 0))}/-.`;
+        const totalCreditAdj = Number(model.F16 || 0) + Number(model.G16 || 0);
+        const totalDebit = Number(model.D24 || 0) + Number(model.E24 || 0) + Number(model.F24 || 0) + Number(model.F9 || 0);
+        const balPrev = Number(model.E9 || 0) - Number(model.D9 || 0);
+        return [
+          'Long Text for SAP:',
+          `Bill Certification for ${billMonth} as given below: -`,
+          `1. Current Month Bill for ${billMonth}: ${amt(model.C9)}`,
+          `2. Total credit adjustment of wind generation for ${prev} month: ${amt(totalCreditAdj)}`,
+          '   Breakup of share of wind energy credit is as follows:',
+          `   A. Share of 4.5MW WEG: ${amt(model.F16)}`,
+          `   B. Share 14.7MW WEG: ${amt(model.G16)}`,
+          '3. CREDIT ADJUSTMENT AMOUNT:',
+          `   3.05. Credit Board Charges: ${amt(model.A24)}`,
+          `   3.08. Credit ED Charges: ${amt(model.B24)}`,
+          `   3.14. Credit TDS: ${amt(model.C24)}`,
+          `   Total Credit: ${amt(model.A26)}`,
+          '4. DEBIT ADJUSTMENT AMOUNT:',
+          `   4.1. Debit Board Charges: ${amt(model.D24)}`,
+          `   4.2. Debit Electricity duty: ${amt(model.E24)}`,
+          `   4.3. Debit Wheeling Charges: ${amt(model.F24)}`,
+          `   4.4. Delayed Payment Charges: ${amt(model.F9)}`,
+          `   Total Debit: ${amt(totalDebit)}`,
+          `6. Balance pending credit of Previous Month (if any) (=Freeze Amount – Out Standing Arrear): ${amt(balPrev)}`,
+          `7. Final Bill (=Current Month Bill + Debit Adjustment - Credit Adjustment - Balance pending credit of Previous Month): ${amt(model.FINAL)}`,
+          '',
+          `Rupees ${INR.format(Number(model.FINAL || 0)).replace(/^[₹\s\u00A0]+/,'')} Only`
+        ].join('\n');
+      }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('input[type="text"]').forEach(el=>{
         el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
@@ -1442,6 +1496,37 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
         console.assert(m.C9 === 17220, `C9 expected 17220, got ${m.C9}`);
         console.assert(Math.round(m.FINAL) === 16700, `FINAL expected 16700, got ${m.FINAL}`);
       });
+
+      (function(){
+        const genBtn = $('genSapText');
+        if(genBtn){
+          genBtn.addEventListener('click', () => {
+            const model = compute(true);
+            if (!model) { toast('Fix highlighted inputs before generating long text.', 'warn'); return; }
+            const label = monthLabel();
+            const txt = buildSapLongText(model, label);
+            const ta = $('sapText');
+            ta.value = txt;
+            ta.focus();
+            ta.select();
+          });
+        }
+      })();
+
+      (function(){
+        const copyBtn = $('copySapText'); if(!copyBtn) return;
+        copyBtn.addEventListener('click', async () => {
+          const ta = $('sapText');
+          ta.focus();
+          ta.select();
+          try {
+            await navigator.clipboard.writeText(ta.value);
+          } catch {
+            try { document.execCommand('copy'); } catch(_) {}
+          }
+          toast('Long text copied.', 'good');
+        });
+      })();
 
       const restored = restore();
       compute();
