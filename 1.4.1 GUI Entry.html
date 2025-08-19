@@ -1351,9 +1351,10 @@
       const _wb = getWB();
       if(!_wb) return;
       const names = _wb.SheetNames || [];
+      const renderNames = sortDisplayNames(names);
       const active = $('billMonth').value;
       let hasFocusable = false;
-      names.forEach((name, idx) => {
+      renderNames.forEach((name, idx) => {
         const pill = document.createElement('span');
         pill.className = 'pill';
         pill.setAttribute('role','option');
@@ -1569,6 +1570,25 @@
       ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{ r:firstDataRow-1, c:0 }, e:{ r:lastRow, c:4 } }) };
       return ws;
     }
+
+      // --- Display-only sorting: canonical YYYY-MM first (desc), then legacy (stable) ---
+      function sortDisplayNames(names){
+        const isYYYYMM = n => /^\d{4}-(0[1-9]|1[0-2])$/.test(n);
+        const canonical = [];
+        const legacy = [];
+        for (const n of names) (isYYYYMM(n) ? canonical : legacy).push(n);
+        // Descending chronological: 2025-12 > 2025-11 > ... > 2024-01
+        canonical.sort((a,b) => {
+          // Fast string compare works for YYYY-MM if both canonical and we want desc
+          // but be explicit for clarity.
+          const [ay,am] = a.split('-').map(Number);
+          const [by,bm] = b.split('-').map(Number);
+          if (ay !== by) return by - ay;
+          return bm - am;
+        });
+        // legacy remains in original order (stable)
+        return canonical.concat(legacy);
+      }
 
       // Determine month label in YYYY-MM format, defaulting to current month
       function monthLabel(){
