@@ -276,9 +276,14 @@
     .footer-note { margin-top:8mm; color:#6b7280; font-size:9.5pt; }
     .page-number { position:absolute; bottom:8mm; right:18mm; color:#6b7280; font-size:10pt; }
 
+    /* Ensure print host is visible like the v5 sample */
+    #htmlPrintHost { min-height: 1px; }
+    #htmlPrintHost .sheet { display: block; }
+
     /* Print rules: hide only UI chrome, keep the A4 preview visible */
     @media print {
       @page { size: A4; margin: 12mm; }
+      /* Hide UI only; keep rendered sheets visible for print */
       header, .toolbar, .card:not(.sheet), #toasts { display:none !important; }
       .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside: avoid;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -701,9 +706,11 @@
 
   </script>
   <script>
-    // Lightweight, scoped input niceties for the receipt card
-    // Bind AFTER DOM is ready to guarantee targets/handlers exist.
+    // Receipt card: bind AFTER DOM is ready so targets/handlers exist.
     window.addEventListener('DOMContentLoaded', () => {
+      const card = document.getElementById('receiptCard');
+      if (card?.dataset.bound === '1') return;
+      if (card) card.dataset.bound = '1';
       const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
       // Strip any stale disabling to keep inputs interactive
       ids.forEach(id => {
@@ -712,6 +719,7 @@
         el.removeAttribute('disabled');
         el.removeAttribute('readonly');
         el.style.pointerEvents = '';
+        if(!el.getAttribute('type')) el.setAttribute('type','text'); // ensure plain text behavior
       });
       const dateEl = document.getElementById('rc_billDate');
       const amtEl  = document.getElementById('rc_amount');
@@ -743,40 +751,77 @@
         try{ localStorage.setItem(k, String(n+1)); }catch(_){ }
       }
       // Card-level actions wired like "Make IOM" (proxy to existing flow)
-      const host = document.getElementById('htmlPrintHost');
+      const host    = document.getElementById('htmlPrintHost');
       const btnSave = document.getElementById('saveHtmlPdf');
+      const btnOpen = document.getElementById('openHtmlPdf');
+      const btnRenderInCard = document.getElementById('renderReceiptInCard');
+      const btnSaveInCard   = document.getElementById('saveReceiptPdfInCard');
+      if (btnRenderInCard && !btnRenderInCard.getAttribute('type')) btnRenderInCard.setAttribute('type','button');
+      if (btnSaveInCard   && !btnSaveInCard.getAttribute('type'))   btnSaveInCard.setAttribute('type','button');
+
+      function pickReceiptRenderer(){
+        if (typeof window.renderDakReceipt === 'function') return window.renderDakReceipt;
+        if (typeof window.renderHtmlReceipt === 'function') return window.renderHtmlReceipt;
+        if (typeof window.renderHtml === 'function') return window.renderHtml; // last resort
+        return null;
+      }
 
       function ensureReceiptRenderedThen(fnAfter){
         const needsRender = !host || host.children.length === 0 || btnSave?.disabled;
-        // Prefer dedicated renderer; else fall back to any toolbar hook still present.
+        // Resolve a renderer; fall back to any legacy toolbar hook.
         const doRender = () => {
-          if (typeof window.renderDakReceipt === 'function') return window.renderDakReceipt();
-          // Legacy/toolbar fallback (noop if removed)
-          const tbBtn = document.getElementById('renderReceipt');
-          tbBtn?.click();
+          const fn = pickReceiptRenderer();
+          if (fn) { try { return fn(); } catch(_){} }
+          const tbBtn = document.getElementById('renderReceipt'); // legacy (may be missing)
+          if (tbBtn) { try { tbBtn.click(); return; } catch(_){} }
+          try { toast('No receipt renderer is available. Please enable renderDakReceipt.', 'bad'); } catch(_){}
         };
         if (needsRender){
           host?.setAttribute('aria-busy','true');
           doRender();
           host?.scrollIntoView({behavior:'smooth'});
-          // Defer so hidden Save button can be re-enabled by lifecycle hooks.
-          requestAnimationFrame(()=> setTimeout(()=> {
+          // Resolve on first .sheet (or timeout)
+          let done = false;
+          const finish = () => {
+            if (done) return; done = true;
             host?.removeAttribute('aria-busy');
-            try{ toast('Receipt ready.', 'good'); }catch(_){ }
+            const hasSheet = !!(host && host.querySelector('.sheet'));
+            if (hasSheet) { try { btnSave && (btnSave.disabled = false); btnOpen && (btnOpen.disabled = false); } catch(_){} }
+            try{ toast(hasSheet ? 'Receipt ready.' : 'Render did not produce a sheet.', hasSheet ? 'good' : 'bad'); }catch(_){ }
             fnAfter?.();
-          }, 120));
+          };
+          try{
+            const observer = new MutationObserver(() => {
+              if (host && host.querySelector('.sheet')) { observer.disconnect(); finish(); }
+            });
+            if (host) observer.observe(host, {childList:true, subtree:true});
+            setTimeout(() => { try{ observer.disconnect(); }catch(_){} finish(); }, 1500);
+          }catch(_){ setTimeout(finish, 300); }
         } else {
           host?.scrollIntoView({behavior:'smooth'});
           fnAfter?.();
         }
       }
 
-      document.getElementById('renderReceiptInCard')?.addEventListener('click', () => {
+      btnRenderInCard?.addEventListener('click', (e) => {
+        e.preventDefault();
         ensureReceiptRenderedThen(); // render only
       });
 
-      document.getElementById('saveReceiptPdfInCard')?.addEventListener('click', () => {
-        ensureReceiptRenderedThen(() => btnSave?.click());
+      btnSaveInCard?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await withBusy('saveReceiptPdfInCard', async () => {
+          ensureReceiptRenderedThen(() => {
+            btnSave?.click(); // try Save first
+            setTimeout(() => {
+              try{
+                const stillDisabled = !!btnSave?.disabled;
+                const hasSheet = !!(host && host.querySelector('.sheet'));
+                if (stillDisabled && hasSheet) btnOpen?.click();
+              }catch(_){ }
+            }, 200);
+          });
+        });
       });
     });
   </script>
@@ -1527,7 +1572,7 @@
             const el = $(id);
             if(el){
               el.value = val;
-              if(el.type==='text') parseInrInput(el);
+              if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
             }
           });
         }
@@ -1821,7 +1866,7 @@
         Object.entries(SAMPLE).forEach(([id,val])=>{
           const el = $(id);
           el.value = val;
-          if(el.type==='text') parseInrInput(el);
+          if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
         });
       }
 
@@ -2075,7 +2120,9 @@
 
       document.addEventListener('DOMContentLoaded', () => {
       initRatesManager();
+      // Apply INR masking ONLY outside the Central Dak Receipt card
       document.querySelectorAll('input[type="text"]').forEach(el=>{
+        if (el.closest('#receiptCard')) return;
         el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
         el.addEventListener('blur', ()=>parseInrInput(el));
       });
