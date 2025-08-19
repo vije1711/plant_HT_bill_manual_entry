@@ -305,6 +305,7 @@
         <div class="group" aria-label="Preview and Print">
           <span class="label">Preview & Print</span>
           <button id="renderHtml">Render Preview</button>
+          <button id="renderReceipt">Render Receipt</button>
           <label class="pill"><input type="checkbox" id="autoPrintHtml" /> Auto-print</label>
           <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
           <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF View</button>
@@ -423,6 +424,18 @@
                 &nbsp;•&nbsp; Δ vs FINAL: <span id="FINALdeltav">₹0</span>
               </div>
             </div>
+          </div>
+        </section>
+        <!-- Central Dak Receipt Inputs -->
+        <section class="card span-4">
+          <h2>Central Dak Receipt — Inputs</h2>
+          <div class="fields">
+            <div class="f"><label>Vendor Code</label><input type="text" id="rc_vendorCode"/></div>
+            <div class="f"><label>Vendor Name</label><input type="text" id="rc_vendorName"/></div>
+            <div class="f"><label>Bill No.</label><input type="text" id="rc_billNo"/></div>
+            <div class="f"><label>Bill Date</label><input type="text" id="rc_billDate"/></div>
+            <div class="f"><label>Amount</label><input type="text" id="rc_amount"/></div>
+            <div class="f"><label>EIC Name</label><input type="text" id="rc_eic" value="Mr. Vijendra Singh"/></div>
           </div>
         </section>
         <!-- Rates Manager -->
@@ -1205,6 +1218,75 @@
       host.focus({ preventScroll: true });
     }
 
+    function buildDakReceiptHtml(d){
+      const el = document.createElement('div');
+      el.className = 'sheet';
+      const amtClean = String(d.amount || '').replace(/[^0-9.-]/g,'');
+      const amtNum = parseFloat(amtClean || '0');
+      const amtFmt = new Intl.NumberFormat('en-IN',{ style:'currency', currency:'INR', maximumFractionDigits:2 }).format(amtNum) + '/-';
+      el.innerHTML = `
+        <div class="page-number" aria-hidden="true">1</div>
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-weight:700;font-size:16pt;">GAIL (India) LIMITED</div>
+          <div>IPS Samakhiali</div>
+          <div style="font-size:12.5pt;">Central Dak Receipt Format</div>
+        </div>
+        <div style="font-size:12pt;display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:4px;margin-top:20px;">
+          <div>1. Vendor Code:</div><div><b>${d.vendorCode || ''}</b></div>
+          <div>2. Vendor Name:</div><div><b>${d.vendorName || ''}</b></div>
+          <div>3. Bill No.:</div><div><b>${d.billNo || ''}</b></div>
+          <div>4. Bill Date:</div><div><b>${d.billDate || ''}</b></div>
+          <div>5. Amount:</div><div><b>${amtFmt}</b></div>
+          <div>6. EIC Name:</div><div><b>${d.eic || ''}</b></div>
+        </div>
+        <div style="margin-top:40px;text-align:right;">
+          <div style="display:inline-block;width:60mm;text-align:center;">
+            <div style="border-top:1px solid #000;height:0;margin-bottom:4px;"></div>
+            Sign. Of Initiator
+          </div>
+        </div>
+      `;
+      return el;
+    }
+
+    async function renderDakReceipt(){
+      const host = document.getElementById('htmlPrintHost');
+      if(!host) return;
+      const data = {
+        vendorCode: document.getElementById('rc_vendorCode')?.value.trim() || '',
+        vendorName: document.getElementById('rc_vendorName')?.value.trim() || '',
+        billNo: document.getElementById('rc_billNo')?.value.trim() || '',
+        billDate: document.getElementById('rc_billDate')?.value.trim() || '',
+        amount: document.getElementById('rc_amount')?.value.trim() || '',
+        eic: document.getElementById('rc_eic')?.value.trim() || ''
+      };
+      const btnSave = document.getElementById('saveHtmlPdf');
+      const btnOpen = document.getElementById('openHtmlPdf');
+      const chkAuto = document.getElementById('autoPrintHtml');
+      setBusy(host, true);
+      try{
+        host.innerHTML = '';
+        const sheet = buildDakReceiptHtml(data);
+        host.appendChild(sheet);
+        sheet.scrollIntoView({ behavior:'smooth' });
+        host.focus({ preventScroll: true });
+        // Enable print actions (robustly)
+        if(typeof setDisabled === 'function'){
+          setDisabled(btnSave, false);
+          setDisabled(btnOpen, false);
+        }
+        btnSave?.removeAttribute('disabled');
+        btnSave?.setAttribute('aria-disabled','false');
+        btnOpen?.removeAttribute('disabled');
+        btnOpen?.setAttribute('aria-disabled','false');
+        if(chkAuto?.checked){
+          requestAnimationFrame(()=> setTimeout(()=> window.print(), 100));
+        }
+      } finally {
+        setBusy(host, false);
+      }
+    }
+
 
       // Excel workbook in memory (lazy init)
       let WB = null;
@@ -1781,6 +1863,8 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
           setDisabled(btnOpen, false);
         }
       });
+
+      document.getElementById('renderReceipt')?.addEventListener('click', renderDakReceipt);
 
       // Re-disable print actions if inputs change after a render
       document.querySelectorAll('input, select, textarea').forEach(el => {
