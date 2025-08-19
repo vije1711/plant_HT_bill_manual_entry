@@ -308,15 +308,22 @@
     opacity:.9;
     margin-bottom:4px;
   }
-  #receiptCard input{
+  #receiptCard input{ 
     height:34px;
     padding:6px 10px;
     border-radius:8px;
   }
   #receiptCard .hint{ display:block; font-size:11px; opacity:.75; margin-top:4px; }
   #receiptCard input.warn{ outline:2px solid rgba(255,120,120,.6); }
+  #receiptCard .row-3up{
+    display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px 12px; grid-column:1 / -1;
+  }
   @media (max-width: 720px){
     #receiptCard .fields{ grid-template-columns: 1fr; }
+    #receiptCard .row-3up{ grid-template-columns: 1fr; }
+  }
+  #receiptCard .actions{
+    display:flex; gap:8px; justify-content:flex-end; margin-top:10px;
   }
 </style>
 </head>
@@ -506,40 +513,6 @@
             </div>
           </div>
         </section>
-        <!-- Central Dak Receipt Inputs -->
-        <section class="card span-4" id="receiptCard">
-          <h2>Central Dak Receipt — Inputs</h2>
-          <div class="fields">
-            <!-- Row 1 -->
-            <div class="f">
-              <label for="rc_vendorCode">Vendor Code</label>
-              <input type="text" id="rc_vendorCode" placeholder="e.g., ZG0435"/>
-            </div>
-            <div class="f">
-              <label for="rc_vendorName">Vendor Name</label>
-              <input type="text" id="rc_vendorName" placeholder="e.g., Paschim Gujarat Viz Company Ltd"/>
-            </div>
-            <!-- Row 2 -->
-            <div class="f">
-              <label for="rc_billNo">Bill No.</label>
-              <input type="text" id="rc_billNo" placeholder="e.g., HT-BILL_JUL-25"/>
-            </div>
-            <div class="f">
-              <label for="rc_billDate">Bill Date</label>
-              <input type="text" id="rc_billDate" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off"/>
-            </div>
-            <!-- Row 3 -->
-            <div class="f">
-              <label for="rc_amount">Amount</label>
-              <input type="text" id="rc_amount" placeholder="e.g., 13108871.45"/>
-              <small class="hint">Indian grouping applied on render</small>
-            </div>
-            <div class="f">
-              <label for="rc_eic">EIC Name</label>
-              <input type="text" id="rc_eic" value="Mr. Vijendra Singh"/>
-            </div>
-          </div>
-        </section>
         <!-- Rates Manager -->
         <section class="card span-12" id="ratesCard">
           <h2>Rates Manager (Tariffs &amp; PO Rates)</h2>
@@ -579,6 +552,46 @@
         <textarea id="sapText" rows="14" readonly aria-label="SAP long text" style="width:100%;"></textarea>
         <div class="muted" style="margin-top:4px;">Click Generate, review, then Copy and paste into SAP.</div>
       </section>
+        <!-- Central Dak Receipt Inputs -->
+        <section class="card span-4" id="receiptCard">
+          <h2>Central Dak Receipt — Inputs</h2>
+          <div class="fields">
+            <!-- Row 1 -->
+            <div class="f">
+              <label for="rc_vendorCode">Vendor Code</label>
+              <input type="text" id="rc_vendorCode" placeholder="e.g., ZG0435"/>
+            </div>
+            <div class="f">
+              <label for="rc_vendorName">Vendor Name</label>
+              <input type="text" id="rc_vendorName" placeholder="e.g., Paschim Gujarat Viz Company Ltd"/>
+            </div>
+            <!-- Single-line 3-up row -->
+            <div class="row-3up">
+              <div class="f">
+                <label for="rc_billNo">Bill No.</label>
+                <input type="text" id="rc_billNo" placeholder="e.g., HT-BILL_JUL-25"/>
+              </div>
+              <div class="f">
+                <label for="rc_billDate">Bill Date</label>
+                <input type="text" id="rc_billDate" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off"/>
+              </div>
+              <div class="f">
+                <label for="rc_eic">EIC Name</label>
+                <input type="text" id="rc_eic" value="Mr. Vijendra Singh"/>
+              </div>
+            </div>
+            <!-- Amount -->
+            <div class="f">
+              <label for="rc_amount">Amount</label>
+              <input type="text" id="rc_amount" placeholder="e.g., 13108871.45"/>
+              <small class="hint">Indian grouping applied on render</small>
+            </div>
+          </div>
+          <div class="actions" role="group" aria-label="Receipt actions">
+            <button id="renderReceiptInCard" type="button" aria-label="Render Central Dak Receipt">Render Receipt</button>
+            <button id="saveReceiptPdfInCard" type="button" class="ghost" aria-label="Save Central Dak Receipt as PDF">Save as PDF</button>
+          </div>
+        </section>
     </div>
 
   <div class="footer">Pro‑tips: enter positive numbers for all rebates/credits (the app handles signs). Rounding of kWh shares matches <span class="mono">ROUNDUP(…,0)</span>. Values are live‑calculated; add a month sheet when ready.</div>
@@ -698,6 +711,23 @@
           if(cleaned !== raw) amtEl.value = cleaned;
         }, {passive:true});
       }
+      // Card-level actions reuse existing logic
+      document.getElementById('renderReceiptInCard')?.addEventListener('click', ()=> {
+        if (typeof renderDakReceipt === 'function') renderDakReceipt();
+      });
+      document.getElementById('saveReceiptPdfInCard')?.addEventListener('click', ()=> {
+        const host = document.getElementById('htmlPrintHost');
+        const btn = document.getElementById('saveHtmlPdf');
+        const needsRender = !host || host.children.length === 0 || btn?.disabled;
+        if (needsRender && typeof renderDakReceipt === 'function') {
+          renderDakReceipt();
+          host?.scrollIntoView({behavior:'smooth'});
+          requestAnimationFrame(()=> setTimeout(()=> btn?.click(), 120));
+        } else {
+          host?.scrollIntoView({behavior:'smooth'});
+          btn?.click();
+        }
+      });
     })();
   </script>
   <script>
@@ -2370,6 +2400,42 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
       refreshSheetList();
       if(restored) toast('Previous data restored.');
     });
+  </script>
+  <script>
+    // Prefill for Vendor Code/Name/Amount with safe optional hooks
+    (function(){
+      const vc = document.getElementById('rc_vendorCode');
+      const vn = document.getElementById('rc_vendorName');
+      const am = document.getElementById('rc_amount');
+      const editing = new Set();
+      [vc, vn, am].forEach(el => el?.addEventListener('input', ()=> editing.add(el.id), {passive:true}));
+
+      function pick(k){
+        // 1) optional app callback
+        try{
+          if (typeof window.getReceiptDefaults === 'function'){
+            const v = window.getReceiptDefaults()?.[k];
+            if (v != null && v !== '') return String(v);
+          }
+        }catch(_){ }
+        // 2) localStorage fallback
+        try{
+          const v = localStorage.getItem(k);
+          if (v != null && v !== '') return String(v);
+        }catch(_){ }
+        return '';
+      }
+
+      function prefill(){
+        if (vc && !editing.has('rc_vendorCode')) vc.value = pick('vendorCode') || vc.value;
+        if (vn && !editing.has('rc_vendorName')) vn.value = pick('vendorName') || vn.value;
+        if (am && !editing.has('rc_amount'))     am.value = pick('amount')     || am.value;
+      }
+
+      // initial load + manual refresh hook
+      prefill();
+      window.addEventListener('receipt:refresh', prefill);
+    })();
   </script>
 </body>
 </html>
