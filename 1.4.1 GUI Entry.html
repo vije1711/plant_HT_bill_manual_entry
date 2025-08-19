@@ -702,7 +702,8 @@
   </script>
   <script>
     // Lightweight, scoped input niceties for the receipt card
-    (function(){
+    // Bind AFTER DOM is ready to guarantee targets/handlers exist.
+    window.addEventListener('DOMContentLoaded', () => {
       const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
       // Strip any stale disabling to keep inputs interactive
       ids.forEach(id => {
@@ -741,24 +742,43 @@
         billNoEl.value = n > 0 ? `${base}-${n+1}` : base;
         try{ localStorage.setItem(k, String(n+1)); }catch(_){ }
       }
-      // Card-level actions reuse existing logic
-      document.getElementById('renderReceiptInCard')?.addEventListener('click', ()=> {
-        if (typeof renderDakReceipt === 'function') renderDakReceipt();
-      });
-      document.getElementById('saveReceiptPdfInCard')?.addEventListener('click', ()=> {
-        const host = document.getElementById('htmlPrintHost');
-        const btn = document.getElementById('saveHtmlPdf');
-        const needsRender = !host || host.children.length === 0 || btn?.disabled;
-        if (needsRender && typeof renderDakReceipt === 'function') {
-          renderDakReceipt();
+      // Card-level actions wired like "Make IOM" (proxy to existing flow)
+      const host = document.getElementById('htmlPrintHost');
+      const btnSave = document.getElementById('saveHtmlPdf');
+
+      function ensureReceiptRenderedThen(fnAfter){
+        const needsRender = !host || host.children.length === 0 || btnSave?.disabled;
+        // Prefer dedicated renderer; else fall back to any toolbar hook still present.
+        const doRender = () => {
+          if (typeof window.renderDakReceipt === 'function') return window.renderDakReceipt();
+          // Legacy/toolbar fallback (noop if removed)
+          const tbBtn = document.getElementById('renderReceipt');
+          tbBtn?.click();
+        };
+        if (needsRender){
+          host?.setAttribute('aria-busy','true');
+          doRender();
           host?.scrollIntoView({behavior:'smooth'});
-          requestAnimationFrame(()=> setTimeout(()=> btn?.click(), 120));
+          // Defer so hidden Save button can be re-enabled by lifecycle hooks.
+          requestAnimationFrame(()=> setTimeout(()=> {
+            host?.removeAttribute('aria-busy');
+            try{ toast('Receipt ready.', 'good'); }catch(_){ }
+            fnAfter?.();
+          }, 120));
         } else {
           host?.scrollIntoView({behavior:'smooth'});
-          btn?.click();
+          fnAfter?.();
         }
+      }
+
+      document.getElementById('renderReceiptInCard')?.addEventListener('click', () => {
+        ensureReceiptRenderedThen(); // render only
       });
-    })();
+
+      document.getElementById('saveReceiptPdfInCard')?.addEventListener('click', () => {
+        ensureReceiptRenderedThen(() => btnSave?.click());
+      });
+    });
   </script>
   <script>
     // Utility helpers
