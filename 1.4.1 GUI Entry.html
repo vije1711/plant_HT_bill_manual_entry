@@ -1507,7 +1507,7 @@
             const el = $(id);
             if(el){
               el.value = val;
-              if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+              if(el.type==='text') parseInrInput(el);
             }
           });
         }
@@ -1801,7 +1801,7 @@
         Object.entries(SAMPLE).forEach(([id,val])=>{
           const el = $(id);
           el.value = val;
-          if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+          if(el.type==='text') parseInrInput(el);
         });
       }
 
@@ -2055,9 +2055,7 @@
 
       document.addEventListener('DOMContentLoaded', () => {
       initRatesManager();
-      // Apply INR masking ONLY outside the Central Dak Receipt card
       document.querySelectorAll('input[type="text"]').forEach(el=>{
-        if (el.closest('#receiptCard')) return;   // do not mask receipt card inputs
         el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
         el.addEventListener('blur', ()=>parseInrInput(el));
       });
