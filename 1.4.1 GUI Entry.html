@@ -174,6 +174,10 @@
     .menu-panel.drop-up{ top:auto; bottom:calc(100% + 4px); }
     .menu-panel [role="menuitem"]{display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; border-radius:8px}
     .menu-panel [role="menuitem"]:hover,.menu-panel [role="menuitem"]:focus{background:rgba(255,255,255,.06); outline:none}
+    /* sheet items inside menu */
+    .sheet-menu-item{display:flex;align-items:center;justify-content:space-between;
+      height:32px;padding:0 8px;border-radius:8px}
+    .sheet-menu-item .del{margin-left:8px}
     .menu-sep{height:1px; background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03)); margin:4px 0}
     @media (max-width: 1200px){ header .toolbar{row-gap:6px} }
 
@@ -335,6 +339,18 @@
       <div class="toolbar">
         <!-- Month -->
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
+        <!-- Sheets menu (searchable) -->
+        <div class="menu" aria-label="Sheets">
+          <details id="sheetsMenu">
+            <summary aria-haspopup="menu">Sheets ▾</summary>
+            <div class="menu-panel" role="menu">
+              <div class="pill" style="display:flex;gap:6px;align-items:center;min-height:30px">
+                <input id="sheetSearch" type="text" placeholder="Search sheets…" aria-label="Search sheets" style="height:28px;line-height:28px;padding:0 8px;width:100%">
+              </div>
+              <div id="sheetMenuList" style="max-height:320px;overflow:auto"></div>
+            </div>
+          </details>
+        </div>
         <div id="sheetList" class="pills" role="listbox"></div>
 
         <!-- Workbook menu -->
@@ -1535,6 +1551,8 @@
       }
       list.scrollLeft = list.scrollWidth;
       persistDebounced();
+      const search = document.getElementById('sheetSearch');
+      renderSheetMenu(search ? search.value : '');
     }
 
     function buildSheetData(model, monthLabel){
@@ -1851,13 +1869,106 @@
     if (e.key === 'Enter' || e.key === ' ') {
       const el = document.activeElement;
       if (!el) return;
-      const isCheckbox = el.getAttribute('role') === 'menuitemcheckbox';
-      if (isCheckbox) {
+      const role = el.getAttribute('role');
+      if (role === 'menuitemcheckbox') {
         const input = el.querySelector('input[type="checkbox"]');
         if (input) { e.preventDefault(); input.click(); }
-      } else if (el.tagName === 'BUTTON') {
-        e.preventDefault(); el.click();
+      } else {
+        // Activate any focused menuitem, not just <button>.
+        e.preventDefault();
+        el.click();
       }
+    }
+  });
+
+  // ---------------- Sheets menu wiring ----------------
+  function renderSheetMenu(filter=''){
+    const list = document.getElementById('sheetMenuList');
+    if(!list) return;
+    list.innerHTML = '';
+    const wb = getWB(); if(!wb) return;
+    const names = sortDisplayNames(wb.SheetNames || []);
+    const q = filter.trim().toLowerCase();
+    const rows = q ? names.filter(n=>n.toLowerCase().includes(q)) : names;
+    rows.forEach((name, idx) => {
+      const row = document.createElement('div');
+      row.className = 'sheet-menu-item';
+      row.setAttribute('role','menuitem');
+      row.tabIndex = idx===0 ? 0 : -1;
+      row.dataset.name = name;
+      row.innerHTML = '<span>'+name+'</span><button class="ghost del" aria-label="Remove '+name+'" title="Remove">×</button>';
+      row.addEventListener('click', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('del')) return;
+        const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
+        if (mm) document.getElementById('billMonth').value = mm;
+        else toast('Sheet "'+name+'" isn’t a YYYY-MM label. Month picker left unchanged.','info');
+        compute();
+        const d = document.getElementById('sheetsMenu');
+        if (d && d.hasAttribute('open')) d.removeAttribute('open');
+        const match = Array.from(document.querySelectorAll('#sheetList [role="option"]'))
+          .find(p=> p.querySelector('.ghost') && p.querySelector('.ghost').textContent === name);
+        if(match) match.focus();
+      });
+      const delBtn = row.querySelector('.del');
+      if (delBtn) {
+        delBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const ok = await confirmModal('Remove sheet "'+name+'" from the workbook?');
+          if(!ok) return;
+          const w = getWB(); if(!w) return;
+          delete w.Sheets[name];
+          w.SheetNames = (w.SheetNames || []).filter(n=>n!==name);
+          canonicalizeWorkbook();
+          toast('Removed sheet: '+name, 'good');
+          refreshSheetList();
+          const searchVal = (document.getElementById('sheetSearch')||{}).value || '';
+          renderSheetMenu(searchVal);
+          const items = Array.from(document.querySelectorAll('#sheetMenuList [role="menuitem"]'));
+          (items[idx] || items[idx-1])?.focus();
+        });
+      }
+      list.appendChild(row);
+    });
+    if (!list.children.length){
+      const empty = document.createElement('div');
+      empty.className = 'sheet-menu-item';
+      empty.textContent = 'No sheets';
+      empty.tabIndex = 0;
+      list.appendChild(empty);
+    }
+  }
+
+  const sheetsDetails = document.getElementById('sheetsMenu');
+  if (sheetsDetails instanceof HTMLDetailsElement) {
+    sheetsDetails.addEventListener('toggle', () => {
+      if (sheetsDetails.open){
+        const s = document.getElementById('sheetSearch');
+        renderSheetMenu('');
+        // After paint, move focus into the search box
+        requestAnimationFrame(()=>{ if (s) s.focus(); });
+      }
+    });
+  }
+
+  const sheetSearchInput = document.getElementById('sheetSearch');
+  if (sheetSearchInput) {
+    sheetSearchInput.addEventListener('input', (e)=>{
+      const val = e.target && e.target.value ? e.target.value : '';
+      renderSheetMenu(val);
+    });
+  }
+
+  // Sheets menu: only handle Delete key (generic handler covers nav + activation)
+  document.addEventListener('keydown', (e)=>{
+    const open = document.querySelector('#sheetsMenu[open]');
+    if(!open) return;
+    const items = Array.from(document.querySelectorAll('#sheetMenuList [role="menuitem"]'));
+    if(!items.length) return;
+    const i = items.indexOf(document.activeElement);
+    if (e.key==='Delete' && i>=0){
+      e.preventDefault();
+      const del = items[i].querySelector('.del');
+      if(del) del.click();
     }
   });
 
