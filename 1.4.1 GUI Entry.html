@@ -266,6 +266,30 @@
       .sheet { font-size:13px; }
     }
   </style>
+<style>
+  /* Scoped “slim” layout for the receipt card only */
+  #receiptCard .fields{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+  }
+  #receiptCard .f label{
+    display:block;
+    font-size:12px;
+    opacity:.9;
+    margin-bottom:4px;
+  }
+  #receiptCard input{
+    height:34px;
+    padding:6px 10px;
+    border-radius:8px;
+  }
+  #receiptCard .hint{ display:block; font-size:11px; opacity:.75; margin-top:4px; }
+  #receiptCard input.warn{ outline:2px solid rgba(255,120,120,.6); }
+  @media (max-width: 720px){
+    #receiptCard .fields{ grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -429,15 +453,37 @@
           </div>
         </section>
         <!-- Central Dak Receipt Inputs -->
-        <section class="card span-4">
+        <section class="card span-4" id="receiptCard">
           <h2>Central Dak Receipt — Inputs</h2>
           <div class="fields">
-            <div class="f"><label>Vendor Code</label><input type="text" id="rc_vendorCode"/></div>
-            <div class="f"><label>Vendor Name</label><input type="text" id="rc_vendorName"/></div>
-            <div class="f"><label>Bill No.</label><input type="text" id="rc_billNo"/></div>
-            <div class="f"><label>Bill Date</label><input type="text" id="rc_billDate"/></div>
-            <div class="f"><label>Amount</label><input type="text" id="rc_amount"/></div>
-            <div class="f"><label>EIC Name</label><input type="text" id="rc_eic" value="Mr. Vijendra Singh"/></div>
+            <!-- Row 1 -->
+            <div class="f">
+              <label for="rc_vendorCode">Vendor Code</label>
+              <input type="text" id="rc_vendorCode" placeholder="e.g., ZG0435"/>
+            </div>
+            <div class="f">
+              <label for="rc_vendorName">Vendor Name</label>
+              <input type="text" id="rc_vendorName" placeholder="e.g., Paschim Gujarat Viz Company Ltd"/>
+            </div>
+            <!-- Row 2 -->
+            <div class="f">
+              <label for="rc_billNo">Bill No.</label>
+              <input type="text" id="rc_billNo" placeholder="e.g., HT-BILL_JUL-25"/>
+            </div>
+            <div class="f">
+              <label for="rc_billDate">Bill Date</label>
+              <input type="text" id="rc_billDate" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off"/>
+            </div>
+            <!-- Row 3 -->
+            <div class="f">
+              <label for="rc_amount">Amount</label>
+              <input type="text" id="rc_amount" placeholder="e.g., 13108871.45"/>
+              <small class="hint">Indian grouping applied on render</small>
+            </div>
+            <div class="f">
+              <label for="rc_eic">EIC Name</label>
+              <input type="text" id="rc_eic" value="Mr. Vijendra Singh"/>
+            </div>
           </div>
         </section>
         <!-- Rates Manager -->
@@ -579,6 +625,26 @@
       }
     }
 
+  </script>
+  <script>
+    // Lightweight, scoped input niceties for the receipt card
+    (function(){
+      const dateEl = document.getElementById('rc_billDate');
+      const amtEl  = document.getElementById('rc_amount');
+      if(dateEl){
+        dateEl.addEventListener('blur', ()=>{
+          const ok = /^\d{2}-\d{2}-\d{4}$/.test(dateEl.value.trim());
+          dateEl.classList.toggle('warn', !ok && dateEl.value.trim()!=='');
+        }, {passive:true});
+      }
+      if(amtEl){
+        amtEl.addEventListener('blur', ()=>{
+          const raw = amtEl.value ?? '';
+          const cleaned = String(raw).replace(/[^0-9.\-]/g,'');
+          if(cleaned !== raw) amtEl.value = cleaned;
+        }, {passive:true});
+      }
+    })();
   </script>
   <script>
     // Utility helpers
