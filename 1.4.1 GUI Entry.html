@@ -156,7 +156,7 @@
 
 
     /* Dropdowns */
-    .menu{position:relative; display:inline-block}
+    .menu{position:relative; display:inline-block; z-index:2}
     .menu details{display:inline-block}
     .menu summary{
       list-style:none; cursor:pointer; user-select:none;
@@ -165,11 +165,13 @@
     }
       .menu details[open] > summary{outline:2px solid var(--accent); outline-offset:2px}
     .menu-panel{
-      position:absolute; top:38px; left:0; z-index:40; min-width:200px;
+      position:absolute; top:calc(100% + 4px); left:0; z-index:1000;
+      min-width:max(200px, 100%);
       background:var(--card); color:var(--ink); border:1px solid rgba(255,255,255,.10);
       border-radius:12px; box-shadow:var(--shadow);
       padding:6px; display:flex; flex-direction:column; gap:4px;
     }
+    .menu-panel.drop-up{ top:auto; bottom:calc(100% + 4px); }
     .menu-panel [role="menuitem"]{display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; border-radius:8px}
     .menu-panel [role="menuitem"]:hover,.menu-panel [role="menuitem"]:focus{background:rgba(255,255,255,.06); outline:none}
     .menu-sep{height:1px; background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03)); margin:4px 0}
@@ -194,8 +196,9 @@
     header .toolbar{ grid-column:1 / -1; }
     .toolbar{
       display:flex; flex-wrap:wrap; gap:8px; align-items:center;
-      overflow:hidden; min-width:0;
+      overflow:visible; min-width:0;
       padding:4px 0;
+      position:relative; z-index:1; /* ensure menus sit above content cards */
     }
     /* pills in toolbar should not cause overflow */
     .toolbar .pill{min-width:0; max-width:100%;}
@@ -1806,11 +1809,31 @@
   document.querySelectorAll('.menu details').forEach(d => {
     d.addEventListener('toggle', () => {
       if (d.open) {
-        const items = Array.from(d.querySelectorAll('.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'));
+        const panel = d.querySelector('.menu-panel');
+        // Flip up if panel would overflow the viewport bottom
+        if (panel) {
+          panel.classList.remove('drop-up');
+          const rect = panel.getBoundingClientRect();
+          const overflowsBottom = rect.bottom > window.innerHeight - 8;
+          if (overflowsBottom) panel.classList.add('drop-up');
+        }
+        const items = Array.from(d.querySelectorAll(
+          '.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'
+        ));
         items.forEach((el,i)=> el.tabIndex = i===0 ? 0 : -1);
         items[0]?.focus();
       }
     });
+  });
+  // Re-evaluate placement on resize
+  window.addEventListener('resize', () => {
+    const open = document.querySelector('.menu details[open]');
+    if (!open) return;
+    const panel = open.querySelector('.menu-panel');
+    if (!panel) return;
+    panel.classList.remove('drop-up');
+    const rect = panel.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight - 8) panel.classList.add('drop-up');
   });
 
   // Roving tabindex + arrow key nav inside menus
