@@ -141,6 +141,8 @@
       -webkit-overflow-scrolling:touch;
       scroll-snap-type:x proximity;
     }
+    /* Hide legacy sheet pills strip in favor of Sheets ▾ menu */
+    #sheetList{display:none !important}
     .right{float:right}
 
     /* Normalize header form-control height to match 34px tap target */
@@ -351,7 +353,7 @@
             </div>
           </details>
         </div>
-        <div id="sheetList" class="pills" role="listbox"></div>
+        <div id="sheetList" class="pills" role="listbox" hidden aria-hidden="true"></div>
 
         <!-- Workbook menu -->
         <div class="menu" aria-label="Workbook">
@@ -1524,7 +1526,8 @@
           toast(`Removed sheet: ${name}`, 'good');
           refreshSheetList();
           const next = list.querySelectorAll('[role="option"]')[i] || list.querySelector('[role="option"]:last-child');
-          next?.focus();
+          // Only move focus if the strip is visible
+          if (list && list.offsetParent) next?.focus();
         });
 
         pill.append(btnGo, btnDel);
@@ -1905,9 +1908,12 @@
         compute();
         const d = document.getElementById('sheetsMenu');
         if (d && d.hasAttribute('open')) d.removeAttribute('open');
-        const match = Array.from(document.querySelectorAll('#sheetList [role="option"]'))
-          .find(p=> p.querySelector('.ghost') && p.querySelector('.ghost').textContent === name);
-        if(match) match.focus();
+        const strip = document.getElementById('sheetList');
+        if (strip && strip.offsetParent) {
+          const match = Array.from(document.querySelectorAll('#sheetList [role="option"]'))
+            .find(p=> p.querySelector('.ghost') && p.querySelector('.ghost').textContent === name);
+          if(match) match.focus();
+        }
       });
       const delBtn = row.querySelector('.del');
       if (delBtn) {
