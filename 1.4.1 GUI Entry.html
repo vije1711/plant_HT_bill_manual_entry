@@ -977,7 +977,7 @@
 
       // Cross-check: I9 (= H9 − E9) should reconcile with FINAL
       const TOL = 0.05;
-      const I9_check = H9 - E9;  // use computed vars, not DOM
+      const I9_check = (Number(H9) || 0) - (Number(E9) || 0);
       const deltaFinal = FINAL - I9_check;
       const badge = $('finalCheckBadge');
       if (badge) {
