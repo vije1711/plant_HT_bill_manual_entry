@@ -302,6 +302,9 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px 16px;
   }
+  /* Hard guarantee that the card is typeable/clickable */
+  #receiptCard{ position:relative; z-index:1; }
+  #receiptCard, #receiptCard *{ pointer-events:auto; }
   #receiptCard .f label{
     display:block;
     font-size:12px;
@@ -379,20 +382,24 @@
           </details>
         </div>
 
-        <!-- Preview menu -->
-        <div class="menu" aria-label="Preview and Print">
+        <!-- IOM Output menu -->
+        <div class="menu" aria-label="IOM Output">
           <details>
-            <summary aria-haspopup="menu">Preview ▾</summary>
+            <summary aria-haspopup="menu">Make IOM ▾</summary>
             <div class="menu-panel" role="menu">
-              <button id="renderHtml" role="menuitem" class="ghost">Render</button>
-              <button id="renderReceipt" role="menuitem" class="ghost">Receipt</button>
-                <label role="menuitemcheckbox" aria-checked="false" class="ghost"><input type="checkbox" id="autoPrintHtml"> Auto-print</label>
+              <button id="renderHtml" role="menuitem" class="ghost">Render IOM</button>
+              <button id="menuSavePdf" role="menuitem" class="ghost">Save as PDF</button>
+              <button id="menuOpenPdf" role="menuitem" class="ghost">Open PDF View</button>
+              <label role="menuitemcheckbox" aria-checked="false" class="ghost"><input type="checkbox" id="autoPrintHtml"> Auto-print</label>
             </div>
           </details>
         </div>
-        <!-- Primary export actions remain visible -->
-        <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
-        <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF</button>
+        <!-- Hidden export buttons for logic; keep IDs for scripting -->
+        <button id="saveHtmlPdf" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
+                aria-hidden="true" tabindex="-1" disabled aria-disabled="true">Save as PDF</button>
+        <button id="openHtmlPdf" class="ghost"
+                style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
+                aria-hidden="true" tabindex="-1" disabled aria-disabled="true">Open PDF View</button>
 
         <!-- Utilities menu -->
         <div class="menu" aria-label="Utilities">
@@ -697,6 +704,7 @@
     // Lightweight, scoped input niceties for the receipt card
     (function(){
       const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      // Strip any stale disabling to keep inputs interactive
       ids.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -704,8 +712,6 @@
         el.removeAttribute('readonly');
         el.style.pointerEvents = '';
       });
-      const card = document.getElementById('receiptCard');
-      if(card){ card.style.position='relative'; card.style.zIndex='1'; }
       const dateEl = document.getElementById('rc_billDate');
       const amtEl  = document.getElementById('rc_amount');
       const billNoEl = document.getElementById('rc_billNo');
@@ -722,7 +728,7 @@
           if(cleaned !== raw) amtEl.value = cleaned;
         }, {passive:true});
       }
-      // Bill No.: default generator (editable)
+      // Bill No.: generate editable default if empty
       if (billNoEl && !billNoEl.value){
         const now = new Date();
         const MMM = now.toLocaleString('en-US',{month:'short'}).toUpperCase();
@@ -732,8 +738,7 @@
         const k = `rc_billno_counter_${ym}`;
         let n = Number(localStorage.getItem(k) || '0');
         n = Number.isFinite(n) ? n : 0;
-        const candidate = n > 0 ? `${base}-${n+1}` : base;
-        billNoEl.value = candidate;
+        billNoEl.value = n > 0 ? `${base}-${n+1}` : base;
         try{ localStorage.setItem(k, String(n+1)); }catch(_){ }
       }
       // Card-level actions reuse existing logic
@@ -2303,7 +2308,13 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
         }
       });
 
-      document.getElementById('renderReceipt')?.addEventListener('click', renderDakReceipt);
+      // Proxy menu actions to hidden buttons
+      document.getElementById('menuSavePdf')?.addEventListener('click', () => {
+        document.getElementById('saveHtmlPdf')?.click();
+      });
+      document.getElementById('menuOpenPdf')?.addEventListener('click', () => {
+        document.getElementById('openHtmlPdf')?.click();
+      });
 
       // Re-disable print actions if inputs change after a render
       document.querySelectorAll('input, select, textarea').forEach(el => {
@@ -2428,10 +2439,10 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
     });
   </script>
   <script>
-    // Provide defaults for the receipt card from IOM state (safe fallbacks)
+    // Provide defaults for the receipt card from IOM state (with safe fallbacks)
     window.getReceiptDefaults = function(){
-      function pick(selectorList){
-        for (const sel of selectorList){
+      function pick(selectors){
+        for (const sel of selectors){
           const el = document.querySelector(sel);
           if (el && typeof el.value === 'string' && el.value.trim() !== '') return el.value.trim();
           if (el && el.textContent && el.textContent.trim() !== '') return el.textContent.trim();
@@ -2443,23 +2454,14 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
       let amount = '';
       const finalEl = document.getElementById('FINALv');
       if(finalEl){
-        const raw = (finalEl.dataset.value ?? finalEl.textContent ?? '').toString();
-        const clean = raw.replace(/[^0-9.\-]/g,'');
-        if(clean) amount = clean;
+        const raw = (finalEl.dataset?.value ?? finalEl.textContent ?? '').toString();
+        amount = raw.replace(/[^0-9.\-]/g,'');
       }
-      try{
-        if(!vendorCode || !vendorName){
-          const saved = JSON.parse(localStorage.getItem('weg-billing-v1')||'{}');
-          const inputs = saved.inputs || {};
-          if(!vendorCode && inputs.vendorCode) return { vendorCode: String(inputs.vendorCode), vendorName: String(inputs.vendorName||''), amount };
-          if(!vendorName && inputs.vendorName) return { vendorCode: vendorCode||'', vendorName: String(inputs.vendorName), amount };
-        }
-      }catch(_){ }
       return { vendorCode, vendorName, amount };
     };
   </script>
   <script>
-    // Prefill for Vendor Code/Name/Amount with safe optional hooks
+    // Prefill Vendor Code/Name/Amount; respect user edits
     (function(){
       const vc = document.getElementById('rc_vendorCode');
       const vn = document.getElementById('rc_vendorName');
@@ -2467,30 +2469,15 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
       const editing = new Set();
       [vc, vn, am].forEach(el => el?.addEventListener('input', ()=> editing.add(el.id), {passive:true}));
 
-      function pick(k){
-        // 1) optional app callback
-        try{
-          if (typeof window.getReceiptDefaults === 'function'){
-            const v = window.getReceiptDefaults()?.[k];
-            if (v != null && v !== '') return String(v);
-          }
-        }catch(_){ }
-        // 2) localStorage fallback
-        try{
-          const v = localStorage.getItem(k);
-          if (v != null && v !== '') return String(v);
-        }catch(_){ }
-        return '';
-      }
-
       function prefill(){
-        if (vc && !editing.has('rc_vendorCode')) vc.value = pick('vendorCode') || vc.value;
-        if (vn && !editing.has('rc_vendorName')) vn.value = pick('vendorName') || vn.value;
-        if (am && !editing.has('rc_amount'))     am.value = pick('amount')     || am.value;
+        try{
+          const d = (typeof window.getReceiptDefaults === 'function') ? window.getReceiptDefaults() : {};
+          if (vc && !editing.has('rc_vendorCode') && d.vendorCode) vc.value = d.vendorCode;
+          if (vn && !editing.has('rc_vendorName') && d.vendorName) vn.value = d.vendorName;
+          if (am && !editing.has('rc_amount')     && d.amount)     am.value = d.amount;
+        }catch(_){ }
       }
-
-      // initial load + manual refresh hook
-      prefill();
+      prefill(); // initial
       window.addEventListener('receipt:refresh', prefill);
     })();
   </script>
