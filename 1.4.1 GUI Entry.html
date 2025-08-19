@@ -696,8 +696,19 @@
   <script>
     // Lightweight, scoped input niceties for the receipt card
     (function(){
+      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.removeAttribute('disabled');
+        el.removeAttribute('readonly');
+        el.style.pointerEvents = '';
+      });
+      const card = document.getElementById('receiptCard');
+      if(card){ card.style.position='relative'; card.style.zIndex='1'; }
       const dateEl = document.getElementById('rc_billDate');
       const amtEl  = document.getElementById('rc_amount');
+      const billNoEl = document.getElementById('rc_billNo');
       if(dateEl){
         dateEl.addEventListener('blur', ()=>{
           const ok = /^\d{2}-\d{2}-\d{4}$/.test(dateEl.value.trim());
@@ -710,6 +721,20 @@
           const cleaned = String(raw).replace(/[^0-9.\-]/g,'');
           if(cleaned !== raw) amtEl.value = cleaned;
         }, {passive:true});
+      }
+      // Bill No.: default generator (editable)
+      if (billNoEl && !billNoEl.value){
+        const now = new Date();
+        const MMM = now.toLocaleString('en-US',{month:'short'}).toUpperCase();
+        const YY  = String(now.getFullYear()).slice(-2);
+        const base = `HT-BILL_${MMM}-${YY}`;
+        const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        const k = `rc_billno_counter_${ym}`;
+        let n = Number(localStorage.getItem(k) || '0');
+        n = Number.isFinite(n) ? n : 0;
+        const candidate = n > 0 ? `${base}-${n+1}` : base;
+        billNoEl.value = candidate;
+        try{ localStorage.setItem(k, String(n+1)); }catch(_){ }
       }
       // Card-level actions reuse existing logic
       document.getElementById('renderReceiptInCard')?.addEventListener('click', ()=> {
@@ -1176,6 +1201,7 @@
       }
       computeSes();
       persistDebounced();
+      try { window.dispatchEvent(new CustomEvent('receipt:refresh')); } catch(_){ }
       return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL, I9_check };
     }
 
@@ -2400,6 +2426,37 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
       refreshSheetList();
       if(restored) toast('Previous data restored.');
     });
+  </script>
+  <script>
+    // Provide defaults for the receipt card from IOM state (safe fallbacks)
+    window.getReceiptDefaults = function(){
+      function pick(selectorList){
+        for (const sel of selectorList){
+          const el = document.querySelector(sel);
+          if (el && typeof el.value === 'string' && el.value.trim() !== '') return el.value.trim();
+          if (el && el.textContent && el.textContent.trim() !== '') return el.textContent.trim();
+        }
+        return '';
+      }
+      const vendorCode = pick(['#iom_vendorCode','#vendorCode','[name="vendorCode"]']);
+      const vendorName = pick(['#iom_vendorName','#vendorName','[name="vendorName"]']);
+      let amount = '';
+      const finalEl = document.getElementById('FINALv');
+      if(finalEl){
+        const raw = (finalEl.dataset.value ?? finalEl.textContent ?? '').toString();
+        const clean = raw.replace(/[^0-9.\-]/g,'');
+        if(clean) amount = clean;
+      }
+      try{
+        if(!vendorCode || !vendorName){
+          const saved = JSON.parse(localStorage.getItem('weg-billing-v1')||'{}');
+          const inputs = saved.inputs || {};
+          if(!vendorCode && inputs.vendorCode) return { vendorCode: String(inputs.vendorCode), vendorName: String(inputs.vendorName||''), amount };
+          if(!vendorName && inputs.vendorName) return { vendorCode: vendorCode||'', vendorName: String(inputs.vendorName), amount };
+        }
+      }catch(_){ }
+      return { vendorCode, vendorName, amount };
+    };
   </script>
   <script>
     // Prefill for Vendor Code/Name/Amount with safe optional hooks
