@@ -126,11 +126,21 @@
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:4px 6px;border-radius:999px;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;
-      min-height:34px}
+      min-height:34px;flex:0 0 auto;scroll-snap-align:start}
     /* keep pill text on one line, truncate gracefully */
     .pill > span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
     .pill button{padding:2px 6px}
-    .pills{display:flex;gap:6px;flex-wrap:wrap}
+    .pill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .pills{
+      display:flex;
+      gap:6px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      white-space:nowrap;
+      max-width:100%;
+      -webkit-overflow-scrolling:touch;
+      scroll-snap-type:x proximity;
+    }
     .right{float:right}
 
     /* Normalize header form-control height to match 34px tap target */
@@ -278,7 +288,7 @@
       <div class="toolbar">
         <!-- Month -->
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
-        <div id="sheetList" class="pills"></div>
+        <div id="sheetList" class="pills" role="listbox"></div>
 
         <!-- Workbook group -->
         <div class="group" aria-label="Workbook">
@@ -299,7 +309,7 @@
           <button id="renderHtml">Render Preview</button>
           <label class="pill"><input type="checkbox" id="autoPrintHtml" /> Auto-print</label>
           <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
-          <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF View</button>
+            <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF</button>
         </div>
 
         <!-- Utilities group -->
@@ -1240,7 +1250,10 @@
         }
         if(Array.isArray(data.sheets)){
           const _wb = getWB();
-          if(_wb) _wb.SheetNames = data.sheets;
+          if(_wb){
+            _wb.SheetNames = data.sheets;
+            canonicalizeWorkbook();
+          }
         }
         return true;
       }catch(err){
@@ -1256,20 +1269,52 @@
       const _wb = getWB();
       if(!_wb) return;
       const names = _wb.SheetNames || [];
-      names.forEach(name=>{
+      const active = $('billMonth').value;
+      let hasFocusable = false;
+      names.forEach((name, idx) => {
         const pill = document.createElement('span');
         pill.className = 'pill';
+        pill.setAttribute('role','option');
+        const isActive = name === active;
+        if (isActive) {
+          pill.setAttribute('aria-selected','true');
+          pill.tabIndex = 0;
+          hasFocusable = true;
+        } else {
+          pill.tabIndex = -1;
+        }
+
         const btnGo = document.createElement('button');
         btnGo.className = 'ghost';
+        btnGo.tabIndex = -1;
         btnGo.textContent = name;
-        btnGo.addEventListener('click', () => { $('billMonth').value = name; compute(); });
+        btnGo.setAttribute('aria-label', `Open ${name}`);
+        btnGo.addEventListener('click', () => {
+          // Only write to <input type="month"> if the sheet name is canonical YYYY-MM.
+          const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
+          if (mm) {
+            $('billMonth').value = mm;
+          } else {
+            // Keep UX calm: just inform without breaking flow.
+            toast(`Sheet "${name}" isn’t a YYYY-MM label. Month picker left unchanged.`, 'info');
+          }
+          // Continue with compute() so the action still proceeds as before.
+          compute();
+          list.querySelectorAll('[role="option"]').forEach(o => { o.tabIndex = -1; o.removeAttribute('aria-selected'); });
+          pill.setAttribute('aria-selected','true');
+          pill.tabIndex = 0;
+          pill.focus();
+        });
 
         const btnDel = document.createElement('button');
         btnDel.className = 'ghost';
+        btnDel.tabIndex = -1;
         btnDel.setAttribute('aria-label', `Remove ${name}`);
         btnDel.textContent = '×';
         btnDel.addEventListener('click', async (e) => {
           e.stopPropagation();
+          const options = [...list.querySelectorAll('[role="option"]')];
+          const i = options.indexOf(pill);
           if(!(await confirmModal(`Remove sheet "${name}" from the workbook?`))) return;
           const wb = getWB(); if(!wb) return;
           delete wb.Sheets[name];
@@ -1277,11 +1322,33 @@
           canonicalizeWorkbook();
           toast(`Removed sheet: ${name}`, 'good');
           refreshSheetList();
+          const next = list.querySelectorAll('[role="option"]')[i] || list.querySelector('[role="option"]:last-child');
+          next?.focus();
         });
 
         pill.append(btnGo, btnDel);
+        pill.addEventListener('keydown', (e) => {
+          const focusOption = dir => {
+            const options = [...list.querySelectorAll('[role="option"]')];
+            const i = options.indexOf(document.activeElement);
+            const j = Math.max(0, Math.min(options.length - 1, i + dir));
+            options[j]?.focus();
+          };
+          if (e.key === 'ArrowRight') { e.preventDefault(); focusOption(1); }
+          if (e.key === 'ArrowLeft')  { e.preventDefault(); focusOption(-1); }
+          if (e.key === 'Home')       { e.preventDefault(); list.querySelector('[role="option"]')?.focus(); }
+          if (e.key === 'End')        { e.preventDefault(); [...list.querySelectorAll('[role="option"]')].pop()?.focus(); }
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btnGo.click(); }
+          if (e.key === 'Delete') { e.preventDefault(); btnDel.click(); }
+        });
+
         list.appendChild(pill);
       });
+      if (!hasFocusable) {
+        const last = list.querySelector('[role="option"]:last-child');
+        if (last) last.tabIndex = 0;
+      }
+      list.scrollLeft = list.scrollWidth;
       persistDebounced();
     }
 
@@ -1293,13 +1360,16 @@
         rows.push(row);
       }
 
-      const DANGEROUS_LEAD = /^([=+\-@])/;
-      const looksLikeYYYYMM = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
-      function forceText(v){
-        if (v == null) return '';
-        const s = String(v);
-        return (DANGEROUS_LEAD.test(s) || looksLikeYYYYMM(s)) ? { t:'s', v:s, z:'@' } : s;
-      }
+        const DANGEROUS_FORMULA = /^[=+@]/;
+        const isPlainNegativeNumber = s => /^-\d+(\.\d+)?$/.test(s);
+        const looksLikeYYYYMM = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+        function forceText(v){
+          if (v == null) return '';
+          const s = String(v);
+          if (DANGEROUS_FORMULA.test(s)) return { t:'s', v:s, z:'@' };
+          if (s.startsWith('-') && !isPlainNegativeNumber(s)) return { t:'s', v:s, z:'@' };
+          return looksLikeYYYYMM(s) ? { t:'s', v:s, z:'@' } : s;
+        }
 
       // Header row
       r(['WEG Billing – Month', monthLabel]);
@@ -1429,7 +1499,9 @@
       }
 
       function normalizeSheetNames(names){
-        return Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b));
+        // Non-destructive: unique + lexicographic sort; do NOT filter legacy/non-YYYY-MM names.
+        return Array.from(new Set(names))
+          .sort((a,b)=>a.localeCompare(b));
       }
 
       function canonicalizeWorkbook(){
