@@ -126,19 +126,11 @@
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:4px 6px;border-radius:999px;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;
-      min-height:34px;flex:0 0 auto}
+      min-height:34px}
     /* keep pill text on one line, truncate gracefully */
     .pill > span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
     .pill button{padding:2px 6px}
-    .pills{
-      display:flex;
-      gap:6px;
-      overflow-x:auto;
-      overflow-y:hidden;
-      white-space:nowrap;
-      flex-wrap:nowrap;
-      max-width:100%;
-    }
+    .pills{display:flex;gap:6px;flex-wrap:wrap}
     .right{float:right}
 
     /* Normalize header form-control height to match 34px tap target */
@@ -286,7 +278,7 @@
       <div class="toolbar">
         <!-- Month -->
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
-        <div id="sheetList" class="pills" role="listbox"></div>
+        <div id="sheetList" class="pills"></div>
 
         <!-- Workbook group -->
         <div class="group" aria-label="Workbook">
@@ -1278,7 +1270,7 @@
         btnDel.textContent = '×';
         btnDel.addEventListener('click', async (e) => {
           e.stopPropagation();
-          if(!(await confirmModal(`Remove sheet \"${name}\" from the workbook?`))) return;
+          if(!(await confirmModal(`Remove sheet "${name}" from the workbook?`))) return;
           const wb = getWB(); if(!wb) return;
           delete wb.Sheets[name];
           wb.SheetNames = wb.SheetNames.filter(n => n !== name);
@@ -1290,7 +1282,6 @@
         pill.append(btnGo, btnDel);
         list.appendChild(pill);
       });
-      list.scrollLeft = list.scrollWidth;
       persistDebounced();
     }
 
