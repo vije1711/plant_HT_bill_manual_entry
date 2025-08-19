@@ -410,7 +410,8 @@
               <div class="v" id="FINALv" style="font-size:30px">₹0</div>
               <div class="muted">Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS + Balance Pending (prev) + Delay Charges</div>
               <div id="finalCheckBadge" class="pill" style="margin-top:8px" role="status" aria-live="polite">
-                Check • I9 (= H9 − E9): <span id="I9checkv">₹0</span>
+                <span id="FINALstatusv" aria-hidden="true"></span>
+                &nbsp;Check • I9 (= H9 − E9): <span id="I9checkv">₹0</span>
                 &nbsp;•&nbsp; Δ vs FINAL: <span id="FINALdeltav">₹0</span>
               </div>
             </div>
@@ -575,6 +576,10 @@
       return parseFloat(el.dataset.value || el.value || 0) || 0;
     };
     const roundUp0 = x => Math.ceil(x);
+
+    // Final reconciliation tolerance (INR); hoisted for clarity & micro-perf.
+    // Stability guard: do not change without approval.
+    const FINAL_CHECK_TOL = 0.05;
 
     const SERVICE_LIST = [
       { code:'FIXED_METER_RENT', name:'Fixed Meter Rent' },
@@ -976,16 +981,25 @@
       $('FINALv').textContent = toInr(FINAL);
 
       // Cross-check: I9 (= H9 − E9) should reconcile with FINAL
-      const TOL = 0.05;
       const I9_check = (Number(H9) || 0) - (Number(E9) || 0);
       const deltaFinal = FINAL - I9_check;
       const badge = $('finalCheckBadge');
       if (badge) {
         const i9Span = $('I9checkv'), dSpan = $('FINALdeltav');
+        const statusSpan = $('FINALstatusv');
+        const withinTol = Math.abs(deltaFinal) <= FINAL_CHECK_TOL;
         if (i9Span) i9Span.textContent = toInr(I9_check);
         if (dSpan) dSpan.textContent = toInr(deltaFinal);
+        // Visual state + symbol
         badge.classList.remove('good','bad');
-        badge.classList.add(Math.abs(deltaFinal) <= TOL ? 'good' : 'bad');
+        badge.classList.add(withinTol ? 'good' : 'bad');
+        if (statusSpan) statusSpan.textContent = withinTol ? '✓' : '✗';
+        // Accessibility: narrate current status & values
+        const a11y =
+          `Final check: I9 ${toInr(I9_check)}, delta vs FINAL ${toInr(deltaFinal)}, `
+          + (withinTol ? 'status OK' : 'status NOT OK');
+        badge.setAttribute('aria-label', a11y);
+        badge.title = a11y;
       }
       computeSes();
       persistDebounced();
