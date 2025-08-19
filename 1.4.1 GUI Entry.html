@@ -124,7 +124,7 @@
     .muted{color:var(--muted)}
     .hr{height:1px;background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03));margin:14px 0}
 
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:4px 6px;border-radius:999px;
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:2px 6px;border-radius:999px;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;
       min-height:34px;flex:0 0 auto;scroll-snap-align:start}
     /* keep pill text on one line, truncate gracefully */
@@ -148,12 +148,32 @@
     header .toolbar input[type="text"],
     header .toolbar select{
       height:34px; line-height:34px;
-      padding:0 10px; font-size:13px;
-      border-radius:8px; /* harmonize with pill rounding */
+      padding:0 8px; font-size:13px;
+      border-radius:8px;
     }
       header .toolbar input{margin:0}  /* avoid UA default margins increasing pill height */
       header .toolbar input[type="checkbox"]{height:auto;width:auto} /* keep checkbox natural */
 
+
+    /* Dropdowns */
+    .menu{position:relative; display:inline-block}
+    .menu details{display:inline-block}
+    .menu summary{
+      list-style:none; cursor:pointer; user-select:none;
+      height:34px; line-height:34px; padding:0 10px; border-radius:8px;
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+    }
+      .menu details[open] > summary{outline:2px solid var(--accent); outline-offset:2px}
+    .menu-panel{
+      position:absolute; top:38px; left:0; z-index:40; min-width:200px;
+      background:var(--card); color:var(--ink); border:1px solid rgba(255,255,255,.10);
+      border-radius:12px; box-shadow:var(--shadow);
+      padding:6px; display:flex; flex-direction:column; gap:4px;
+    }
+    .menu-panel [role="menuitem"]{display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; border-radius:8px}
+    .menu-panel [role="menuitem"]:hover,.menu-panel [role="menuitem"]:focus{background:rgba(255,255,255,.06); outline:none}
+    .menu-sep{height:1px; background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03)); margin:4px 0}
+    @media (max-width: 1200px){ header .toolbar{row-gap:6px} }
 
     details{margin:10px 0}
     summary{cursor:pointer}
@@ -314,35 +334,48 @@
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
         <div id="sheetList" class="pills" role="listbox"></div>
 
-        <!-- Workbook group -->
-        <div class="group" aria-label="Workbook">
-          <span class="label">Workbook</span>
-          <button id="addSheet">Add / Update Month Sheet</button>
-          <button id="uploadExcel">Upload Excel</button>
-          <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
-          <label class="pill" id="autoUpdateToggle">
-            <input type="checkbox" id="autoUpdateOnDownload" checked />
-            <span>Auto-update on Download</span>
-          </label>
-          <button id="downloadExcel">Download Excel</button>
+        <!-- Workbook menu -->
+        <div class="menu" aria-label="Workbook">
+          <details>
+            <summary aria-haspopup="menu">Workbook ▾</summary>
+            <div class="menu-panel" role="menu">
+              <button id="addSheet" role="menuitem" class="ghost">Add/Update Sheet</button>
+              <button id="uploadExcel" role="menuitem" class="ghost">Upload</button>
+              <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
+                <label id="autoUpdateToggle" role="menuitemcheckbox" aria-checked="true" class="ghost">
+                  <input type="checkbox" id="autoUpdateOnDownload" checked> Auto-update on Download
+                </label>
+              <div class="menu-sep"></div>
+              <button id="downloadExcel" role="menuitem" class="ghost">Download</button>
+            </div>
+          </details>
         </div>
 
-        <!-- Preview & Print group -->
-        <div class="group" aria-label="Preview and Print">
-          <span class="label">Preview & Print</span>
-          <button id="renderHtml">Render Preview</button>
-          <button id="renderReceipt">Render Receipt</button>
-          <label class="pill"><input type="checkbox" id="autoPrintHtml" /> Auto-print</label>
-          <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
-            <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF</button>
+        <!-- Preview menu -->
+        <div class="menu" aria-label="Preview and Print">
+          <details>
+            <summary aria-haspopup="menu">Preview ▾</summary>
+            <div class="menu-panel" role="menu">
+              <button id="renderHtml" role="menuitem" class="ghost">Render</button>
+              <button id="renderReceipt" role="menuitem" class="ghost">Receipt</button>
+                <label role="menuitemcheckbox" aria-checked="false" class="ghost"><input type="checkbox" id="autoPrintHtml"> Auto-print</label>
+            </div>
+          </details>
         </div>
+        <!-- Primary export actions remain visible -->
+        <button id="saveHtmlPdf" disabled aria-disabled="true">Save as PDF</button>
+        <button id="openHtmlPdf" class="ghost" disabled aria-disabled="true">Open PDF</button>
 
-        <!-- Utilities group -->
-        <div class="group" aria-label="Utilities">
-          <span class="label">Utilities</span>
-          <button id="resetSample">Sample Data</button>
-          <button class="ghost" id="resetAll">Reset</button>
-          <button class="ghost" id="clearSheets">Clear Sheets</button>
+        <!-- Utilities menu -->
+        <div class="menu" aria-label="Utilities">
+          <details>
+            <summary aria-haspopup="menu">Utilities ▾</summary>
+            <div class="menu-panel" role="menu">
+              <button id="resetSample" role="menuitem" class="ghost">Sample Data</button>
+              <button id="resetAll" role="menuitem" class="ghost">Reset</button>
+              <button id="clearSheets" role="menuitem" class="ghost">Clear Sheets</button>
+            </div>
+          </details>
         </div>
       </div>
       </header>
@@ -1757,8 +1790,69 @@
         lines.push(`Rupees ${inWords(finalAmt)} Only`);
         return lines.join('\n');
       }
+  // Basic menu behavior for <details>-based dropdowns
+  document.addEventListener('click', (e) => {
+    const openMenus = document.querySelectorAll('.menu details[open]');
+    for (const d of openMenus) {
+      if (!d.contains(e.target)) d.removeAttribute('open');
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const open = document.querySelector('.menu details[open]');
+      if (open) { open.removeAttribute('open'); open.querySelector('summary')?.focus(); }
+    }
+  });
+  document.querySelectorAll('.menu details').forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (d.open) {
+        const items = Array.from(d.querySelectorAll('.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'));
+        items.forEach((el,i)=> el.tabIndex = i===0 ? 0 : -1);
+        items[0]?.focus();
+      }
+    });
+  });
 
-    document.addEventListener('DOMContentLoaded', () => {
+  // Roving tabindex + arrow key nav inside menus
+  document.addEventListener('keydown', (e) => {
+    const open = document.querySelector('.menu details[open]');
+    if (!open) return;
+    const items = Array.from(open.querySelectorAll('.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'));
+    if (!items.length) return;
+    const i = items.indexOf(document.activeElement);
+    const move = (to) => { items.forEach(el=>el.tabIndex=-1); items[to].tabIndex=0; items[to].focus(); };
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(Math.min(items.length-1, i<0?0:i+1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); move(Math.max(0, i<=0?0:i-1)); }
+    if (e.key === 'Home')      { e.preventDefault(); move(0); }
+    if (e.key === 'End')       { e.preventDefault(); move(items.length-1); }
+    if (e.key === 'Enter' || e.key === ' ') {
+      const el = document.activeElement;
+      if (!el) return;
+      const isCheckbox = el.getAttribute('role') === 'menuitemcheckbox';
+      if (isCheckbox) {
+        const input = el.querySelector('input[type="checkbox"]');
+        if (input) { e.preventDefault(); input.click(); }
+      } else if (el.tagName === 'BUTTON') {
+        e.preventDefault(); el.click();
+      }
+    }
+  });
+
+  // Sync aria-checked on menuitemcheckbox rows
+  function syncMenuCheckboxAria(root=document){
+    root.querySelectorAll('[role="menuitemcheckbox"]').forEach(row=>{
+      const cb = row.querySelector('input[type="checkbox"]');
+      if (!cb) return;
+      row.setAttribute('aria-checked', cb.checked ? 'true' : 'false');
+      cb.addEventListener('change', ()=> row.setAttribute('aria-checked', cb.checked ? 'true' : 'false'));
+    });
+  }
+  syncMenuCheckboxAria();
+  document.querySelectorAll('.menu details').forEach(d=>{
+    d.addEventListener('toggle', ()=> { if (d.open) syncMenuCheckboxAria(d); });
+  });
+
+      document.addEventListener('DOMContentLoaded', () => {
       initRatesManager();
       document.querySelectorAll('input[type="text"]').forEach(el=>{
         el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
