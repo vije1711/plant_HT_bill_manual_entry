@@ -794,8 +794,7 @@
 
       btnRenderInCard?.addEventListener('click', (e) => {
         e.preventDefault();
-        const fn = window.renderDakReceipt
-          || (typeof window.pickReceiptRenderer === 'function' ? window.pickReceiptRenderer() : null);
+        const fn = window.renderDakReceipt;
         if (typeof fn === 'function') return fn();
         try { toast('No receipt renderer available. Please enable renderDakReceipt.', 'bad'); } catch {}
       });
@@ -821,6 +820,7 @@
     // Utility helpers (extended for receipt card)
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
       const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
+      // Ensure receipt helpers are defined where they are used
       const inr = (n) => {
         try { return new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', minimumFractionDigits:2, maximumFractionDigits:2}).format(Number(n)||0) + '/-'; }
         catch { return '₹' + (Number(n)||0).toFixed(2) + '/-'; }
@@ -1472,58 +1472,67 @@
       host.focus({ preventScroll: true });
     }
 
+    // --- Central Dak Receipt: concrete implementations (ported from standalone)
+    // Uses existing helpers: esc, cleanAmount, inr, validDDMMYYYY
     window.buildDakReceiptHtml = function buildDakReceiptHtml(d){
-      const el = document.createElement('section');
-      el.className = 'sheet'; el.setAttribute('role','document');
+      const wrap = document.createElement('section');
+      wrap.className = 'sheet';
+      wrap.setAttribute('role','document');
       const amtNum = cleanAmount(d.amount);
-      el.innerHTML = `
-        <div class="page-number" aria-hidden="true">1</div>
-        <div style="text-align:center;margin-bottom:12px;">
-          <div style="font-weight:700;font-size:16pt;">GAIL (India) LIMITED</div>
+      wrap.innerHTML = `
+        <header class="hdr" aria-label="Receipt header" style="text-align:center;margin-bottom:10mm">
+          <div style="font-weight:700;font-size:18px">GAIL (India) LIMITED</div>
           <div>IPS Samakhiali</div>
-          <div style="font-size:12.5pt;">Central Dak Receipt Format</div>
-        </div>
-        <ol class="kv" style="list-style:decimal;padding-left:6mm;margin:0 0 14mm;font-size:12pt">
-          <li><div class="lab">Vendor Code:</div><div class="val"><b>${esc(d.vendorCode)}</b></div></li>
-          <li><div class="lab">Vendor Name:</div><div class="val"><b>${esc(d.vendorName)}</b></div></li>
-          <li><div class="lab">Bill No.:</div><div class="val"><b>${esc(d.billNo)}</b></div></li>
-          <li><div class="lab">Bill Date:</div><div class="val"><b>${esc(d.billDate)}</b></div></li>
-          <li><div class="lab">Amount:</div><div class="val"><b>${esc(inr(amtNum))}</b></div></li>
-          <li><div class="lab">EIC Name:</div><div class="val"><b>${esc(d.eic)}</b></div></li>
+          <div style="margin-top:2mm;">Central Dak Receipt Format</div>
+        </header>
+        <ol class="kv" aria-label="Key values" style="list-style:decimal;padding-left:6mm;margin:0 0 14mm">
+          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
+            <div class="lab">Vendor Code:</div><div class="val"><strong>${esc(d.vendorCode)}</strong></div></li>
+          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
+            <div class="lab">Vendor Name:</div><div class="val"><strong>${esc(d.vendorName)}</strong></div></li>
+          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
+            <div class="lab">Bill No.:</div><div class="val"><strong>${esc(d.billNo)}</strong></div></li>
+          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
+            <div class="lab">Bill Date:</div><div class="val"><strong>${esc(d.billDate)}</strong></div></li>
+          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
+            <div class="lab">Amount:</div><div class="val"><strong>${esc(inr(amtNum))}</strong></div></li>
+          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0">
+            <div class="lab">EIC Name:</div><div class="val"><strong>${esc(d.eic)}</strong></div></li>
         </ol>
-        <div style="margin-top:40px;text-align:right;">
-          <div style="display:inline-block;width:60mm;text-align:center;">
-            <div style="border-top:1px solid #000;height:0;margin-bottom:4px;"></div>
-            Sign. Of Initiator
-          </div>
+        <div class="sign" aria-label="Signature block" style="display:flex;flex-direction:column;align-items:flex-end;margin-top:18mm">
+          <div class="line" style="width:60mm;border-top:1px solid #000;height:0;margin-bottom:3mm" aria-hidden="true"></div>
+          <div class="cap" style="font-size:12px;color:#111">Sign. Of Initiator</div>
         </div>
-      `;
-      // Safety: ensure printable semantics for downstream logic
-      if (!el.classList.contains('sheet')) el.classList.add('sheet');
-      el.setAttribute('role','document');
-      return el;
+        <footer class="ftr" aria-label="Footer"
+                style="position:absolute;left:0;right:0;bottom:8mm;display:flex;justify-content:space-between;align-items:center;padding:0 14mm;box-sizing:border-box;color:#6b7280;font-size:11px">
+          <small>Generated locally in your browser.</small>
+          <span class="pageno" aria-label="Page number">1</span>
+        </footer>`;
+      return wrap;
     }
 
-    window.renderDakReceipt = async function renderDakReceipt(){
+    window.renderDakReceipt = function renderDakReceipt(){
       let host = document.getElementById('htmlPrintHost');
-      if(!host){
+      if (!host) {
         host = document.createElement('div');
         host.id = 'htmlPrintHost';
         document.body.appendChild(host);
       }
+
       const v = (x)=>String(x||'').trim();
-      const billNoEl = document.getElementById('rc_billNo');
+      const billNoEl   = document.getElementById('rc_billNo');
+      const billDateEl = document.getElementById('rc_billDate');
       let billNo = v(billNoEl?.value);
-      if (!billNo) {
+      if (!billNo){
         const now = new Date();
         const MMM = now.toLocaleString('en-US',{month:'short'}).toUpperCase();
-        const YY = String(now.getFullYear()).slice(-2);
+        const YY  = String(now.getFullYear()).slice(-2);
         billNo = `HT-BILL_${MMM}-${YY}`;
         if (billNoEl) billNoEl.value = billNo;
       }
-      const billDateEl = document.getElementById('rc_billDate');
       const billDate = v(billDateEl?.value);
       if (billDateEl) billDateEl.classList.toggle('warn', !!billDate && !validDDMMYYYY(billDate));
+
       const data = {
         vendorCode: v(document.getElementById('rc_vendorCode')?.value),
         vendorName: v(document.getElementById('rc_vendorName')?.value),
@@ -1532,62 +1541,42 @@
         amount: v(document.getElementById('rc_amount')?.value),
         eic: v(document.getElementById('rc_eic')?.value)
       };
+
       const btnSave = document.getElementById('saveHtmlPdf');
       const btnOpen = document.getElementById('openHtmlPdf');
-      const chkAuto = document.getElementById('autoPrintHtml'); // may exist via IOM menu
-      setBusy(host, true);
+      const chkAuto = document.getElementById('autoPrintHtml'); // optional
+
+      host.setAttribute('aria-busy','true');
       try{
         host.innerHTML = '';
         const sheet = buildDakReceiptHtml(data);
         host.appendChild(sheet);
-        sheet.scrollIntoView({ behavior:'smooth' });
-        host.focus({ preventScroll: true });
-        if(typeof setDisabled === 'function'){
-          setDisabled(btnSave, false);
-          setDisabled(btnOpen, false);
-        }
-        const openPrintViewFallback = ()=>{
-          const html = host ? host.innerHTML : '';
-          const doc = `<!doctype html><html><head><meta charset="utf-8">
-            <title>Central Dak Receipt</title>
-            <style>@page{size:A4;margin:14mm}body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-            .sheet{width:210mm;min-height:297mm;padding:16mm 18mm;position:relative}</style>
-            </head><body onload="setTimeout(()=>print(),100)">${html}</body></html>`;
-          try{
-            const w = window.open('', '_blank', 'noopener,noreferrer');
-            if (w){ w.document.open(); w.document.write(doc); w.document.close(); return; }
-          }catch(_){ }
-          try{
-            const blob = new Blob([doc], {type:'text/html'});
-            const url = URL.createObjectURL(blob);
-            const w2 = window.open(url, '_blank', 'noopener,noreferrer');
-            if(!w2){ alert('Popup blocked. Allow popups or use “Save as PDF”.'); }
-          }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
-        };
-        if(btnSave){
-          btnSave.disabled = false;
-          btnSave.setAttribute('aria-disabled','false');
-          if (!btnSave.dataset.bound){
-            btnSave.dataset.bound = '1';
+        sheet.scrollIntoView({behavior:'smooth', block:'start'});
+        host.focus({preventScroll:true});
+
+        // Enable Save/Open; bind-once fallbacks if global wiring is absent
+        if (btnSave){ btnSave.disabled = false; btnSave.setAttribute('aria-disabled','false');
+          if (!btnSave.dataset.bound){ btnSave.dataset.bound = '1';
             btnSave.addEventListener('click', () => { try{ void sheet.getBoundingClientRect(); window.print(); }catch{} });
           }
         }
-        if(btnOpen){
-          btnOpen.disabled = false;
-          btnOpen.setAttribute('aria-disabled','false');
-          if (!btnOpen.dataset.bound){
-            btnOpen.dataset.bound = '1';
+        if (btnOpen){ btnOpen.disabled = false; btnOpen.setAttribute('aria-disabled','false');
+          if (!btnOpen.dataset.bound){ btnOpen.dataset.bound = '1';
             btnOpen.addEventListener('click', () => {
-              if (typeof window.openPrintHtml === 'function') return window.openPrintHtml();
-              openPrintViewFallback();
+              // Minimal clean print view (about:blank with Blob fallback)
+              const minimalCSS = `@page{size:A4;margin:14mm}html,body{height:100%}body{margin:0;background:#fff;color:#000;font:14px system-ui,-apple-system,Segoe UI,Roboto,Arial}.sheet{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;box-sizing:border-box}`;
+              const html = `<!doctype html><html><head><meta charset="utf-8"><title>Central Dak Receipt — Print View</title><style>${minimalCSS}</style></head><body>${sheet.outerHTML}<script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},150);<\/script></body></html>`;
+              try{ const w = window.open('', '_blank', 'noopener,noreferrer');
+                   if (w){ w.document.open(); w.document.write(html); w.document.close(); return; } }catch(_){ }
+              try{ const blob = new Blob([html], {type:'text/html'}); const url = URL.createObjectURL(blob);
+                   const w2 = window.open(url, '_blank', 'noopener,noreferrer'); if(!w2){ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
             });
           }
         }
-        if(chkAuto?.checked){
-          requestAnimationFrame(()=> setTimeout(()=> window.print(), 100));
-        }
+        if (chkAuto?.checked){ requestAnimationFrame(()=> setTimeout(()=> window.print(), 100)); }
+        try{ toast('Receipt ready.', 'good'); }catch(_){ }
       } finally {
-        setBusy(host, false);
+        host.removeAttribute('aria-busy');
       }
     }
 
