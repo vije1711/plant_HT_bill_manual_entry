@@ -277,7 +277,38 @@
 
     /* Ensure print host is visible like the v5 sample */
     #htmlPrintHost { min-height: 1px; }
-    #htmlPrintHost .sheet { display: block; }
+    /* IOM layout chrome: scope to .sheet.iom to avoid touching receipts */
+    #htmlPrintHost .sheet.iom{
+      width: 210mm;
+      min-height: 297mm;
+      padding: 16mm 18mm 22mm;
+      margin: 0 auto 12mm;
+      background: #fff;
+      box-shadow: 0 0 0.6mm rgba(0,0,0,.2);
+    }
+
+    @media print{
+      :root{
+        /* Neutral default; JS sets smaller value only if overflow is detected */
+        --iom-scale: 1;
+      }
+      .root, header.nav, .controls{ display:none !important; }
+      #htmlPrintHost{ display:block !important; }
+      /* Fit to a single A4 page for IOM only */
+      #htmlPrintHost .sheet.iom{
+        /* Fit to a single A4 page without changing on-screen layout */
+        box-shadow:none;
+        margin:0 auto 0 0;
+        transform: scale(var(--iom-scale));
+        transform-origin: top left;
+        width: calc(210mm / var(--iom-scale));
+        min-height: auto;             /* avoid forcing an extra page */
+        padding: 12mm 14mm;           /* slightly tighter print padding */
+      }
+      #htmlPrintHost .sheet.iom .doc-header{ margin-top:0; margin-bottom:8px; }
+      #htmlPrintHost .sheet.iom .kv li{ margin:2mm 0; }
+      #htmlPrintHost .sheet.iom .sigs .line{ margin:12mm 0 3mm; }
+    }
 
   </style>
 <style>
@@ -1517,7 +1548,30 @@
       const s = document.createElement('style');
       s.id = 'receipt-css-v2';
       s.textContent = css;
-      document.head.appendChild(s);
+    document.head.appendChild(s);
+  }
+
+    function setIomPrintScaleIfNeeded(sheetEl){
+      try{
+        if(!sheetEl) return;
+        // Convert mm to px by measuring a probe element; avoids hard-coding DPI.
+        const mmToPx = (mm) => {
+          const probe = document.createElement('div');
+          probe.style.height = mm + 'mm';
+          probe.style.position = 'absolute';
+          probe.style.visibility = 'hidden';
+          document.body.appendChild(probe);
+          const px = probe.getBoundingClientRect().height || 0;
+          probe.remove();
+          return px;
+        };
+        const pagePx = mmToPx(297);
+        const sheetPx = sheetEl.getBoundingClientRect().height || 0;
+        if(pagePx > 0 && sheetPx > 0 && sheetPx > pagePx){
+          const scale = Math.max(0.88, Math.min(0.98, pagePx / sheetPx));
+          document.documentElement.style.setProperty('--iom-scale', String(scale));
+        }
+      }catch(_){ }
     }
 
     function renderHtmlPreview(model, monthLabel, generatedAt) {
@@ -1525,7 +1579,10 @@
       host.innerHTML = '';
       host.dataset.monthLabel = monthLabel || '';
       const sheet = buildIomStatementHtml(model, monthLabel, generatedAt);
+      sheet.classList.add('iom'); // scope print scaling to IOM only
       host.appendChild(sheet);
+      // Best-effort dynamic fit (no-op in environments that don't compute layout)
+      setIomPrintScaleIfNeeded(sheet);
       sheet.scrollIntoView({ behavior: 'smooth' });
       host.focus({ preventScroll: true });
     }
