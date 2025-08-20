@@ -878,11 +878,11 @@
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'Hint: from “TOU” (HT Bill → H4)',
       TOD_NIGHT_REBATE: 'Hint: from “EHV Rebate” (HT Bill → G4)',
-      PF_CHARGE_SLAB1: 'Hint: Enter Power Factor (e.g., 0.997)',
+      PF_CHARGE_SLAB1: 'Qty auto = Night Rebate kWh; enter PF rate (₹/kWh)',
       ARREAR_ED: 'Hint: Enter Consumption Charges (base for ED)'
     };
     const QTY_PLACEHOLDERS = {
-      PF_CHARGE_SLAB1: 'Enter Power Factor (e.g., 0.997)',
+      PF_CHARGE_SLAB1: 'Auto: Night Rebate kWh',
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'kWh @ TOU (peak)',
       TOD_NIGHT_REBATE: 'kWh (night rebate)',
@@ -900,7 +900,7 @@
       FCA:2.45,
       TOD_PEAK:0.85,
       TOD_NIGHT_REBATE:1.5,
-      PF_CHARGE_SLAB1:0.0235,
+      PF_CHARGE_SLAB1:2.35,
       ARREAR_FCA:1,
       ARREAR_ED:0.2,
       ARREAR_CESS:1,
@@ -964,7 +964,7 @@
       body.innerHTML='';
       SERVICE_LIST.forEach(s=>{
         const tr=document.createElement('tr');
-        const qtyAttrs = s.code==='PF_CHARGE_SLAB1' ? 'step="0.000001"' : 'step="0.01"';
+        const qtyAttrs = 'step="0.01"';
         const qtyDis = s.code==='FCA' ? 'disabled' : '';
         const hint = SERVICE_HINTS[s.code];
         const hintHtml = hint ? `<div class="muted" style="font-size:11px">${hint}</div>` : '';
@@ -1049,7 +1049,7 @@
       const lines=['ServiceCode,ServiceName,UnitAdjusted,ContractRate,AmountSES,Note'];
       sesRows.forEach(r=>{
         if(Math.abs(r.ses)<=0.004) return;
-        const qty=r.code==='PF_CHARGE_SLAB1'?r.adj.toFixed(6):r.adj.toFixed(2);
+        const qty=r.adj.toFixed(2);
         lines.push(`${r.code},${r.name},${qty},${r.rate.toFixed(2)},${r.ses.toFixed(2)},${note}`);
       });
       const csv=lines.join('\n');
@@ -1092,6 +1092,8 @@
           case 'TOD_NIGHT_REBATE':{
             const evh = num('G4'); // EHV Rebate (₹)
             B = C ? round2((-evh)/C) : 0; break; }
+          case 'PF_CHARGE_SLAB1':
+            B=parseFloat($('qty_TOD_NIGHT_REBATE')?.value)||0; break;
           case 'ARREAR_ED':{
             const tot=num('B4')+num('C4')+num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4');
             B=round2(tot); break; }
@@ -1100,11 +1102,7 @@
         }
         if(qtyEl) qtyEl.value = Number.isInteger(B) ? B : B.toFixed(2);
         let D=0,F=0,G=0;
-        if(s.code==='PF_CHARGE_SLAB1'){
-          const pf=B;
-          D=-((pf-0.95)*dEnergy/2);
-          F=E?D/E:0;
-        }else if(s.code.startsWith('ARREAR_')){
+        if(s.code.startsWith('ARREAR_')){
           D=B*C;
           F=D;
         }else{
@@ -1116,7 +1114,7 @@
         totalD+=D; totalG+=G;
         sesRows.push({code:s.code,name:s.name,adj:F,rate:E,ses:G});
         if(dEl) dEl.textContent = Math.abs(D)<0.005 ? '—' : INR.format(D);
-        if(fEl){const prec=s.code==='PF_CHARGE_SLAB1'?6:2; fEl.textContent=Math.abs(F)<0.005?'—':F.toFixed(prec);}
+        if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?'—':F.toFixed(prec);}
         if(gEl) gEl.textContent = Math.abs(G)<0.005 ? '—' : INR.format(G);
       });
       const badge=$('parityBadge');
