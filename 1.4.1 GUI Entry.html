@@ -1494,12 +1494,19 @@
           </div>
         </div>
       `;
+      // Safety: ensure printable semantics for downstream logic
+      if (!el.classList.contains('sheet')) el.classList.add('sheet');
+      el.setAttribute('role','document');
       return el;
     }
 
     async function renderDakReceipt(){
-      const host = document.getElementById('htmlPrintHost');
-      if(!host) return;
+      let host = document.getElementById('htmlPrintHost');
+      if(!host){
+        host = document.createElement('div');
+        host.id = 'htmlPrintHost';
+        document.body.appendChild(host);
+      }
       const data = {
         vendorCode: document.getElementById('rc_vendorCode')?.value.trim() || '',
         vendorName: document.getElementById('rc_vendorName')?.value.trim() || '',
@@ -1523,10 +1530,39 @@
           setDisabled(btnSave, false);
           setDisabled(btnOpen, false);
         }
-        btnSave?.removeAttribute('disabled');
-        btnSave?.setAttribute('aria-disabled','false');
-        btnOpen?.removeAttribute('disabled');
-        btnOpen?.setAttribute('aria-disabled','false');
+        if(btnSave){
+          btnSave.disabled = false;
+          btnSave.removeAttribute('disabled');
+          btnSave.setAttribute('aria-disabled','false');
+        }
+        if(btnOpen){
+          btnOpen.disabled = false;
+          btnOpen.removeAttribute('disabled');
+          btnOpen.setAttribute('aria-disabled','false');
+        }
+        // Bind-once fallbacks if global wiring is absent
+        function openPrintViewFallback(){
+          const html = host ? host.innerHTML : '';
+          const doc = `<!doctype html><html><head><meta charset="utf-8">
+            <title>Central Dak Receipt</title>
+            <style>@page{size:A4;margin:14mm}body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+            .sheet{width:210mm;min-height:297mm;padding:16mm 18mm;position:relative}</style>
+            </head><body onload="setTimeout(()=>print(),100)">${html}</body></html>`;
+          const w = window.open('', '_blank');
+          if(!w){ alert('Popup blocked. Please allow popups and try again.'); return; }
+          w.document.open(); w.document.write(doc); w.document.close();
+        }
+        if(btnSave && !btnSave.dataset.bound){
+          btnSave.dataset.bound = '1';
+          btnSave.addEventListener('click', () => window.print());
+        }
+        if(btnOpen && !btnOpen.dataset.bound){
+          btnOpen.dataset.bound = '1';
+          btnOpen.addEventListener('click', () => {
+            if (typeof openPrintHtml === 'function') return openPrintHtml();
+            openPrintViewFallback();
+          });
+        }
         if(chkAuto?.checked){
           requestAnimationFrame(()=> setTimeout(()=> window.print(), 100));
         }
@@ -2548,5 +2584,11 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
       window.addEventListener('receipt:refresh', prefill);
     })();
   </script>
+  <style>
+  @media print{
+    .ui{ display:none !important; }
+    #htmlPrintHost{ display:block !important; }
+  }
+  </style>
 </body>
 </html>
