@@ -1119,9 +1119,20 @@
       });
       const badge=$('parityBadge');
       if(badge){
-        badge.textContent=`ΣD ${INR.format(totalD)} | ΣG ${INR.format(totalG)} | Δ ${INR.format(totalG-totalD)}`;
+        // Prefer authoritative C9 = A9 + B9; fallback to C9v if A9/B9 not present
+        const parseMoney = (t)=> Number(String(t||'').replace(/[^0-9.\-]/g,'')) || 0;
+        const a9El = $('A9v');
+        const b9El = $('B9v');
+        const haveAB = !!(a9El && b9El);
+        const c9FromAB = haveAB ? (parseMoney(a9El.textContent) + parseMoney(b9El.textContent)) : 0;
+        const c9Fallback = parseMoney($('C9v')?.textContent);
+        const c9 = haveAB ? c9FromAB : c9Fallback;
+
+        const delta=totalG-totalD;
+        const deltaC9=totalD-c9;
+        badge.textContent=`ΣD ${INR.format(totalD)} | ΣG ${INR.format(totalG)} | Δ ${INR.format(delta)} | vs C9 ${INR.format(deltaC9)}`;
         badge.classList.remove('good','bad');
-        badge.classList.add(Math.abs(totalG-totalD)<=0.05?'good':'bad');
+        badge.classList.add(Math.abs(delta)<=FINAL_CHECK_TOL && Math.abs(deltaC9)<=FINAL_CHECK_TOL ? 'good' : 'bad');
       }
     }
 
