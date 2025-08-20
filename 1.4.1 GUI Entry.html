@@ -256,7 +256,6 @@
     .doc-header .dept { font-size:11pt; }
     .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
     .info-bar { background:#f3f4f6; border:1px solid #e5e7eb; padding:2mm 4mm; margin-bottom:8mm; font-size:10.5pt; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; word-break:break-word; }
-    @media print { .info-bar { overflow:visible; text-overflow:clip; } }
     .sec { break-inside: avoid; margin: 7mm 0 0; }
     .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
     .kv { display:grid; grid-template-columns: 1fr minmax(52mm,auto) 10mm; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
@@ -280,25 +279,6 @@
     #htmlPrintHost { min-height: 1px; }
     #htmlPrintHost .sheet { display: block; }
 
-    /* Print rules: hide only UI chrome, keep the A4 preview visible */
-    @media print {
-      @page { size: A4; margin: 12mm; }
-      /* Hide UI only; keep rendered sheets visible for print */
-      header, .toolbar, .card:not(.sheet), #toasts { display:none !important; }
-      .sheet { display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside: avoid;
-               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .sheet:not(:last-of-type) { break-after: page; page-break-after: always; }
-      /* Tighten vertical rhythm for single-page fit (print-only) */
-      .doc-header { margin-bottom:2mm; }
-      .doc-header h2 { margin:1mm 0 0; }
-      .info-bar { margin-bottom:6mm; }
-      .sec { margin:5mm 0 0; }
-      .sigs { gap:4mm; margin-top:4mm; }
-      .sig .line { margin:10mm 0 2mm; }
-      .footer-note { margin-top:6mm; }
-      .page-number { bottom:6mm; font-size:9pt; }
-      .sheet { font-size:13px; }
-    }
   </style>
 <style>
   /* Scoped “slim” layout for the receipt card only */
@@ -708,14 +688,14 @@
   <script>
     // Receipt card: bind AFTER DOM is ready so targets/handlers exist.
     window.addEventListener('DOMContentLoaded', () => {
-      // --- De-dupe any accidental duplicate IDs (keep the first; remove others)
+      // De-dupe accidental duplicate IDs (keep the first; remove others)
       const dedupeById = (id) => {
         const nodes = document.querySelectorAll(`#${id}`);
-        for (let i = 1; i < nodes.length; i++) { nodes[i].remove(); }
+        for (let i = 1; i < nodes.length; i++) nodes[i].remove();
       };
-      ['receiptCard','htmlPrintHost','toasts','modal',
-       'renderReceiptInCard','saveReceiptPdfInCard','saveHtmlPdf','openHtmlPdf'
-      ].forEach(dedupeById);
+      ['receiptCard','htmlPrintHost','saveHtmlPdf','openHtmlPdf',
+       'renderReceiptInCard','saveReceiptPdfInCard','toasts','modal']
+        .forEach(dedupeById);
 
       const card = document.getElementById('receiptCard');
       if (card?.dataset.bound === '1') return;
@@ -814,7 +794,8 @@
 
       btnRenderInCard?.addEventListener('click', (e) => {
         e.preventDefault();
-        const fn = (window.renderDakReceipt || pickReceiptRenderer());
+        const fn = window.renderDakReceipt
+          || (typeof window.pickReceiptRenderer === 'function' ? window.pickReceiptRenderer() : null);
         if (typeof fn === 'function') return fn();
         try { toast('No receipt renderer available. Please enable renderDakReceipt.', 'bad'); } catch {}
       });
@@ -837,8 +818,22 @@
     });
   </script>
   <script>
-    // Utility helpers
+    // Utility helpers (extended for receipt card)
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
       const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
+      const inr = (n) => {
+        try { return new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', minimumFractionDigits:2, maximumFractionDigits:2}).format(Number(n)||0) + '/-'; }
+        catch { return '₹' + (Number(n)||0).toFixed(2) + '/-'; }
+      };
+      const cleanAmount = (str) => {
+        const cleaned = String(str ?? '').replace(/[^0-9.\-]/g,''); const n = parseFloat(cleaned);
+        return Number.isFinite(n) ? n : 0;
+      };
+      const validDDMMYYYY = (s) => {
+        if(!/^\d{2}-\d{2}-\d{4}$/.test(String(s||''))) return false;
+        const [dd,mm,yyyy] = s.split('-').map(Number); const dt = new Date(yyyy, mm-1, dd);
+        return dt.getFullYear()===yyyy && dt.getMonth()===mm-1 && dt.getDate()===dd;
+      };
       const KWH = new Intl.NumberFormat('en-IN', { maximumFractionDigits:0 });
       const RATE = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:6 });
       const SAMPLE = {
@@ -1477,13 +1472,10 @@
       host.focus({ preventScroll: true });
     }
 
-    const esc = (s) => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
     window.buildDakReceiptHtml = function buildDakReceiptHtml(d){
-      const el = document.createElement('div');
-      el.className = 'sheet';
-      const amtClean = String(d.amount || '').replace(/[^0-9.-]/g,'');
-      const amtNum = parseFloat(amtClean || '0');
-      const amtFmt = new Intl.NumberFormat('en-IN',{ style:'currency', currency:'INR', maximumFractionDigits:2 }).format(amtNum) + '/-';
+      const el = document.createElement('section');
+      el.className = 'sheet'; el.setAttribute('role','document');
+      const amtNum = cleanAmount(d.amount);
       el.innerHTML = `
         <div class="page-number" aria-hidden="true">1</div>
         <div style="text-align:center;margin-bottom:12px;">
@@ -1491,14 +1483,14 @@
           <div>IPS Samakhiali</div>
           <div style="font-size:12.5pt;">Central Dak Receipt Format</div>
         </div>
-        <div style="font-size:12pt;display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:4px;margin-top:20px;">
-          <div>1. Vendor Code:</div><div><b>${esc(d.vendorCode)}</b></div>
-          <div>2. Vendor Name:</div><div><b>${esc(d.vendorName)}</b></div>
-          <div>3. Bill No.:</div><div><b>${esc(d.billNo)}</b></div>
-          <div>4. Bill Date:</div><div><b>${esc(d.billDate)}</b></div>
-          <div>5. Amount:</div><div><b>${amtFmt}</b></div>
-          <div>6. EIC Name:</div><div><b>${esc(d.eic)}</b></div>
-        </div>
+        <ol class="kv" style="list-style:decimal;padding-left:6mm;margin:0 0 14mm;font-size:12pt">
+          <li><div class="lab">Vendor Code:</div><div class="val"><b>${esc(d.vendorCode)}</b></div></li>
+          <li><div class="lab">Vendor Name:</div><div class="val"><b>${esc(d.vendorName)}</b></div></li>
+          <li><div class="lab">Bill No.:</div><div class="val"><b>${esc(d.billNo)}</b></div></li>
+          <li><div class="lab">Bill Date:</div><div class="val"><b>${esc(d.billDate)}</b></div></li>
+          <li><div class="lab">Amount:</div><div class="val"><b>${esc(inr(amtNum))}</b></div></li>
+          <li><div class="lab">EIC Name:</div><div class="val"><b>${esc(d.eic)}</b></div></li>
+        </ol>
         <div style="margin-top:40px;text-align:right;">
           <div style="display:inline-block;width:60mm;text-align:center;">
             <div style="border-top:1px solid #000;height:0;margin-bottom:4px;"></div>
@@ -1519,17 +1511,30 @@
         host.id = 'htmlPrintHost';
         document.body.appendChild(host);
       }
+      const v = (x)=>String(x||'').trim();
+      const billNoEl = document.getElementById('rc_billNo');
+      let billNo = v(billNoEl?.value);
+      if (!billNo) {
+        const now = new Date();
+        const MMM = now.toLocaleString('en-US',{month:'short'}).toUpperCase();
+        const YY = String(now.getFullYear()).slice(-2);
+        billNo = `HT-BILL_${MMM}-${YY}`;
+        if (billNoEl) billNoEl.value = billNo;
+      }
+      const billDateEl = document.getElementById('rc_billDate');
+      const billDate = v(billDateEl?.value);
+      if (billDateEl) billDateEl.classList.toggle('warn', !!billDate && !validDDMMYYYY(billDate));
       const data = {
-        vendorCode: document.getElementById('rc_vendorCode')?.value.trim() || '',
-        vendorName: document.getElementById('rc_vendorName')?.value.trim() || '',
-        billNo: document.getElementById('rc_billNo')?.value.trim() || '',
-        billDate: document.getElementById('rc_billDate')?.value.trim() || '',
-        amount: document.getElementById('rc_amount')?.value.trim() || '',
-        eic: document.getElementById('rc_eic')?.value.trim() || ''
+        vendorCode: v(document.getElementById('rc_vendorCode')?.value),
+        vendorName: v(document.getElementById('rc_vendorName')?.value),
+        billNo,
+        billDate,
+        amount: v(document.getElementById('rc_amount')?.value),
+        eic: v(document.getElementById('rc_eic')?.value)
       };
       const btnSave = document.getElementById('saveHtmlPdf');
       const btnOpen = document.getElementById('openHtmlPdf');
-      const chkAuto = document.getElementById('autoPrintHtml');
+      const chkAuto = document.getElementById('autoPrintHtml'); // may exist via IOM menu
       setBusy(host, true);
       try{
         host.innerHTML = '';
@@ -1537,34 +1542,40 @@
         host.appendChild(sheet);
         sheet.scrollIntoView({ behavior:'smooth' });
         host.focus({ preventScroll: true });
-        // Enable Save/Open + bind-once fallbacks if global wiring is absent
         if(typeof setDisabled === 'function'){
           setDisabled(btnSave, false);
           setDisabled(btnOpen, false);
         }
-        const openPrintViewFallback = () => {
+        const openPrintViewFallback = ()=>{
           const html = host ? host.innerHTML : '';
           const doc = `<!doctype html><html><head><meta charset="utf-8">
             <title>Central Dak Receipt</title>
             <style>@page{size:A4;margin:14mm}body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
             .sheet{width:210mm;min-height:297mm;padding:16mm 18mm;position:relative}</style>
             </head><body onload="setTimeout(()=>print(),100)">${html}</body></html>`;
-          const w = window.open('', '_blank');
-          if(!w){ alert('Popup blocked. Please allow popups and try again.'); return; }
-          w.document.open(); w.document.write(doc); w.document.close();
+          try{
+            const w = window.open('', '_blank', 'noopener,noreferrer');
+            if (w){ w.document.open(); w.document.write(doc); w.document.close(); return; }
+          }catch(_){ }
+          try{
+            const blob = new Blob([doc], {type:'text/html'});
+            const url = URL.createObjectURL(blob);
+            const w2 = window.open(url, '_blank', 'noopener,noreferrer');
+            if(!w2){ alert('Popup blocked. Allow popups or use “Save as PDF”.'); }
+          }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
         };
         if(btnSave){
           btnSave.disabled = false;
           btnSave.setAttribute('aria-disabled','false');
-          if(!btnSave.dataset.bound){
+          if (!btnSave.dataset.bound){
             btnSave.dataset.bound = '1';
-            btnSave.addEventListener('click', () => window.print());
+            btnSave.addEventListener('click', () => { try{ void sheet.getBoundingClientRect(); window.print(); }catch{} });
           }
         }
         if(btnOpen){
           btnOpen.disabled = false;
           btnOpen.setAttribute('aria-disabled','false');
-          if(!btnOpen.dataset.bound){
+          if (!btnOpen.dataset.bound){
             btnOpen.dataset.bound = '1';
             btnOpen.addEventListener('click', () => {
               if (typeof window.openPrintHtml === 'function') return window.openPrintHtml();
@@ -2380,7 +2391,6 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
 .doc-header h2{margin:1mm 0 0;font-size:18pt}
 .doc-meta{color:#555;font-size:10.5pt;text-align:right}
 .info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:6mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
-@media print{.info-bar{overflow:visible;text-overflow:clip}}
 .sheet:not(:last-of-type){break-after:page;page-break-after:always}
 .sec{break-inside:avoid;margin:5mm 0 0}
  .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
@@ -2513,7 +2523,7 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
         console.assert(Math.round(m.FINAL) === 16700, `FINAL expected 16700, got ${m.FINAL}`);
       });
 
-      (function(){
+(function(){
         const genBtn = $('genSapText');
         if(genBtn){
           genBtn.addEventListener('click', () => {
@@ -2593,11 +2603,15 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
   window.addEventListener('receipt:refresh', prefill);
 })();
 </script>
-<style id="print-guard">
-@media print{
-  .ui{ display:none !important; }
-  #htmlPrintHost{ display:block !important; }
-}
+<style id="print-guard-receipt">
+  @media print{
+    /* Hide chrome; keep rendered sheet visible */
+    header, .toolbar, .card:not(.sheet), #toasts, .ui { display:none !important; }
+    #htmlPrintHost { display:block !important; }
+    #htmlPrintHost .sheet{ display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact }
+    #htmlPrintHost .sheet:not(:last-of-type){ break-after:page; page-break-after:always }
+    @page{ size:A4; margin:14mm }
+  }
 </style>
 </body>
 </html>
