@@ -1462,6 +1462,42 @@
       return el;
     }
 
+
+    /* ---- Central Dak Receipt: presentation layer (scoped to #htmlPrintHost) ---- */
+    function ensureReceiptCss(){
+      if (document.getElementById('receipt-css-v2')) return;
+      const css = `
+      #htmlPrintHost .rcpt{position:relative;font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;padding:16mm 18mm 22mm}
+      #htmlPrintHost .rcpt .hdr{text-align:center;margin-bottom:8mm}
+      #htmlPrintHost .rcpt .hdr .title{font-weight:800;font-size:16pt;letter-spacing:.2px}
+      #htmlPrintHost .rcpt .hdr .unit{color:#374151}
+      #htmlPrintHost .rcpt .hdr .subtitle{font-size:12.5pt;margin-top:1mm}
+      #htmlPrintHost .rcpt .meta{display:flex;justify-content:space-between;align-items:flex-end;margin:2mm 0 1mm}
+      #htmlPrintHost .rcpt .meta .right{white-space:nowrap}
+      #htmlPrintHost .rcpt .kvgrid{display:grid;grid-template-columns:40mm 1fr 32mm 1fr;column-gap:8mm;row-gap:3.5mm;
+                                   padding:5mm 0;border-top:1px dashed #e5e7eb;border-bottom:1px dashed #e5e7eb}
+      #htmlPrintHost .rcpt .label{color:#374151;white-space:nowrap}
+      #htmlPrintHost .rcpt .value{font-weight:700;font-variant-numeric:tabular-nums}
+      #htmlPrintHost .rcpt .amount{text-align:right}
+      #htmlPrintHost .rcpt .sign{margin-top:16mm;display:flex;justify-content:flex-end}
+      #htmlPrintHost .rcpt .sign .line{width:60mm;border-top:1px solid #000;height:0;margin-bottom:3mm}
+      #htmlPrintHost .rcpt .sign .cap{font-size:12px;color:#111;text-align:center}
+      #htmlPrintHost .rcpt .foot{position:absolute;left:18mm;right:18mm;bottom:8mm;display:flex;justify-content:space-between;
+                                 align-items:center;color:#6b7280;font-size:10pt}
+      /* print guard for the receipt */
+      @media print{
+        header,.toolbar,.card:not(.sheet),#toasts,.ui{display:none !important}
+        #htmlPrintHost{display:block !important}
+        #htmlPrintHost .sheet{display:block !important;border:none;width:auto;min-height:auto;margin:0;padding:0 0 16mm 0;break-inside:avoid;
+                              -webkit-print-color-adjust:exact;print-color-adjust:exact}
+        @page{size:A4;margin:14mm}
+      }`;
+      const s = document.createElement('style');
+      s.id = 'receipt-css-v2';
+      s.textContent = css;
+      document.head.appendChild(s);
+    }
+
     function renderHtmlPreview(model, monthLabel, generatedAt) {
       const host = document.getElementById('htmlPrintHost');
       host.innerHTML = '';
@@ -1476,38 +1512,36 @@
     // Uses existing helpers: esc, cleanAmount, inr, validDDMMYYYY
     window.buildDakReceiptHtml = function buildDakReceiptHtml(d){
       const wrap = document.createElement('section');
-      wrap.className = 'sheet';
+      wrap.className = 'sheet rcpt';
       wrap.setAttribute('role','document');
       const amtNum = cleanAmount(d.amount);
       wrap.innerHTML = `
-        <header class="hdr" aria-label="Receipt header" style="text-align:center;margin-bottom:10mm">
-          <div style="font-weight:700;font-size:18px">GAIL (India) LIMITED</div>
-          <div>IPS Samakhiali</div>
-          <div style="margin-top:2mm;">Central Dak Receipt Format</div>
-        </header>
-        <ol class="kv" aria-label="Key values" style="list-style:decimal;padding-left:6mm;margin:0 0 14mm">
-          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
-            <div class="lab">Vendor Code:</div><div class="val"><strong>${esc(d.vendorCode)}</strong></div></li>
-          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
-            <div class="lab">Vendor Name:</div><div class="val"><strong>${esc(d.vendorName)}</strong></div></li>
-          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
-            <div class="lab">Bill No.:</div><div class="val"><strong>${esc(d.billNo)}</strong></div></li>
-          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
-            <div class="lab">Bill Date:</div><div class="val"><strong>${esc(d.billDate)}</strong></div></li>
-          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #e5e7eb">
-            <div class="lab">Amount:</div><div class="val"><strong>${esc(inr(amtNum))}</strong></div></li>
-          <li style="display:grid;grid-template-columns:42% 58%;gap:3mm;padding:1.5mm 0">
-            <div class="lab">EIC Name:</div><div class="val"><strong>${esc(d.eic)}</strong></div></li>
-        </ol>
-        <div class="sign" aria-label="Signature block" style="display:flex;flex-direction:column;align-items:flex-end;margin-top:18mm">
-          <div class="line" style="width:60mm;border-top:1px solid #000;height:0;margin-bottom:3mm" aria-hidden="true"></div>
-          <div class="cap" style="font-size:12px;color:#111">Sign. Of Initiator</div>
+        <div class="hdr" aria-label="Receipt header">
+          <div class="title">GAIL (India) LIMITED</div>
+          <div class="unit">IPS Samakhiali</div>
+          <div class="subtitle">Central Dak Receipt</div>
         </div>
-        <footer class="ftr" aria-label="Footer"
-                style="position:absolute;left:0;right:0;bottom:8mm;display:flex;justify-content:space-between;align-items:center;padding:0 14mm;box-sizing:border-box;color:#6b7280;font-size:11px">
+        <div class="meta">
+          <div></div>
+          <div class="right"><b>Bill No.:</b> ${esc(d.billNo)}</div>
+        </div>
+        <div class="kvgrid" aria-label="Key values">
+          <div class="label">Vendor Code</div><div class="value">${esc(d.vendorCode)}</div>
+          <div class="label">Vendor Name</div><div class="value">${esc(d.vendorName)}</div>
+          <div class="label">Bill Date</div><div class="value">${esc(d.billDate)}</div>
+          <div class="label">Amount</div><div class="value amount">${esc(inr(amtNum))}</div>
+          <div class="label">EIC Name</div><div class="value">${esc(d.eic)}</div>
+        </div>
+        <div class="sign" aria-label="Signature block">
+          <div>
+            <div class="line" aria-hidden="true"></div>
+            <div class="cap">Sign. Of Initiator</div>
+          </div>
+        </div>
+        <div class="foot" aria-label="Footer">
           <small>Generated locally in your browser.</small>
-          <span class="pageno" aria-label="Page number">1</span>
-        </footer>`;
+          <span>1</span>
+        </div>`;
       return wrap;
     }
 
@@ -1518,6 +1552,7 @@
         host.id = 'htmlPrintHost';
         document.body.appendChild(host);
       }
+      ensureReceiptCss();
 
       const v = (x)=>String(x||'').trim();
       const billNoEl   = document.getElementById('rc_billNo');
@@ -1553,6 +1588,7 @@
         host.appendChild(sheet);
         sheet.scrollIntoView({behavior:'smooth', block:'start'});
         host.focus({preventScroll:true});
+        // styles are already scoped; nothing else to hide here
 
         // Enable Save/Open; bind-once fallbacks if global wiring is absent
         if (btnSave){ btnSave.disabled = false; btnSave.setAttribute('aria-disabled','false');
@@ -1563,9 +1599,19 @@
         if (btnOpen){ btnOpen.disabled = false; btnOpen.setAttribute('aria-disabled','false');
           if (!btnOpen.dataset.bound){ btnOpen.dataset.bound = '1';
             btnOpen.addEventListener('click', () => {
-              // Minimal clean print view (about:blank with Blob fallback)
-              const minimalCSS = `@page{size:A4;margin:14mm}html,body{height:100%}body{margin:0;background:#fff;color:#000;font:14px system-ui,-apple-system,Segoe UI,Roboto,Arial}.sheet{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;box-sizing:border-box}`;
-              const html = `<!doctype html><html><head><meta charset="utf-8"><title>Central Dak Receipt — Print View</title><style>${minimalCSS}</style></head><body>${sheet.outerHTML}<script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},150);<\/script></body></html>`;
+              // Clean print view (about:blank). Reuse receipt CSS for parity.
+              const minimalCSS =
+                `@page{size:A4;margin:14mm}html,body{height:100%}` +
+                `body{margin:0;background:#fff;color:#000;font:14px system-ui,-apple-system,Segoe UI,Roboto,Arial}` +
+                `.sheet{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;box-sizing:border-box}`;
+              const rawRcptCss = (document.getElementById('receipt-css-v2')?.textContent || '');
+              // De-scope rules anchored to '#htmlPrintHost ' so they apply in the popup
+              const popupRcptCss = rawRcptCss ? rawRcptCss.replace(/#htmlPrintHost\s+/g, '') : '';
+              const mergedCss = minimalCSS + (popupRcptCss ? `\n/* receipt-css-v2 */\n` + popupRcptCss : '');
+              const html =
+                `<!doctype html><html><head><meta charset="utf-8">` +
+                `<title>Central Dak Receipt — Print View</title><style>${mergedCss}</style></head>` +
+                `<body>${sheet.outerHTML}<script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},150);<\/script></body></html>`;
               try{ const w = window.open('', '_blank', 'noopener,noreferrer');
                    if (w){ w.document.open(); w.document.write(html); w.document.close(); return; } }catch(_){ }
               try{ const blob = new Blob([html], {type:'text/html'}); const url = URL.createObjectURL(blob);
