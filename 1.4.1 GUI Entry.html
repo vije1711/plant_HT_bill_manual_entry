@@ -1129,15 +1129,15 @@
 
     const toInr = v => INR.format(Number.isFinite(v) ? v : 0);
       const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
-    function parseInrInput(el){
+    function parseInrInput(el, format=true){
       const raw = el.value.replace(/[^0-9.\-]/g,'');
       const v = parseFloat(raw);
       if(Number.isFinite(v)){
         el.dataset.value = v;
-        el.value = toInr(v);
+        if(format) el.value = toInr(v);
       }else{
         el.dataset.value = '';
-        el.value = '';
+        if(format) el.value = '';
       }
     }
 
@@ -2214,7 +2214,7 @@
       // Apply INR masking ONLY outside the Central Dak Receipt card
       document.querySelectorAll('input[type="text"]').forEach(el=>{
         if (el.closest('#receiptCard')) return;
-        el.addEventListener('input', ()=>{ parseInrInput(el); compute(); });
+        el.addEventListener('input', ()=>{ parseInrInput(el, false); compute(); });
         el.addEventListener('blur', ()=>parseInrInput(el));
       });
       document.querySelectorAll('input:not([type="text"])').forEach(el=>{
