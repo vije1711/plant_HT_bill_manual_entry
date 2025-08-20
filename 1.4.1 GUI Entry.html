@@ -708,6 +708,15 @@
   <script>
     // Receipt card: bind AFTER DOM is ready so targets/handlers exist.
     window.addEventListener('DOMContentLoaded', () => {
+      // --- De-dupe any accidental duplicate IDs (keep the first; remove others)
+      const dedupeById = (id) => {
+        const nodes = document.querySelectorAll(`#${id}`);
+        for (let i = 1; i < nodes.length; i++) { nodes[i].remove(); }
+      };
+      ['receiptCard','htmlPrintHost','toasts','modal',
+       'renderReceiptInCard','saveReceiptPdfInCard','saveHtmlPdf','openHtmlPdf'
+      ].forEach(dedupeById);
+
       const card = document.getElementById('receiptCard');
       if (card?.dataset.bound === '1') return;
       if (card) card.dataset.bound = '1';
@@ -805,7 +814,9 @@
 
       btnRenderInCard?.addEventListener('click', (e) => {
         e.preventDefault();
-        ensureReceiptRenderedThen(); // render only
+        const fn = (window.renderDakReceipt || pickReceiptRenderer());
+        if (typeof fn === 'function') return fn();
+        try { toast('No receipt renderer available. Please enable renderDakReceipt.', 'bad'); } catch {}
       });
 
       btnSaveInCard?.addEventListener('click', async (e) => {
@@ -1466,7 +1477,8 @@
       host.focus({ preventScroll: true });
     }
 
-    function buildDakReceiptHtml(d){
+    const esc = (s) => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    window.buildDakReceiptHtml = function buildDakReceiptHtml(d){
       const el = document.createElement('div');
       el.className = 'sheet';
       const amtClean = String(d.amount || '').replace(/[^0-9.-]/g,'');
@@ -1480,12 +1492,12 @@
           <div style="font-size:12.5pt;">Central Dak Receipt Format</div>
         </div>
         <div style="font-size:12pt;display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:4px;margin-top:20px;">
-          <div>1. Vendor Code:</div><div><b>${d.vendorCode || ''}</b></div>
-          <div>2. Vendor Name:</div><div><b>${d.vendorName || ''}</b></div>
-          <div>3. Bill No.:</div><div><b>${d.billNo || ''}</b></div>
-          <div>4. Bill Date:</div><div><b>${d.billDate || ''}</b></div>
+          <div>1. Vendor Code:</div><div><b>${esc(d.vendorCode)}</b></div>
+          <div>2. Vendor Name:</div><div><b>${esc(d.vendorName)}</b></div>
+          <div>3. Bill No.:</div><div><b>${esc(d.billNo)}</b></div>
+          <div>4. Bill Date:</div><div><b>${esc(d.billDate)}</b></div>
           <div>5. Amount:</div><div><b>${amtFmt}</b></div>
-          <div>6. EIC Name:</div><div><b>${d.eic || ''}</b></div>
+          <div>6. EIC Name:</div><div><b>${esc(d.eic)}</b></div>
         </div>
         <div style="margin-top:40px;text-align:right;">
           <div style="display:inline-block;width:60mm;text-align:center;">
@@ -1500,7 +1512,7 @@
       return el;
     }
 
-    async function renderDakReceipt(){
+    window.renderDakReceipt = async function renderDakReceipt(){
       let host = document.getElementById('htmlPrintHost');
       if(!host){
         host = document.createElement('div');
@@ -1525,23 +1537,12 @@
         host.appendChild(sheet);
         sheet.scrollIntoView({ behavior:'smooth' });
         host.focus({ preventScroll: true });
-        // Enable print actions (robustly)
+        // Enable Save/Open + bind-once fallbacks if global wiring is absent
         if(typeof setDisabled === 'function'){
           setDisabled(btnSave, false);
           setDisabled(btnOpen, false);
         }
-        if(btnSave){
-          btnSave.disabled = false;
-          btnSave.removeAttribute('disabled');
-          btnSave.setAttribute('aria-disabled','false');
-        }
-        if(btnOpen){
-          btnOpen.disabled = false;
-          btnOpen.removeAttribute('disabled');
-          btnOpen.setAttribute('aria-disabled','false');
-        }
-        // Bind-once fallbacks if global wiring is absent
-        function openPrintViewFallback(){
+        const openPrintViewFallback = () => {
           const html = host ? host.innerHTML : '';
           const doc = `<!doctype html><html><head><meta charset="utf-8">
             <title>Central Dak Receipt</title>
@@ -1551,17 +1552,25 @@
           const w = window.open('', '_blank');
           if(!w){ alert('Popup blocked. Please allow popups and try again.'); return; }
           w.document.open(); w.document.write(doc); w.document.close();
+        };
+        if(btnSave){
+          btnSave.disabled = false;
+          btnSave.setAttribute('aria-disabled','false');
+          if(!btnSave.dataset.bound){
+            btnSave.dataset.bound = '1';
+            btnSave.addEventListener('click', () => window.print());
+          }
         }
-        if(btnSave && !btnSave.dataset.bound){
-          btnSave.dataset.bound = '1';
-          btnSave.addEventListener('click', () => window.print());
-        }
-        if(btnOpen && !btnOpen.dataset.bound){
-          btnOpen.dataset.bound = '1';
-          btnOpen.addEventListener('click', () => {
-            if (typeof openPrintHtml === 'function') return openPrintHtml();
-            openPrintViewFallback();
-          });
+        if(btnOpen){
+          btnOpen.disabled = false;
+          btnOpen.setAttribute('aria-disabled','false');
+          if(!btnOpen.dataset.bound){
+            btnOpen.dataset.bound = '1';
+            btnOpen.addEventListener('click', () => {
+              if (typeof window.openPrintHtml === 'function') return window.openPrintHtml();
+              openPrintViewFallback();
+            });
+          }
         }
         if(chkAuto?.checked){
           requestAnimationFrame(()=> setTimeout(()=> window.print(), 100));
@@ -2580,15 +2589,15 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
           if (am && !editing.has('rc_amount')     && d.amount)     am.value = d.amount;
         }catch(_){ }
       }
-      prefill(); // initial
-      window.addEventListener('receipt:refresh', prefill);
-    })();
-  </script>
-  <style>
-  @media print{
-    .ui{ display:none !important; }
-    #htmlPrintHost{ display:block !important; }
-  }
-  </style>
+  prefill(); // initial
+  window.addEventListener('receipt:refresh', prefill);
+})();
+</script>
+<style id="print-guard">
+@media print{
+  .ui{ display:none !important; }
+  #htmlPrintHost{ display:block !important; }
+}
+</style>
 </body>
 </html>
