@@ -850,6 +850,7 @@
       return parseFloat(el.dataset.value || el.value || 0) || 0;
     };
     const roundUp0 = x => Math.ceil(x);
+    const round2 = x => Math.round(x * 100) / 100;
 
     // Final reconciliation tolerance (INR); hoisted for clarity & micro-perf.
     // Stability guard: do not change without approval.
@@ -874,7 +875,7 @@
       { code:'WIND_ENERGY_CREDIT', name:'Wind Energy Credit' }
     ];
     const SERVICE_HINTS = {
-      EC_SLAB1: 'Hint: from “Energy Charges” (HT Bill → C4)',
+      EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'Hint: from “TOU” (HT Bill → H4)',
       TOD_NIGHT_REBATE: 'Hint: from “EHV Rebate” (HT Bill → G4)',
       PF_CHARGE_SLAB1: 'Hint: Enter Power Factor (e.g., 0.997)',
@@ -882,7 +883,7 @@
     };
     const QTY_PLACEHOLDERS = {
       PF_CHARGE_SLAB1: 'Enter Power Factor (e.g., 0.997)',
-      EC_SLAB1: 'kWh billed',
+      EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'kWh @ TOU (peak)',
       TOD_NIGHT_REBATE: 'kWh (night rebate)',
       ARREAR_ED: 'Consumption Charges (₹)'
@@ -898,7 +899,7 @@
       EC_SLAB1:4.2,
       FCA:2.45,
       TOD_PEAK:0.85,
-      TOD_NIGHT_REBATE:0.015,
+      TOD_NIGHT_REBATE:1.5,
       PF_CHARGE_SLAB1:0.0235,
       ARREAR_FCA:1,
       ARREAR_ED:0.2,
@@ -1072,28 +1073,40 @@
         const dEl=$('d_'+s.code);
         const fEl=$('f_'+s.code);
         const gEl=$('g_'+s.code);
-        let B=parseFloat(qtyEl?.value)||0;
         const C=parseFloat(tarEl?.value)||0;
         const E=parseFloat(poEl?.value)||0;
+        let B=parseFloat(qtyEl?.value)||0;
+        switch(s.code){
+          case 'MD_SLAB1':
+          case 'MD_SLAB2':
+            B=500; break;
+          case 'MD_SLAB3':{
+            const demand=num('B4');
+            const t1=parseFloat($('tar_MD_SLAB1')?.value)||0;
+            const t2=parseFloat($('tar_MD_SLAB2')?.value)||0;
+            B=(demand - 500*t1 - 500*t2)/C; B=round2(B); break; }
+          case 'EC_SLAB1':
+            B=num('A4'); break;
+          case 'TOD_PEAK':{
+            const tou=num('H4'); B=C?round2(tou/C):0; break; }
+          case 'TOD_NIGHT_REBATE':{
+            const evh = num('G4'); // EHV Rebate (₹)
+            B = C ? round2((-evh)/C) : 0; break; }
+          case 'ARREAR_ED':{
+            const tot=num('B4')+num('C4')+num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4');
+            B=round2(tot); break; }
+          case 'FCA':
+            B=parseFloat($('qty_EC_SLAB1')?.value)||0; break;
+        }
+        if(qtyEl) qtyEl.value = Number.isInteger(B) ? B : B.toFixed(2);
         let D=0,F=0,G=0;
-        if(s.code==='FCA'){
-          B=parseFloat($('qty_EC_SLAB1')?.value)||0;
-          if(qtyEl) qtyEl.value=B;
-          D=B*C;
-          F=E?D/E:0;
-        }else if(s.code==='TOD_NIGHT_REBATE'){
-          D=-B*C;
-          F=E?D/E:0;
-        }else if(s.code==='PF_CHARGE_SLAB1'){
+        if(s.code==='PF_CHARGE_SLAB1'){
           const pf=B;
           D=-((pf-0.95)*dEnergy/2);
           F=E?D/E:0;
         }else if(s.code.startsWith('ARREAR_')){
           D=B*C;
           F=D;
-        }else if(s.code==='WIND_ENERGY_CREDIT'){
-          D=B*C;
-          F=E?D/E:0;
         }else{
           D=B*C;
           F=E?D/E:0;
