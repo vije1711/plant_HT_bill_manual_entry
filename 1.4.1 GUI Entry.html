@@ -586,13 +586,13 @@
             </div>
             <div class="f">
               <label for="rc_vendorName">Vendor Name</label>
-              <input type="text" id="rc_vendorName" placeholder="e.g., Paschim Gujarat Viz Company Ltd"/>
+              <input type="text" id="rc_vendorName" placeholder="e.g., Paschim Gujarat Vij Company Ltd"/>
             </div>
             <!-- Single-line 3-up row -->
             <div class="row-3up">
               <div class="f">
                 <label for="rc_billNo">Bill No.</label>
-                <input type="text" id="rc_billNo" placeholder="e.g., HT-BILL_JUL-25"/>
+                <input type="text" id="rc_billNo" placeholder="e.g., DAK-ZG0435-20250308-0912"/>
               </div>
               <div class="f">
                 <label for="rc_billDate">Bill Date</label>
@@ -600,7 +600,7 @@
               </div>
               <div class="f">
                 <label for="rc_eic">EIC Name</label>
-                <input type="text" id="rc_eic" value="Mr. Vijendra Singh"/>
+                <input type="text" id="rc_eic" placeholder="e.g., Vijendra Singh"/>
               </div>
             </div>
             <!-- Amount -->
@@ -741,35 +741,7 @@
         el.style.pointerEvents = '';
         if(!el.getAttribute('type')) el.setAttribute('type','text'); // ensure plain text behavior
       });
-      const dateEl = document.getElementById('rc_billDate');
-      const amtEl  = document.getElementById('rc_amount');
-      const billNoEl = document.getElementById('rc_billNo');
-      if(dateEl){
-        dateEl.addEventListener('blur', ()=>{
-          const ok = /^\d{2}-\d{2}-\d{4}$/.test(dateEl.value.trim());
-          dateEl.classList.toggle('warn', !ok && dateEl.value.trim()!=='');
-        }, {passive:true});
-      }
-      if(amtEl){
-        amtEl.addEventListener('blur', ()=>{
-          const raw = amtEl.value ?? '';
-          const cleaned = String(raw).replace(/[^0-9.\-]/g,'');
-          if(cleaned !== raw) amtEl.value = cleaned;
-        }, {passive:true});
-      }
-      // Bill No.: generate editable default if empty
-      if (billNoEl && !billNoEl.value){
-        const now = new Date();
-        const MMM = now.toLocaleString('en-US',{month:'short'}).toUpperCase();
-        const YY  = String(now.getFullYear()).slice(-2);
-        const base = `HT-BILL_${MMM}-${YY}`;
-        const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-        const k = `rc_billno_counter_${ym}`;
-        let n = Number(localStorage.getItem(k) || '0');
-        n = Number.isFinite(n) ? n : 0;
-        billNoEl.value = n > 0 ? `${base}-${n+1}` : base;
-        try{ localStorage.setItem(k, String(n+1)); }catch(_){ }
-      }
+      // defaults handled separately
       // Card-level actions wired like "Make IOM" (proxy to existing flow)
       const host    = document.getElementById('htmlPrintHost');
       const btnSave = document.getElementById('saveHtmlPdf');
@@ -2675,48 +2647,146 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
     });
   </script>
   <script>
-    // Provide defaults for the receipt card from IOM state (with safe fallbacks)
-    window.getReceiptDefaults = function(){
-      function pick(selectors){
-        for (const sel of selectors){
-          const el = document.querySelector(sel);
-          if (el && typeof el.value === 'string' && el.value.trim() !== '') return el.value.trim();
-          if (el && el.textContent && el.textContent.trim() !== '') return el.textContent.trim();
-        }
-        return '';
-      }
-      const vendorCode = pick(['#iom_vendorCode','#vendorCode','[name="vendorCode"]']);
-      const vendorName = pick(['#iom_vendorName','#vendorName','[name="vendorName"]']);
-      let amount = '';
-      const finalEl = document.getElementById('FINALv');
-      if(finalEl){
-        const raw = (finalEl.dataset?.value ?? finalEl.textContent ?? '').toString();
-        amount = raw.replace(/[^0-9.\-]/g,'');
-      }
-      return { vendorCode, vendorName, amount };
+    // Read a money value from a view cell by ID (strips currency and commas)
+    window.readMoneyById = function(id){
+      const el = document.getElementById(id);
+      if(!el) return 0;
+      const raw = el.textContent || '';
+      const n = parseFloat(raw.replace(/[^0-9.\-]/g,''));
+      return Number.isFinite(n) ? n : 0;
     };
-  </script>
-  <script>
-    // Prefill Vendor Code/Name/Amount; respect user edits
-    (function(){
-      const vc = document.getElementById('rc_vendorCode');
-      const vn = document.getElementById('rc_vendorName');
-      const am = document.getElementById('rc_amount');
-      const editing = new Set();
-      [vc, vn, am].forEach(el => el?.addEventListener('input', ()=> editing.add(el.id), {passive:true}));
 
-      function prefill(){
-        try{
-          const d = (typeof window.getReceiptDefaults === 'function') ? window.getReceiptDefaults() : {};
-          if (vc && !editing.has('rc_vendorCode') && d.vendorCode) vc.value = d.vendorCode;
-          if (vn && !editing.has('rc_vendorName') && d.vendorName) vn.value = d.vendorName;
-          if (am && !editing.has('rc_amount')     && d.amount)     am.value = d.amount;
-        }catch(_){ }
+    // Initialize defaults for Central Dak Receipt inputs
+    window.addEventListener('DOMContentLoaded', () => {
+      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      const editing = new Set();
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('input', () => {
+          if(el.value.trim() === '') editing.delete(id); else editing.add(id);
+          if(id === 'rc_amount' && el.value.trim() === '') setAmount();
+          if(id === 'rc_vendorCode') defaultBillNo();
+          if(id === 'rc_billNo') el.dataset.autogen = '0'; // user took control
+        }, {passive:true});
+      });
+
+      function computeAmount(){
+        const C9  = readMoneyById('C9v');
+        const F16 = readMoneyById('F16v');
+        const G16 = readMoneyById('G16v');
+        const C24 = readMoneyById('C24v');
+        const A31 = readMoneyById('A31v');
+        const F9  = readMoneyById('F9v');
+        return C9 - F16 - G16 - C24 + A31 + F9;
       }
-  prefill(); // initial
-  window.addEventListener('receipt:refresh', prefill);
-})();
-</script>
+
+      function setAmount(){
+        const el = document.getElementById('rc_amount');
+        if(!el) return;
+        if(editing.has('rc_amount') && el.value.trim() !== '') return;
+        const amt = computeAmount();
+        el.value = String(amt);
+        parseInrInput(el);
+      }
+
+      function defaultText(el, val){
+        if(!el || editing.has(el.id) || el.value.trim()) return;
+        el.value = val;
+      }
+
+      function defaultBillNo(){
+        const el = document.getElementById('rc_billNo');
+        const vc = document.getElementById('rc_vendorCode');
+        if(!el || editing.has('rc_billNo')) return;
+        const now = new Date();
+        const YYYY = now.getFullYear();
+        const MM = String(now.getMonth()+1).padStart(2,'0');
+        const DD = String(now.getDate()).padStart(2,'0');
+        const HH = String(now.getHours()).padStart(2,'0');
+        const mm = String(now.getMinutes()).padStart(2,'0');
+        const vendor = vc?.value || 'NA';
+        const next = `DAK-${vendor || 'NA'}-${YYYY}${MM}${DD}-${HH}${mm}`;
+        const isAuto = el.dataset.autogen === '1';
+        // Generate if empty OR previously auto-generated; preserve if user-edited
+        if(!el.value.trim() || isAuto){
+          el.value = next;
+          el.dataset.autogen = '1';
+        }
+      }
+
+      function defaultDate(){
+        const el = document.getElementById('rc_billDate');
+        if(!el || (editing.has('rc_billDate') && el.value.trim())) return;
+        if(!el.value.trim()){
+          const now = new Date();
+          const dd = String(now.getDate()).padStart(2,'0');
+          const mm = String(now.getMonth()+1).padStart(2,'0');
+          const yyyy = now.getFullYear();
+          el.value = `${dd}-${mm}-${yyyy}`;
+        }
+      }
+
+      function attachDateShim(){
+        const el = document.getElementById('rc_billDate');
+        if(!el) return;
+        el.addEventListener('focus', () => {
+          const v = el.value.trim();
+          let iso = '';
+          if(validDDMMYYYY(v)){
+            const [d,m,y] = v.split('-');
+            iso = `${y}-${m}-${d}`;
+          }
+          el.type = 'date';
+          if(iso) el.value = iso;
+        });
+        const restore = () => {
+          const v = el.value.trim();
+          el.type = 'text';
+          if(/^\d{4}-\d{2}-\d{2}$/.test(v)){
+            const [y,m,d] = v.split('-');
+            el.value = `${d}-${m}-${y}`;
+          }
+          const ok = validDDMMYYYY(el.value.trim());
+          el.classList.toggle('warn', !ok && el.value.trim() !== '');
+        };
+        el.addEventListener('blur', restore);
+        el.addEventListener('change', restore);
+      }
+
+      function initReceiptDefaults(){
+        const vc = document.getElementById('rc_vendorCode');
+        const vn = document.getElementById('rc_vendorName');
+        const eic = document.getElementById('rc_eic');
+        defaultText(vc, 'ZG0435');
+        defaultText(vn, 'Paschim Gujarat Vij Company Ltd');
+        defaultText(eic, 'Vijendra Singh');
+        defaultBillNo(); // will mark dataset.autogen='1' on first generation
+        defaultDate();
+        setAmount();
+      }
+
+      window.initReceiptDefaults = initReceiptDefaults;
+
+      attachDateShim();
+      initReceiptDefaults();
+      window.addEventListener('receipt:refresh', initReceiptDefaults);
+
+      let amtTimer = null;
+      function scheduleAmount(){
+        if(editing.has('rc_amount') && document.getElementById('rc_amount')?.value.trim() !== '') return;
+        clearTimeout(amtTimer);
+        amtTimer = setTimeout(setAmount, 100);
+      }
+
+      const srcIds = ['C9v','F16v','G16v','C24v','A31v','F9v'];
+      const observer = new MutationObserver(scheduleAmount);
+      srcIds.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) observer.observe(el, {childList:true,subtree:true,characterData:true});
+      });
+    });
+  </script>
 <style id="print-guard-receipt">
   @media print{
     /* Hide chrome; keep rendered sheet visible */
