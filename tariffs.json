@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "meta": {
+    "supplier": "PGVCL",
+    "currency": "INR"
+  },
+  "effective": "2025-07",
+  "rates": {
+    "FIXED_METER_RENT": 0,
+    "MD_SLAB1": 150,
+    "MD_SLAB2": 260,
+    "MD_SLAB3": 475,
+    "PENAL_ABOVE_CD": 0,
+    "EC_SLAB1": 4.2,
+    "FCA": 2.45,
+    "TOD_PEAK": 0.85,
+    "TOD_NIGHT_REBATE": 0.015,
+    "PF_CHARGE_SLAB1": 0.0235,
+    "ARREAR_FCA": 0,
+    "ARREAR_ED": 0.2,
+    "ARREAR_CESS": 0,
+    "ARREAR_PF": 0,
+    "ARREAR_ENERGY": 0,
+    "WIND_ENERGY_CREDIT": 0
+  }
+}
