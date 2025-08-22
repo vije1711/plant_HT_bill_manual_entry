@@ -292,10 +292,19 @@
         /* Neutral default; JS sets smaller value only if overflow is detected */
         --iom-scale: 1;
       }
-      .root, header.nav, .controls{ display:none !important; }
-      #htmlPrintHost{ display:block !important; }
+      /* IOM-only guard (activated by html.print-iom) to avoid interfering with receipts */
+      html.print-iom .wrap,
+      html.print-iom header,
+      html.print-iom .toolbar,
+      html.print-iom .controls,
+      html.print-iom .card:not(.sheet),
+      html.print-iom #toasts,
+      html.print-iom #modal,
+      html.print-iom .ui { display:none !important; }
+      html.print-iom #htmlPrintHost{ display:block !important; }
+      @page { size: A4; margin: 12mm; }
       /* Fit to a single A4 page for IOM only */
-      #htmlPrintHost .sheet.iom{
+      html.print-iom #htmlPrintHost .sheet.iom{
         /* Fit to a single A4 page without changing on-screen layout */
         box-shadow:none;
         margin:0 auto 0 0;
@@ -305,9 +314,9 @@
         min-height: auto;             /* avoid forcing an extra page */
         padding: 12mm 14mm;           /* slightly tighter print padding */
       }
-      #htmlPrintHost .sheet.iom .doc-header{ margin-top:0; margin-bottom:8px; }
-      #htmlPrintHost .sheet.iom .kv li{ margin:2mm 0; }
-      #htmlPrintHost .sheet.iom .sigs .line{ margin:12mm 0 3mm; }
+      html.print-iom #htmlPrintHost .sheet.iom .doc-header{ margin-top:0; margin-bottom:8px; }
+      html.print-iom #htmlPrintHost .sheet.iom .kv li{ margin:2mm 0; }
+      html.print-iom #htmlPrintHost .sheet.iom .sigs .line{ margin:12mm 0 3mm; }
     }
 
   </style>
@@ -2421,8 +2430,18 @@
           setDisabled(btnSave, !hasPreview);
           setDisabled(btnOpen, !hasPreview);
           if (chkAuto?.checked) {
-            // Ensure layout has painted before invoking print
-            requestAnimationFrame(() => setTimeout(() => window.print(), 100));
+            // Ensure layout has painted; recompute scale and set print guard
+            requestAnimationFrame(() => setTimeout(() => {
+              try{
+                document.documentElement.classList.add('print-iom');
+                const sheet = document.querySelector('#htmlPrintHost .sheet.iom') || document.querySelector('#htmlPrintHost .sheet');
+                if (sheet && typeof setIomPrintScaleIfNeeded === 'function') setIomPrintScaleIfNeeded(sheet);
+                window.addEventListener('afterprint', () => {
+                  document.documentElement.classList.remove('print-iom');
+                }, { once:true });
+              }catch(_){ }
+              window.print();
+            }, 100));
           }
         } finally {
           setBusy(host, false);
@@ -2449,6 +2468,17 @@
             setDisabled(btnOpen, false);
           }
         });
+        // Ensure scale is correct and only the IOM host prints
+        try {
+          document.documentElement.classList.add('print-iom');
+          const sheet = host.querySelector('.sheet.iom') || host.querySelector('.sheet');
+          if (sheet && typeof setIomPrintScaleIfNeeded === 'function') {
+            setIomPrintScaleIfNeeded(sheet);
+          }
+          window.addEventListener('afterprint', () => {
+            document.documentElement.classList.remove('print-iom');
+          }, { once: true });
+        } catch(_) {}
         // Use browser print on the visible on-page preview
         window.print();
       });
