@@ -815,14 +815,9 @@
         e.preventDefault();
         await withBusy('saveReceiptPdfInCard', async () => {
           ensureReceiptRenderedThen(() => {
-            btnSave?.click(); // try Save first
-            setTimeout(() => {
-              try{
-                const stillDisabled = !!btnSave?.disabled;
-                const hasSheet = !!(host && host.querySelector('.sheet'));
-                if (stillDisabled && hasSheet) btnOpen?.click();
-              }catch(_){ }
-            }, 200);
+            // Print the rendered receipt directly to avoid double handlers.
+            try { window.focus(); } catch {}
+            window.print();
           });
         });
       });
@@ -1650,12 +1645,9 @@
         host.focus({preventScroll:true});
         // styles are already scoped; nothing else to hide here
 
-        // Enable Save/Open; bind-once fallbacks if global wiring is absent
-        if (btnSave){ btnSave.disabled = false; btnSave.setAttribute('aria-disabled','false');
-          if (!btnSave.dataset.bound){ btnSave.dataset.bound = '1';
-            btnSave.addEventListener('click', () => { try{ void sheet.getBoundingClientRect(); window.print(); }catch{} });
-          }
-        }
+        // Enable Save/Open for parity with toolbar, but do not bind a second
+        // click handler to #saveHtmlPdf here to avoid double print dialogs.
+        if (btnSave){ btnSave.disabled = false; btnSave.setAttribute('aria-disabled','false'); }
         if (btnOpen){ btnOpen.disabled = false; btnOpen.setAttribute('aria-disabled','false');
           if (!btnOpen.dataset.bound){ btnOpen.dataset.bound = '1';
             btnOpen.addEventListener('click', () => {
