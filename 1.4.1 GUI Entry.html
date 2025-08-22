@@ -2483,75 +2483,9 @@
         window.print();
       });
 
-      if (btnOpen) btnOpen.addEventListener('click', () => {
-        const host = document.getElementById('htmlPrintHost');
-        if (!host) { toast('Please render a preview first.', 'warn'); return; }
-        if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
-        if (!host.querySelector('.sheet')) { toast('Please render a preview first.', 'warn'); return; }
-        // Open a print-only view (clean tab)
-        // prevent re-entrancy while spawning child window
-        setDisabled(btnSave, true);
-        setDisabled(btnOpen, true);
-        setBusy(host, true);
-        const cssElems = document.querySelectorAll('#print-css');
-        if (cssElems.length > 1 && !window.__printCssWarned) {
-          console.warn('Multiple #print-css elements found; using the first.');
-          window.__printCssWarned = true;
-        }
-        const cssElem = cssElems[0];
-        const fallbackCss = `
-@page{size:A4;margin:14mm}
-body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
-.sheet{width:210mm;min-height:297mm;padding:12mm 14mm 16mm;position:relative;font:13px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-.doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4mm}
-.doc-header h2{margin:1mm 0 0;font-size:18pt}
-.doc-meta{color:#555;font-size:10.5pt;text-align:right}
-.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:6mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}
-.sheet:not(:last-of-type){break-after:page;page-break-after:always}
-.sec{break-inside:avoid;margin:5mm 0 0}
- .sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}
- .kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}
- .kv .label{color:#374151;overflow-wrap:anywhere;word-break:break-word}.kv .value{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}.kv .unit{color:#6b7280;text-align:right}.kv .value.total{font-weight:800}.mapping .kv:last-child{background:#f3f4f6;border:1px solid #e5e7eb}.total{font-weight:700}
- .signatures{break-inside:avoid} .sigs{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:4mm}.sig{text-align:left}.sig.right{text-align:right}.sig .line{border-top:1px solid #d1d5db;height:0;margin:10mm 0 2mm}.sig .role{color:#111;font-weight:600}
- .footer-note{margin-top:6mm;color:#6b7280;font-size:9.5pt}.page-number{position:absolute;bottom:6mm;right:18mm;color:#6b7280;font-size:9pt}`;
-        const css = cssElem ? cssElem.innerHTML : fallbackCss;
-        const month = (host.dataset && host.dataset.monthLabel) ? ` – ${host.dataset.monthLabel}` : '';
-        const html = `
-    <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><title>IOM - HT Bill${month}</title>
-    <style>${css}</style>
-    <script>window.addEventListener('afterprint',()=>{ try{ window.close(); }catch(_){} });<\/script>
-    </head><body onload="setTimeout(()=>window.print(),100)">${host.innerHTML}</body></html>`;
-        try{
-          const w = window.open('', '_blank');
-          if (!w) {
-            alert('Popup blocked.\nEnable popups for this file and try again.\nTip: in Chrome/Edge, check the address bar icon or press Ctrl+J.');
-            setBusy(host, false);
-            setDisabled(btnSave, false); setDisabled(btnOpen, false);
-            return;
-          }
-          try { w.opener = null; } catch(_) {}
-          w.document.open(); w.document.write(html); w.document.close();
-          onPrintLifecycle({
-            host,
-            reenable: () => {
-              setDisabled(btnSave, false);
-              setDisabled(btnOpen, false);
-            }
-          });
-        } catch(e) {
-          alert('Could not open print view: ' + e.message);
-          setBusy(host, false);
-          setDisabled(btnSave, false);
-          setDisabled(btnOpen, false);
-        }
-      });
-
-      // Proxy menu actions to hidden buttons
+      // Proxy menu action for Save as PDF; Open PDF is bound separately
       document.getElementById('menuSavePdf')?.addEventListener('click', () => {
         document.getElementById('saveHtmlPdf')?.click();
-      });
-      document.getElementById('menuOpenPdf')?.addEventListener('click', () => {
-        document.getElementById('openHtmlPdf')?.click();
       });
 
       // Re-disable print actions if inputs change after a render
@@ -2817,7 +2751,101 @@ body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,
       });
     });
   </script>
-<style id="print-guard-receipt">
+  <script>
+    // Open the current IOM sheet in a popup with single-page A4 fit
+    function openIomPdfView(){
+      const host = document.getElementById('htmlPrintHost');
+      let sheet = host?.querySelector('.sheet');
+      if(!sheet){
+        try{ (window.renderHtml || window.renderHtmlPreview || window.renderHtml)?.(); }catch(_){ }
+        sheet = document.getElementById('htmlPrintHost')?.querySelector('.sheet');
+      }
+      if(!sheet){ try{ toast('No IOM to print. Click “Render IOM” first.', 'bad'); }catch(_){ } return; }
+      // Guarantee IOM scoping for popup rules (even if host forgot to tag)
+      sheet.classList.add('iom');
+
+      // Popup CSS: A4 page with dynamic --iom-scale and full IOM structure
+      const css =
+        `@page{size:A4;margin:12mm}`+
+        `html,body{height:100%}`+
+        `body{margin:0;background:#fff;color:#000;font:14px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}`+
+        `:root{--iom-scale:1}`+
+        `.sheet.iom{box-shadow:none;margin:0;`+
+        ` transform:scale(var(--iom-scale));transform-origin:top left;`+
+        ` width:calc(210mm / var(--iom-scale));min-height:auto;`+
+        ` padding:12mm 14mm;`+
+        ` -webkit-print-color-adjust:exact;print-color-adjust:exact}`+
+        /* structure & typography parity with main IOM */
+        `.doc-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4mm}`+
+        `.doc-header h2{margin:1mm 0 0;font-size:18pt}`+
+        `.doc-meta{color:#555;font-size:10.5pt;text-align:right}`+
+        `.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:6mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}`+
+        `.sec{break-inside:avoid;margin:5mm 0 0}`+
+        `.sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}`+
+        `.kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}`+
+        `.kv .label{color:#374151;overflow-wrap:anywhere;word-break:break-word}`+
+        `.kv .value{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}`+
+        `.kv .unit{color:#6b7280;text-align:right}`+
+        `.kv .value.total{font-weight:800}`+
+        `.mapping .kv:last-child{background:#f3f4f6;border:1px solid #e5e7eb}`+
+        `.total{font-weight:700}`+
+        `.signatures{break-inside:avoid}`+
+        `.sigs{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:4mm}`+
+        `.sig{text-align:left}`+
+        `.sig.right{text-align:right}`+
+        `.sig .line{border-top:1px solid #d1d5db;height:0;margin:10mm 0 2mm}`+
+        `.sig .role{color:#111;font-weight:600}`+
+        `.footer-note{margin-top:6mm;color:#6b7280;font-size:9.5pt}`+
+        `.page-number{position:absolute;bottom:6mm;right:18mm;color:#6b7280;font-size:9pt}`;
+
+      // Compute scale inside the popup to fit one A4 page
+      const script =
+        `(function(){`+
+        `  function mmToPx(mm){var d=document.createElement('div');d.style.height=mm+"mm";d.style.position='absolute';d.style.visibility='hidden';document.body.appendChild(d);var px=d.getBoundingClientRect().height||0;d.remove();return px;}`+
+        `  function fit(){var s=document.querySelector('.sheet.iom');if(!s) return;`+
+        `    var pagePx=mmToPx(297); var h=s.getBoundingClientRect().height||0;`+
+        `    if(pagePx>0 && h>pagePx){ var scale=Math.max(0.88, Math.min(0.98, pagePx/h));`+
+        `      document.documentElement.style.setProperty('--iom-scale', String(scale)); }}`+
+        `  function doPrint(){try{window.focus();window.print();}catch(e){}}`+
+        `  window.addEventListener('load', function(){`+
+        `    var p = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();`+
+        `    p.then(function(){ fit(); requestAnimationFrame(function(){ setTimeout(doPrint,150); }); });`+
+        `  });`+
+        `})();`;
+
+      const month = (host.dataset && host.dataset.monthLabel) ? ` – ${host.dataset.monthLabel}` : '';
+      const html =
+        `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light"><title>IOM - HT Bill${month}</title><style>${css}</style></head>`+
+        `<body>${sheet.outerHTML}<script>${script}<\/script></body></html>`;
+      try {
+        const w = window.open('', '_blank', 'noopener,noreferrer');
+        if (w) { w.document.open(); w.document.write(html); w.document.close(); return; }
+      } catch(_) { /* fall through */ }
+      try {
+        const blob = new Blob([html], {type:'text/html'});
+        const url = URL.createObjectURL(blob);
+        const w2 = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!w2) { try{ toast('Popup blocked. Allow popups or use “Save as PDF”.', 'warn'); }catch{ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }
+      } catch(e) {
+        try{ toast('Could not open print view: ' + (e?.message||e), 'bad'); }catch{ alert('Could not open print view: ' + (e?.message||e)); }
+      }
+    }
+
+    // Wire menu and button once DOM is ready
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const menuOpen = document.getElementById('menuOpenPdf');
+      if (menuOpen && !menuOpen.dataset.iomBound) {
+        menuOpen.dataset.iomBound = '1';
+        menuOpen.addEventListener('click', (e)=>{ e.preventDefault(); openIomPdfView(); });
+      }
+      const openBtn = document.getElementById('openHtmlPdf');
+      if (openBtn && !openBtn.dataset.iomBound) {
+        openBtn.dataset.iomBound = '1';
+        openBtn.addEventListener('click', (e)=>{ e.preventDefault(); openIomPdfView(); });
+      }
+    });
+  </script>
+  <style id="print-guard-receipt">
   @media print{
     /* Hide chrome; keep rendered sheet visible */
     header, .toolbar, .card:not(.sheet), #toasts, .ui { display:none !important; }
