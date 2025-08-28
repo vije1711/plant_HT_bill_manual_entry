@@ -831,14 +831,15 @@
         const safeBill = sanitizeFileStem(document.getElementById('rc_billNo')?.value);
         const prevTitle = document.title;
         document.title = safeBill ? `Central Dak Receipt - ${safeBill}` : 'Central Dak Receipt';
-        await withBusy('saveReceiptPdfInCard', async () => {
-          ensureReceiptRenderedThen(() => {
-            const host  = document.getElementById('htmlPrintHost');
-            const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
-            if (sheet){
-              document.documentElement.classList.add('print-rcpt');
-              const doFit = () => {
-                try {
+          await withBusy('saveReceiptPdfInCard', async () => {
+            ensureReceiptRenderedThen(() => {
+              const host  = document.getElementById('htmlPrintHost');
+              prunePrintSheets(host);
+              const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
+              if (sheet){
+                document.documentElement.classList.add('print-rcpt');
+                const doFit = () => {
+                  try {
                   if (typeof window.setRcptPrintScaleIfNeeded === 'function') window.setRcptPrintScaleIfNeeded(sheet);
                 } catch(_) {}
               };
@@ -880,15 +881,22 @@
     // Utility helpers (extended for receipt card)
       // Produce a filesystem-safe, UI-friendly filename stem (no extension).
       // Matches existing behavior: replace illegal chars, collapse spaces/dashes, trim, and cap length.
-      function sanitizeFileStem(input, maxLen = 120){
-        const s = String(input ?? '').trim();
-        if (!s) return '';
-        return s
-          .replace(/[\\\/:*?"<>|]/g, '-')  // illegal on Windows/macOS
-          .replace(/\s+/g, ' ')            // collapse whitespace
-          .replace(/-+/g, '-')             // collapse dashes
-          .replace(/[.\s-]+$/g, '')        // no trailing dot/space/dash
-          .slice(0, maxLen);
+        function sanitizeFileStem(input, maxLen = 120){
+          const s = String(input ?? '').trim();
+          if (!s) return '';
+          return s
+            .replace(/[\\\/:*?"<>|]/g, '-')  // illegal on Windows/macOS
+            .replace(/\s+/g, ' ')            // collapse whitespace
+            .replace(/-+/g, '-')             // collapse dashes
+            .replace(/[.\s-]+$/g, '')        // no trailing dot/space/dash
+            .slice(0, maxLen);
+      }
+
+      function prunePrintSheets(host){
+        if (!host) return;
+        host.querySelectorAll('.sheet').forEach(s => {
+          if (s.hidden || s.style.display === 'none' || !s.innerHTML.trim()) s.remove();
+        });
       }
 
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
@@ -2523,9 +2531,7 @@
         if (!host) { toast('Please render a preview first.', 'warn'); return; }
         if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
         // Remove empty/hidden sheets to avoid blank pages in print
-        host.querySelectorAll('.sheet').forEach(s => {
-          if (s.hidden || s.style.display === 'none' || !s.innerHTML.trim()) s.remove();
-        });
+        prunePrintSheets(host);
         if (!host.querySelector('.sheet')) {
           toast('Please render a preview first.', 'warn');
           return;
