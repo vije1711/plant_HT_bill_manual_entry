@@ -828,6 +828,32 @@
         e.preventDefault();
         await withBusy('saveReceiptPdfInCard', async () => {
           ensureReceiptRenderedThen(() => {
+            const host  = document.getElementById('htmlPrintHost');
+            const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
+            const safeBill = sanitizeFileStem(document.getElementById('rc_billNo')?.value);
+            const prevTitle = document.title;
+            document.title = safeBill ? `Central Dak Receipt - ${safeBill}` : 'Central Dak Receipt';
+            if (sheet){
+              document.documentElement.classList.add('print-rcpt');
+              const doFit = () => { try{ if (typeof window.setRcptPrintScaleIfNeeded === 'function') window.setRcptPrintScaleIfNeeded(sheet); }catch(_){} };
+              // wait for fonts/layout to settle before measuring
+              const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+              fontsReady.then(() => new Promise(r => requestAnimationFrame(r))).then(doFit);
+            }
+            const cleanup = () => {
+              document.title = prevTitle;
+              document.documentElement.classList.remove('print-rcpt');
+              document.documentElement.style.removeProperty('--rcpt-scale');
+            };
+            addEventListener('afterprint', cleanup, { once:true });
+            const onVis = () => {
+              if (document.visibilityState === 'visible'){
+                document.removeEventListener('visibilitychange', onVis, true);
+                cleanup();
+              }
+            };
+            // fallback in case afterprint is suppressed by the UA/extension
+            document.addEventListener('visibilitychange', onVis, true);
             // Print the rendered receipt directly to avoid double handlers.
             try { window.focus(); } catch {}
             window.print();
@@ -838,6 +864,19 @@
   </script>
   <script>
     // Utility helpers (extended for receipt card)
+      // Produce a filesystem-safe, UI-friendly filename stem (no extension).
+      // Matches existing behavior: replace illegal chars, collapse spaces/dashes, trim, and cap length.
+      function sanitizeFileStem(input, maxLen = 120){
+        const s = String(input ?? '').trim();
+        if (!s) return '';
+        return s
+          .replace(/[\\\/:*?"<>|]/g, '-')  // illegal on Windows/macOS
+          .replace(/\s+/g, ' ')            // collapse whitespace
+          .replace(/-+/g, '-')             // collapse dashes
+          .replace(/[.\s-]+$/g, '')        // no trailing dot/space/dash
+          .slice(0, maxLen);
+      }
+
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
       const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
       // Ensure receipt helpers are defined where they are used
@@ -1669,14 +1708,24 @@
                 `@page{size:A4;margin:14mm}html,body{height:100%}` +
                 `body{margin:0;background:#fff;color:#000;font:14px system-ui,-apple-system,Segoe UI,Roboto,Arial}` +
                 `.sheet{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;box-sizing:border-box}`;
-              const rawRcptCss = (document.getElementById('receipt-css-v2')?.textContent || '');
-              // De-scope rules anchored to '#htmlPrintHost ' so they apply in the popup
-              const popupRcptCss = rawRcptCss ? rawRcptCss.replace(/#htmlPrintHost\s+/g, '') : '';
-              const mergedCss = minimalCSS + (popupRcptCss ? `\n/* receipt-css-v2 */\n` + popupRcptCss : '');
+              const rawRcptCss = (document.getElementById('receipt-css-v2')?.textContent || '') +
+                                (document.getElementById('print-guard-receipt')?.textContent || '');
+              // De-scope rules anchored to '#htmlPrintHost ' or 'html.print-rcpt '
+              const popupRcptCss = rawRcptCss ? rawRcptCss.replace(/#htmlPrintHost\s+/g, '').replace(/html\.print-rcpt\s+/g,'') : '';
+              const mergedCss = minimalCSS + (popupRcptCss ? `\n/* receipt-css */\n` + popupRcptCss : '');
+              const printScript =
+                `(function(){`+
+                `  function mmToPx(mm){var d=document.createElement('div');d.style.height=mm+"mm";d.style.position='absolute';d.style.visibility='hidden';document.body.appendChild(d);var px=d.getBoundingClientRect().height||0;d.remove();return px;}`+
+                `  function fit(){var s=document.querySelector('.sheet.rcpt')||document.querySelector('.sheet.receipt');if(!s)return;var pagePx=mmToPx(297-14*2);var h=s.getBoundingClientRect().height||0;if(h>pagePx){var scale=Math.max(0.98,Math.min(1,pagePx/h));s.style.transform='scale('+scale+')';s.style.transformOrigin='top left';s.style.width=(210/scale)+'mm';}}`+
+                `  window.addEventListener('load',function(){fit();setTimeout(function(){try{window.focus();window.print();}catch(e){}},150);});`+
+                `})();`;
+              // sanitize bill no for window title / filename (reuse helper)
+              const safeBn = sanitizeFileStem(data.billNo);
+              const title = safeBn ? `Central Dak Receipt - ${esc(safeBn)}` : 'Central Dak Receipt';
               const html =
                 `<!doctype html><html><head><meta charset="utf-8">` +
-                `<title>Central Dak Receipt — Print View</title><style>${mergedCss}</style></head>` +
-                `<body>${sheet.outerHTML}<script>setTimeout(function(){try{window.focus();window.print();}catch(e){}},150);<\/script></body></html>`;
+                `<title>${title}</title><style>${mergedCss}</style></head>` +
+                `<body>${sheet.outerHTML}<script>${printScript}<\/script></body></html>`;
               try{ const w = window.open('', '_blank', 'noopener,noreferrer');
                    if (w){ w.document.open(); w.document.write(html); w.document.close(); return; } }catch(_){ }
               try{ const blob = new Blob([html], {type:'text/html'}); const url = URL.createObjectURL(blob);
@@ -2905,26 +2954,6 @@
         }
       }catch(_){ }
     };
-    // Toggle a print class and scale just before printing the RECEIPT only
-    (function(){
-      const rcptBtn = document.getElementById('saveReceiptPdfInCard') || null;
-      if (rcptBtn && !rcptBtn.dataset.rcptBound){
-        rcptBtn.dataset.rcptBound = '1';
-        rcptBtn.addEventListener('click', () => {
-          const host  = document.getElementById('htmlPrintHost');
-          const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
-          if (!sheet) return; // do nothing if not a receipt sheet
-          document.documentElement.classList.add('print-rcpt');
-          if (typeof window.setRcptPrintScaleIfNeeded === 'function'){
-            requestAnimationFrame(() => window.setRcptPrintScaleIfNeeded(sheet));
-          }
-          addEventListener('afterprint', () => {
-            document.documentElement.classList.remove('print-rcpt');
-            document.documentElement.style.removeProperty('--rcpt-scale');
-          }, { once:true });
-        }, { capture:true });
-      }
-    })();
   </script>
   <style>
     /* Apply tiny scale only when printing receipt */
