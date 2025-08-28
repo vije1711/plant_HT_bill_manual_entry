@@ -2853,7 +2853,7 @@
   <style id="print-guard-receipt">
   @media print{
     /* Hide chrome; keep rendered sheet visible */
-    header, .toolbar, .card:not(.sheet), #toasts, .ui { display:none !important; }
+    header, .toolbar, .card:not(.sheet), #toasts, .ui, .footer { display:none !important; }
     #htmlPrintHost { display:block !important; }
     #htmlPrintHost .sheet{ display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact }
     #htmlPrintHost .sheet:not(:last-of-type){ break-after:page; page-break-after:always }
