@@ -835,7 +835,7 @@
             ensureReceiptRenderedThen(() => {
               const host  = document.getElementById('htmlPrintHost');
               document.documentElement.classList.add('print-rcpt');
-              prunePrintSheets(host);
+              (window.prunePrintSheets || prunePrintSheets)(host);
               const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
               if (sheet){
                 const doFit = () => {
@@ -894,10 +894,19 @@
 
       function prunePrintSheets(host){
         if (!host) return;
-        host.querySelectorAll('.sheet').forEach(s => {
+        // 1) Remove any sheet that is hidden, not displayed, or empty
+        const all = Array.from(host.querySelectorAll('.sheet'));
+        all.forEach(s => {
           const cs = getComputedStyle(s);
           if (s.hidden || cs.display === 'none' || cs.visibility === 'hidden' || !s.innerHTML.trim()) s.remove();
         });
+
+        // 2) Ensure only one relevant sheet remains before printing
+        const viable = Array.from(host.querySelectorAll('.sheet'));
+        if (viable.length <= 1) return;
+        const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop()
+          || viable[viable.length - 1];
+        viable.forEach(s => { if (s !== lastTagged) s.remove(); });
       }
 
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
@@ -2952,12 +2961,12 @@
     #htmlPrintHost .sheet.rcpt .page-number,
     #htmlPrintHost .sheet.rcpt .footer-note { display:none !important; }
     /* Proper page breaks for multi-sheet prints (if any) */
-    #htmlPrintHost .sheet:not(:last-of-type):not(:empty){ break-after:page; page-break-after:always }
+    #htmlPrintHost > .sheet:not(:last-child):not(:empty){ break-after:page; page-break-after:always }
     @page{ size:A4; margin:14mm }
   }
   </style>
   <script>
-    // Fit receipt to a single A4 page with a tiny scale only if needed (≤ 2%)
+    // Fit receipt to a single A4 page with a modest scale only if needed (≤ 10%)
     if (typeof window.setRcptPrintScaleIfNeeded !== 'function') {
       window.setRcptPrintScaleIfNeeded = function(sheet){
         try{
@@ -2975,12 +2984,28 @@
           const pagePx = mmToPx(297 - 14*2); // account for @page margin 14mm top/bottom
           const h = sheet.getBoundingClientRect().height || 0;
           if (h > pagePx){
-            const scale = Math.max(0.98, Math.min(1, pagePx / h));
+            const scale = Math.max(0.90, Math.min(1, pagePx / h));
             document.documentElement.style.setProperty('--rcpt-scale', String(scale));
           }
         }catch(_){ }
       };
     }
+    // Do not override the earlier (enhanced) implementation.
+    window.prunePrintSheets = window.prunePrintSheets || function prunePrintSheets(host){
+      if (!host) return;
+      // 1) Remove hidden/empty sheets
+      const all = Array.from(host.querySelectorAll('.sheet'));
+      all.forEach(s => {
+        const cs = getComputedStyle(s);
+        if (s.hidden || cs.display === 'none' || cs.visibility === 'hidden' || !s.innerHTML.trim()) s.remove();
+      });
+      // 2) Keep only one relevant sheet
+      const viable = Array.from(host.querySelectorAll('.sheet'));
+      if (viable.length <= 1) return;
+      const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop()
+        || viable[viable.length - 1];
+      viable.forEach(s => { if (s !== lastTagged) s.remove(); });
+    };
   </script>
   <style>
     /* Apply tiny scale only when printing receipt */
