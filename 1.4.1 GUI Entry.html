@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IOM - HT Bill Calculator</title>
+  <title>IOM - HT Bill Calculator</title> <!-- base title; Save flow will override before print -->
   <!-- Main styles including print rules; id must remain unique -->
   <style id="print-css">
     :root{
@@ -824,21 +824,37 @@
         try { toast('No receipt renderer available. Please enable renderDakReceipt.', 'bad'); } catch {}
       });
 
+      // Receipt: Save as PDF (ensure title is set BEFORE print dialog appears)
       btnSaveInCard?.addEventListener('click', async (e) => {
         e.preventDefault();
+        // Ensure filename/title is captured by the UA immediately
+        const safeBill = sanitizeFileStem(document.getElementById('rc_billNo')?.value);
+        const prevTitle = document.title;
+        document.title = safeBill ? `Central Dak Receipt - ${safeBill}` : 'Central Dak Receipt';
         await withBusy('saveReceiptPdfInCard', async () => {
           ensureReceiptRenderedThen(() => {
             const host  = document.getElementById('htmlPrintHost');
             const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
-            const safeBill = sanitizeFileStem(document.getElementById('rc_billNo')?.value);
-            const prevTitle = document.title;
-            document.title = safeBill ? `Central Dak Receipt - ${safeBill}` : 'Central Dak Receipt';
             if (sheet){
               document.documentElement.classList.add('print-rcpt');
-              const doFit = () => { try{ if (typeof window.setRcptPrintScaleIfNeeded === 'function') window.setRcptPrintScaleIfNeeded(sheet); }catch(_){} };
-              // wait for fonts/layout to settle before measuring
+              const doFit = () => {
+                try {
+                  if (typeof window.setRcptPrintScaleIfNeeded === 'function') window.setRcptPrintScaleIfNeeded(sheet);
+                } catch(_) {}
+              };
+              // Wait for fonts & a frame so height is stable, then fit & print once.
               const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-              fontsReady.then(() => new Promise(r => requestAnimationFrame(r))).then(doFit);
+              fontsReady
+                .then(() => new Promise(r => requestAnimationFrame(r)))
+                .then(() => {
+                  doFit();
+                  try { window.focus(); } catch {}
+                  window.print();
+                });
+            } else {
+              // Legacy fallback: still honor print if no sheet detected.
+              try { window.focus(); } catch {}
+              window.print();
             }
             const cleanup = () => {
               document.title = prevTitle;
@@ -847,16 +863,14 @@
             };
             addEventListener('afterprint', cleanup, { once:true });
             const onVis = () => {
-              if (document.visibilityState === 'visible'){
+              // Cleanup only when back from print (dialog closed)
+              if (document.visibilityState === 'visible' && !window.matchMedia('print').matches){
                 document.removeEventListener('visibilitychange', onVis, true);
                 cleanup();
               }
             };
             // fallback in case afterprint is suppressed by the UA/extension
             document.addEventListener('visibilitychange', onVis, true);
-            // Print the rendered receipt directly to avoid double handlers.
-            try { window.focus(); } catch {}
-            window.print();
           });
         });
       });
@@ -1721,6 +1735,7 @@
                 `})();`;
               // sanitize bill no for window title / filename (reuse helper)
               const safeBn = sanitizeFileStem(data.billNo);
+              // Popup title drives filename in many UAs:
               const title = safeBn ? `Central Dak Receipt - ${esc(safeBn)}` : 'Central Dak Receipt';
               const html =
                 `<!doctype html><html><head><meta charset="utf-8">` +
@@ -2904,56 +2919,57 @@
     /* Hide chrome; keep rendered sheet visible */
     header, .toolbar, .card:not(.sheet), #toasts, .ui, .footer { display:none !important; }
     #htmlPrintHost { display:block !important; }
-    #htmlPrintHost .sheet{ display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact }
-    /* Receipt-specific tightening to prevent fractional overflow */
-    #htmlPrintHost .sheet.receipt,
-    #htmlPrintHost .sheet.rcpt{
-      display:block !important;
-      border:none;
-      width:auto;
-      min-height:auto;
-      margin:0;
-      /* reduce or remove bottom padding that can push to a 2nd page */
-      padding:0 0 8mm 0;
-      break-inside:avoid;
-      overflow:hidden; /* clip stray sub-pixel overflow */
+    /* Base sheet rules for print host (neutral) */
+    #htmlPrintHost .sheet{
+      display:block !important; border:none; width:auto; margin:0;
       -webkit-print-color-adjust:exact; print-color-adjust:exact;
     }
-    /* Only hide optional page-number/footer note for RECEIPT sheets */
+    /* RECEIPT-ONLY tightening to prevent fractional overflow */
+    #htmlPrintHost .sheet.receipt,
+    #htmlPrintHost .sheet.rcpt{
+      width:210mm;                     /* explicit page width */
+      min-height:auto;                 /* override 297mm from base .sheet */
+      margin:0;                        /* no extra outer margins */
+      padding:0 0 8mm 0;               /* no side/top padding; small bottom safety */
+      page-break-inside:avoid;         /* avoid UA splitting */
+      break-inside:avoid;
+      overflow:hidden;                 /* clip sub-pixel overflow */
+    }
+    /* Hide optional receipt footers that can push content */
     #htmlPrintHost .sheet.receipt .page-number,
     #htmlPrintHost .sheet.receipt .footer-note,
     #htmlPrintHost .sheet.rcpt .page-number,
     #htmlPrintHost .sheet.rcpt .footer-note { display:none !important; }
+    /* Proper page breaks for multi-sheet prints (if any) */
     #htmlPrintHost .sheet:not(:last-of-type){ break-after:page; page-break-after:always }
     @page{ size:A4; margin:14mm }
   }
   </style>
   <script>
     // Fit receipt to a single A4 page with a tiny scale only if needed (≤ 2%)
-    window.setRcptPrintScaleIfNeeded = function(sheet){
-      try{
-        // Convert 297mm to px in this document
-        const mmToPx = mm => {
-          const d = document.createElement('div');
-          d.style.height = mm + 'mm';
-          d.style.position = 'absolute';
-          d.style.visibility = 'hidden';
-          document.body.appendChild(d);
-          const px = d.getBoundingClientRect().height || 0;
-          d.remove();
-          return px;
-        };
-        const pagePx = mmToPx(297 - 14*2); // account for @page margin 14mm top/bottom
-        const h = sheet.getBoundingClientRect().height || 0;
-        if (h > pagePx){
-          const scale = Math.max(0.98, Math.min(1, pagePx / h));
-          // use a CSS variable so layout remains stable
-          document.documentElement.style.setProperty('--rcpt-scale', String(scale));
-        } else {
-          document.documentElement.style.removeProperty('--rcpt-scale');
-        }
-      }catch(_){ }
-    };
+    if (typeof window.setRcptPrintScaleIfNeeded !== 'function') {
+      window.setRcptPrintScaleIfNeeded = function(sheet){
+        try{
+          // Convert 297mm to px in this document
+          const mmToPx = mm => {
+            const d = document.createElement('div');
+            d.style.height = mm + 'mm';
+            d.style.position = 'absolute';
+            d.style.visibility = 'hidden';
+            document.body.appendChild(d);
+            const px = d.getBoundingClientRect().height || 0;
+            d.remove();
+            return px;
+          };
+          const pagePx = mmToPx(297 - 14*2); // account for @page margin 14mm top/bottom
+          const h = sheet.getBoundingClientRect().height || 0;
+          if (h > pagePx){
+            const scale = Math.max(0.98, Math.min(1, pagePx / h));
+            document.documentElement.style.setProperty('--rcpt-scale', String(scale));
+          }
+        }catch(_){ }
+      };
+    }
   </script>
   <style>
     /* Apply tiny scale only when printing receipt */
