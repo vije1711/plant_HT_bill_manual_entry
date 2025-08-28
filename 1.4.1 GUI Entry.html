@@ -2522,6 +2522,10 @@
         const host = document.getElementById('htmlPrintHost');
         if (!host) { toast('Please render a preview first.', 'warn'); return; }
         if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
+        // Remove empty/hidden sheets to avoid blank pages in print
+        host.querySelectorAll('.sheet').forEach(s => {
+          if (s.hidden || s.style.display === 'none' || !s.innerHTML.trim()) s.remove();
+        });
         if (!host.querySelector('.sheet')) {
           toast('Please render a preview first.', 'warn');
           return;
@@ -2941,7 +2945,7 @@
     #htmlPrintHost .sheet.rcpt .page-number,
     #htmlPrintHost .sheet.rcpt .footer-note { display:none !important; }
     /* Proper page breaks for multi-sheet prints (if any) */
-    #htmlPrintHost .sheet:not(:last-of-type){ break-after:page; page-break-after:always }
+    #htmlPrintHost .sheet:not(:last-of-type):not(:empty){ break-after:page; page-break-after:always }
     @page{ size:A4; margin:14mm }
   }
   </style>
