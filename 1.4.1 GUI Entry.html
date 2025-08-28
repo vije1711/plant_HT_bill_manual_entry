@@ -21,6 +21,7 @@
       --ring:2px solid rgba(34,211,238,.6);
       --shadow: 0 20px 50px rgba(0,0,0,.45);
       --radius: 18px;
+      --warn-outline: rgba(255,120,120,.6);
     }
     /* Force a light palette for export */
     :root { color-scheme: light only; }
@@ -327,6 +328,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px 16px;
   }
+  #receiptCard .fields .f{ grid-column: span 1; }
   /* Hard guarantee that the card is typeable/clickable */
   #receiptCard{ position:relative; z-index:1; }
   #receiptCard, #receiptCard *{ pointer-events:auto; }
@@ -342,16 +344,27 @@
     border-radius:8px;
   }
   #receiptCard .hint{ display:block; font-size:11px; opacity:.75; margin-top:4px; }
-  #receiptCard input.warn{ outline:2px solid rgba(255,120,120,.6); }
+  #receiptCard input.warn{ outline:2px solid var(--warn-outline, rgba(255,120,120,.6)); }
   #receiptCard .row-3up{
-    display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px 12px; grid-column:1 / -1;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px 16px;
+    grid-column:1 / -1;
   }
   @media (max-width: 720px){
     #receiptCard .fields{ grid-template-columns: 1fr; }
     #receiptCard .row-3up{ grid-template-columns: 1fr; }
   }
+  @media (min-width: 1200px){
+    #receiptCard .fields{ grid-template-columns: 1fr 1fr 1fr; }
+    #receiptCard .row-3up{ display: contents; }
+  }
   #receiptCard .actions{
-    display:flex; gap:8px; justify-content:flex-end; margin-top:10px;
+    display:flex;
+    gap:8px;
+    justify-content:flex-end;
+    margin-top:10px;
+    flex-wrap:wrap;
   }
 </style>
 </head>
@@ -585,7 +598,7 @@
         <div class="muted" style="margin-top:4px;">Click Generate, review, then Copy and paste into SAP.</div>
       </section>
         <!-- Central Dak Receipt Inputs -->
-        <section class="card span-4" id="receiptCard">
+        <section class="card span-8" id="receiptCard">
           <h2>Central Dak Receipt — Inputs</h2>
           <div class="fields">
             <!-- Row 1 -->
