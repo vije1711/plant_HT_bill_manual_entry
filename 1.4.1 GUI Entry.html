@@ -894,10 +894,19 @@
 
       function prunePrintSheets(host){
         if (!host) return;
-        host.querySelectorAll('.sheet').forEach(s => {
+        // 1) Remove any sheet that is hidden, not displayed, or empty
+        const all = Array.from(host.querySelectorAll('.sheet'));
+        all.forEach(s => {
           const cs = getComputedStyle(s);
           if (s.hidden || cs.display === 'none' || cs.visibility === 'hidden' || !s.innerHTML.trim()) s.remove();
         });
+
+        // 2) Ensure only one relevant sheet remains before printing
+        const viable = Array.from(host.querySelectorAll('.sheet'));
+        if (viable.length <= 1) return;
+        const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop()
+          || viable[viable.length - 1];
+        viable.forEach(s => { if (s !== lastTagged) s.remove(); });
       }
 
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
@@ -2981,6 +2990,22 @@
         }catch(_){ }
       };
     }
+    // Do not override the earlier (enhanced) implementation.
+    window.prunePrintSheets = window.prunePrintSheets || function prunePrintSheets(host){
+      if (!host) return;
+      // 1) Remove hidden/empty sheets
+      const all = Array.from(host.querySelectorAll('.sheet'));
+      all.forEach(s => {
+        const cs = getComputedStyle(s);
+        if (s.hidden || cs.display === 'none' || cs.visibility === 'hidden' || !s.innerHTML.trim()) s.remove();
+      });
+      // 2) Keep only one relevant sheet
+      const viable = Array.from(host.querySelectorAll('.sheet'));
+      if (viable.length <= 1) return;
+      const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop()
+        || viable[viable.length - 1];
+      viable.forEach(s => { if (s !== lastTagged) s.remove(); });
+    };
   </script>
   <style>
     /* Apply tiny scale only when printing receipt */
