@@ -2856,9 +2856,85 @@
     header, .toolbar, .card:not(.sheet), #toasts, .ui, .footer { display:none !important; }
     #htmlPrintHost { display:block !important; }
     #htmlPrintHost .sheet{ display:block !important; border:none; width:auto; min-height:auto; margin:0; padding:0 0 16mm 0; break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact }
+    /* Receipt-specific tightening to prevent fractional overflow */
+    #htmlPrintHost .sheet.receipt,
+    #htmlPrintHost .sheet.rcpt{
+      display:block !important;
+      border:none;
+      width:auto;
+      min-height:auto;
+      margin:0;
+      /* reduce or remove bottom padding that can push to a 2nd page */
+      padding:0 0 8mm 0;
+      break-inside:avoid;
+      overflow:hidden; /* clip stray sub-pixel overflow */
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    }
+    /* Only hide optional page-number/footer note for RECEIPT sheets */
+    #htmlPrintHost .sheet.receipt .page-number,
+    #htmlPrintHost .sheet.receipt .footer-note,
+    #htmlPrintHost .sheet.rcpt .page-number,
+    #htmlPrintHost .sheet.rcpt .footer-note { display:none !important; }
     #htmlPrintHost .sheet:not(:last-of-type){ break-after:page; page-break-after:always }
     @page{ size:A4; margin:14mm }
   }
-</style>
+  </style>
+  <script>
+    // Fit receipt to a single A4 page with a tiny scale only if needed (≤ 2%)
+    window.setRcptPrintScaleIfNeeded = function(sheet){
+      try{
+        // Convert 297mm to px in this document
+        const mmToPx = mm => {
+          const d = document.createElement('div');
+          d.style.height = mm + 'mm';
+          d.style.position = 'absolute';
+          d.style.visibility = 'hidden';
+          document.body.appendChild(d);
+          const px = d.getBoundingClientRect().height || 0;
+          d.remove();
+          return px;
+        };
+        const pagePx = mmToPx(297 - 14*2); // account for @page margin 14mm top/bottom
+        const h = sheet.getBoundingClientRect().height || 0;
+        if (h > pagePx){
+          const scale = Math.max(0.98, Math.min(1, pagePx / h));
+          // use a CSS variable so layout remains stable
+          document.documentElement.style.setProperty('--rcpt-scale', String(scale));
+        } else {
+          document.documentElement.style.removeProperty('--rcpt-scale');
+        }
+      }catch(_){ }
+    };
+    // Toggle a print class and scale just before printing the RECEIPT only
+    (function(){
+      const rcptBtn = document.getElementById('saveReceiptPdfInCard') || null;
+      if (rcptBtn && !rcptBtn.dataset.rcptBound){
+        rcptBtn.dataset.rcptBound = '1';
+        rcptBtn.addEventListener('click', () => {
+          const host  = document.getElementById('htmlPrintHost');
+          const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
+          if (!sheet) return; // do nothing if not a receipt sheet
+          document.documentElement.classList.add('print-rcpt');
+          if (typeof window.setRcptPrintScaleIfNeeded === 'function'){
+            requestAnimationFrame(() => window.setRcptPrintScaleIfNeeded(sheet));
+          }
+          addEventListener('afterprint', () => {
+            document.documentElement.classList.remove('print-rcpt');
+            document.documentElement.style.removeProperty('--rcpt-scale');
+          }, { once:true });
+        }, { capture:true });
+      }
+    })();
+  </script>
+  <style>
+    /* Apply tiny scale only when printing receipt */
+    html.print-rcpt #htmlPrintHost .sheet.receipt,
+    html.print-rcpt #htmlPrintHost .sheet.rcpt{
+      transform: scale(var(--rcpt-scale, 1));
+      transform-origin: top left;
+      width: calc(210mm / var(--rcpt-scale, 1));
+      min-height:auto;
+    }
+  </style>
 </body>
 </html>
