@@ -2284,7 +2284,15 @@
       row.setAttribute('role','menuitem');
       row.tabIndex = idx===0 ? 0 : -1;
       row.dataset.name = name;
-      row.innerHTML = '<span>'+name+'</span><button class="ghost del" aria-label="Remove '+name+'" title="Remove">×</button>';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = name;
+      row.appendChild(nameSpan);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'ghost del';
+      delBtn.setAttribute('aria-label', 'Remove '+name);
+      delBtn.title = 'Remove';
+      delBtn.textContent = '×';
+      row.appendChild(delBtn);
       row.addEventListener('click', (e) => {
         if (e.target && e.target.classList && e.target.classList.contains('del')) return;
         const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
@@ -2300,24 +2308,21 @@
           if(match) match.focus();
         }
       });
-      const delBtn = row.querySelector('.del');
-      if (delBtn) {
-        delBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const ok = await confirmModal('Remove sheet "'+name+'" from the workbook?');
-          if(!ok) return;
-          const w = getWB(); if(!w) return;
-          delete w.Sheets[name];
-          w.SheetNames = (w.SheetNames || []).filter(n=>n!==name);
-          canonicalizeWorkbook();
-          toast('Removed sheet: '+name, 'good');
-          refreshSheetList();
-          const searchVal = (document.getElementById('sheetSearch')||{}).value || '';
-          renderSheetMenu(searchVal);
-          const items = Array.from(document.querySelectorAll('#sheetMenuList [role="menuitem"]'));
-          (items[idx] || items[idx-1])?.focus();
-        });
-      }
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const ok = await confirmModal('Remove sheet "'+name+'" from the workbook?');
+        if(!ok) return;
+        const w = getWB(); if(!w) return;
+        delete w.Sheets[name];
+        w.SheetNames = (w.SheetNames || []).filter(n=>n!==name);
+        canonicalizeWorkbook();
+        toast('Removed sheet: '+name, 'good');
+        refreshSheetList();
+        const searchVal = (document.getElementById('sheetSearch')||{}).value || '';
+        renderSheetMenu(searchVal);
+        const items = Array.from(document.querySelectorAll('#sheetMenuList [role="menuitem"]'));
+        (items[idx] || items[idx-1])?.focus();
+      });
       list.appendChild(row);
     });
     if (!list.children.length){
