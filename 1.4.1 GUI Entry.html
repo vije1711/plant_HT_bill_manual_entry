@@ -2292,7 +2292,7 @@
   function renderSheetMenu(filter=''){
     const list = document.getElementById('sheetMenuList');
     if(!list) return;
-    list.innerHTML = '';
+    list.textContent = '';
     const wb = getWB(); if(!wb) return;
     const names = sortDisplayNames(wb.SheetNames || []);
     const q = filter.trim().toLowerCase();
