@@ -886,30 +886,25 @@
 
       function prunePrintSheets(host){
         if (!host) return;
-        const sheets = Array.from(host.children).filter(el => el.classList.contains('sheet'));
+
+        const sheets = [...host.children].filter(el => el.classList.contains('sheet'));
         for (const el of sheets){
           const cs = window.getComputedStyle(el);
-          const hidden = el.hasAttribute('hidden') ||
-                        cs.display === 'none' ||
-                        cs.visibility === 'hidden';
+          const hidden = el.hidden || cs.display === 'none' || cs.visibility === 'hidden';
           const empty = !el.textContent.trim();
           if (hidden || empty) el.remove();
         }
-        const remaining = Array.from(host.children).filter(el => el.classList.contains('sheet'));
+
+        const remaining = [...host.children].filter(el => el.classList.contains('sheet'));
         if (remaining.length <= 1) return;
-        let keep = null;
-        for (let i = remaining.length - 1; i >= 0; i--){
-          const el = remaining[i];
-          if (el.classList.contains('receipt') || el.classList.contains('rcpt')){
-            keep = el;
-            break;
-          }
-        }
-        keep = keep || remaining[remaining.length - 1];
+
+        const keep = [...remaining].reverse().find(el => el.classList.contains('receipt') || el.classList.contains('rcpt'))
+                    || remaining[remaining.length - 1];
         for (const el of remaining){
           if (el !== keep) el.remove();
         }
       }
+
       window.prunePrintSheets = prunePrintSheets;
 
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
