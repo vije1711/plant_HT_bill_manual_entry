@@ -890,16 +890,24 @@
         const sheets = Array.from(host.children).filter(el => el.classList.contains('sheet'));
         for (const el of sheets){
           const cs = window.getComputedStyle(el);
-          const isHidden = el.hidden || cs.display === 'none' || cs.visibility === 'hidden';
-          const isEmpty = !el.textContent.trim();
-          if (isHidden || isEmpty) el.remove();
+          const hidden = el.hasAttribute('hidden') ||
+                         cs.display === 'none' ||
+                         cs.visibility === 'hidden';
+          const empty  = !el.textContent.trim();
+          if (hidden || empty) el.remove();
         }
 
         const remaining = Array.from(host.children).filter(el => el.classList.contains('sheet'));
         if (remaining.length <= 1) return;
-
-        const keep = [...remaining].reverse().find(el => el.classList.contains('receipt') || el.classList.contains('rcpt'))
-                    || remaining[remaining.length - 1];
+        let keep = null;
+        for (let i = remaining.length - 1; i >= 0; i--){
+          const el = remaining[i];
+          if (el.classList.contains('receipt') || el.classList.contains('rcpt')){
+            keep = el;
+            break;
+          }
+        }
+        keep = keep || remaining[remaining.length - 1];
         for (const el of remaining){
           if (el !== keep) el.remove();
         }
