@@ -894,19 +894,28 @@
 
       function prunePrintSheets(host){
         if (!host) return;
-        // 1) Remove any sheet that is hidden, not displayed, or empty
-        const all = Array.from(host.querySelectorAll('.sheet'));
-        all.forEach(s => {
+        // Remove hidden/empty sheets first (use computed styles for robustness)
+        const allSheets = [...host.querySelectorAll('.sheet')];
+        allSheets.forEach(s => {
           const cs = getComputedStyle(s);
-          if (s.hidden || cs.display === 'none' || cs.visibility === 'hidden' || !s.innerHTML.trim()) s.remove();
+          const isEmpty = s.matches(':empty');
+          const isHidden = s.hidden || cs.display === 'none' || cs.visibility === 'hidden';
+          if (isEmpty || isHidden) s.remove();
         });
 
-        // 2) Ensure only one relevant sheet remains before printing
-        const viable = Array.from(host.querySelectorAll('.sheet'));
-        if (viable.length <= 1) return;
-        const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop()
-          || viable[viable.length - 1];
-        viable.forEach(s => { if (s !== lastTagged) s.remove(); });
+        // Fast-path: if exactly one non-empty sheet remains, nothing to do
+        {
+          const remaining = [...host.querySelectorAll('.sheet')].filter(s => !s.matches(':empty'));
+          if (remaining.length === 1){
+            return;
+          }
+        }
+
+        const sheets = [...host.querySelectorAll('.sheet')];
+        // Prefer a tagged receipt sheet if present; otherwise keep the last sheet
+        const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop();
+        const keep = lastTagged || sheets[sheets.length - 1];
+        sheets.forEach(s => { if (s !== keep) s.remove(); });
       }
 
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
