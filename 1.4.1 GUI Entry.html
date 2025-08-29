@@ -1179,7 +1179,7 @@
             const demand=num('B4');
             const t1=parseFloat($('tar_MD_SLAB1')?.value)||0;
             const t2=parseFloat($('tar_MD_SLAB2')?.value)||0;
-            B=(demand - 500*t1 - 500*t2)/C; B=round2(B); break; }
+            B = C ? round2((demand - 500*t1 - 500*t2)/C) : 0; break; }
           case 'EC_SLAB1':
             B=num('A4'); break;
           case 'TOD_PEAK':{
