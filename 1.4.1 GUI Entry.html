@@ -835,9 +835,8 @@
               document.documentElement.classList.add('print-rcpt');
               prunePrintSheets(host);
               const sheet = host && (host.querySelector('.sheet.receipt') || host.querySelector('.sheet.rcpt'));
-              if (sheet){
-                const doFit = () => {
-                  try {
+              const doFit = () => {
+                try {
                   if (typeof window.setRcptPrintScaleIfNeeded === 'function') window.setRcptPrintScaleIfNeeded(sheet);
                 } catch(_) {}
               };
@@ -850,11 +849,6 @@
                   try { window.focus(); } catch {}
                   window.print();
                 });
-            } else {
-              // Legacy fallback: still honor print if no sheet detected.
-              try { window.focus(); } catch {}
-              window.print();
-            }
             const cleanup = () => {
               document.title = prevTitle;
               document.documentElement.classList.remove('print-rcpt');
