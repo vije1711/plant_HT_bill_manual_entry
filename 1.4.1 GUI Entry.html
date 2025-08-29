@@ -1270,6 +1270,12 @@
         el.value = el.value.replace(/e/ig,'');
       }else{
         delete el.dataset.sci;
+        const hint = el.nextElementSibling;
+        if(hint && hint.classList.contains('hint')){
+          hint.textContent='';
+          hint.style.display='none';
+          el.classList.remove('invalid');
+        }
       }
       const raw = el.value.replace(/[^0-9.\-]/g,'');
       const v = parseFloat(raw);
@@ -2415,6 +2421,13 @@
           el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
           el.addEventListener('blur', ()=>parseInrInput(el));
         }else if(el.type==='number'){
+          el.addEventListener('keydown', (e)=>{
+            if(e.key==='e' || e.key==='E'){
+              e.preventDefault();
+              showSciHint(el);
+              el.dataset.sci='1';
+            }
+          });
           el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
           el.addEventListener('blur', ()=>parseInrInput(el,false));
         }else{
