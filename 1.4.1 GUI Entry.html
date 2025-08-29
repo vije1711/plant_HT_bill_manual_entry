@@ -891,25 +891,28 @@
       }
 
       function prunePrintSheets(host){
-        if(!host) return;
+        if (!host) return;
         const sheets = Array.from(host.querySelectorAll('.sheet'));
         sheets.forEach(s => {
           try{
             const cs = window.getComputedStyle(s);
-            const hidden = s.hasAttribute('hidden') || cs.display==='none' || cs.visibility==='hidden';
+            const hidden = s.hasAttribute('hidden') ||
+                          cs.display === 'none' ||
+                          cs.visibility === 'hidden' ||
+                          !s.offsetHeight;
             const empty = !s.textContent.trim();
-            if(hidden || empty) s.remove();
+            if (hidden || empty) s.remove();
           }catch{}
         });
         const remaining = Array.from(host.querySelectorAll('.sheet'));
-        if(remaining.length<=1) return;
+        if (remaining.length <= 1) return;
         let keep = null;
-        for(let i=remaining.length-1;i>=0;i--){
+        for (let i = remaining.length - 1; i >= 0; i--){
           const el = remaining[i];
-          if(el.classList.contains('receipt')||el.classList.contains('rcpt')){ keep = el; break; }
+          if (el.classList.contains('receipt') || el.classList.contains('rcpt')){ keep = el; break; }
         }
-        if(!keep) keep = remaining[remaining.length-1];
-        remaining.forEach(el => { if(el!==keep) el.remove(); });
+        keep = keep || remaining[remaining.length-1];
+        remaining.forEach(el => { if (el !== keep) el.remove(); });
       }
       window.prunePrintSheets = prunePrintSheets;
 
