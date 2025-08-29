@@ -2946,11 +2946,12 @@
   <style id="print-guard-receipt">
   @media print{
     /* Hide chrome; keep rendered sheet visible */
-    header, .toolbar, .card:not(.sheet), #toasts, .ui, .footer { display:none !important; }
+    header, .toolbar, .card:not(.sheet), #toasts, .ui { display:none !important; }
     #htmlPrintHost { display:block !important; }
     /* Base sheet rules for print host (neutral) */
     #htmlPrintHost .sheet{
-      display:block !important; border:none; width:auto; margin:0;
+      display:block !important; border:none; width:auto; min-height:auto; margin:0;
+      padding:0 0 16mm 0; break-inside:avoid;
       -webkit-print-color-adjust:exact; print-color-adjust:exact;
     }
     /* RECEIPT-ONLY tightening to prevent fractional overflow */
