@@ -887,15 +887,15 @@
       function prunePrintSheets(host){
         if (!host) return;
 
-        const sheets = [...host.children].filter(el => el.classList.contains('sheet'));
+        const sheets = Array.from(host.children).filter(el => el.classList.contains('sheet'));
         for (const el of sheets){
           const cs = window.getComputedStyle(el);
-          const hidden = el.hidden || cs.display === 'none' || cs.visibility === 'hidden';
-          const empty = !el.textContent.trim();
-          if (hidden || empty) el.remove();
+          const isHidden = el.hidden || cs.display === 'none' || cs.visibility === 'hidden';
+          const isEmpty = !el.textContent.trim();
+          if (isHidden || isEmpty) el.remove();
         }
 
-        const remaining = [...host.children].filter(el => el.classList.contains('sheet'));
+        const remaining = Array.from(host.children).filter(el => el.classList.contains('sheet'));
         if (remaining.length <= 1) return;
 
         const keep = [...remaining].reverse().find(el => el.classList.contains('receipt') || el.classList.contains('rcpt'))
