@@ -893,30 +893,27 @@
       }
 
       function prunePrintSheets(host){
-        if (!host) return;
-        // Remove hidden/empty sheets first (use computed styles for robustness)
-        const allSheets = [...host.querySelectorAll('.sheet')];
-        allSheets.forEach(s => {
-          const cs = getComputedStyle(s);
-          const isEmpty = s.matches(':empty');
-          const isHidden = s.hidden || cs.display === 'none' || cs.visibility === 'hidden';
-          if (isEmpty || isHidden) s.remove();
+        if(!host) return;
+        const sheets = Array.from(host.querySelectorAll('.sheet'));
+        sheets.forEach(s => {
+          try{
+            const cs = window.getComputedStyle(s);
+            const hidden = s.hasAttribute('hidden') || cs.display==='none' || cs.visibility==='hidden';
+            const empty = !s.textContent.trim();
+            if(hidden || empty) s.remove();
+          }catch{}
         });
-
-        // Fast-path: if exactly one non-empty sheet remains, nothing to do
-        {
-          const remaining = [...host.querySelectorAll('.sheet')].filter(s => !s.matches(':empty'));
-          if (remaining.length === 1){
-            return;
-          }
+        const remaining = Array.from(host.querySelectorAll('.sheet'));
+        if(remaining.length<=1) return;
+        let keep = null;
+        for(let i=remaining.length-1;i>=0;i--){
+          const el = remaining[i];
+          if(el.classList.contains('receipt')||el.classList.contains('rcpt')){ keep = el; break; }
         }
-
-        const sheets = [...host.querySelectorAll('.sheet')];
-        // Prefer a tagged receipt sheet if present; otherwise keep the last sheet
-        const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop();
-        const keep = lastTagged || sheets[sheets.length - 1];
-        sheets.forEach(s => { if (s !== keep) s.remove(); });
+        if(!keep) keep = remaining[remaining.length-1];
+        remaining.forEach(el => { if(el!==keep) el.remove(); });
       }
+      window.prunePrintSheets = prunePrintSheets;
 
       const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/'/g,'&#39;');
       const INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
@@ -2467,6 +2464,7 @@
         const finish = () => {
           if (done) return;
           done = true;
+          try { document.documentElement.classList.remove('print-rcpt'); } catch(_) {}
           try { setBusy(host, false); } catch(_) {}
           try { reenable?.(); } catch(_) {}
           window.removeEventListener('afterprint', finish, { once: true });
@@ -2549,12 +2547,12 @@
         const host = document.getElementById('htmlPrintHost');
         if (!host) { toast('Please render a preview first.', 'warn'); return; }
         if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
-        // Remove empty/hidden sheets to avoid blank pages in print
-        prunePrintSheets(host);
         if (!host.querySelector('.sheet')) {
           toast('Please render a preview first.', 'warn');
           return;
         }
+        document.documentElement.classList.add('print-rcpt');
+        prunePrintSheets(host);
         // prevent re-entrancy while printing
         setDisabled(btnSave, true);
         setDisabled(btnOpen, true);
