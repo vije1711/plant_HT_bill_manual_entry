@@ -891,8 +891,7 @@
           const cs = window.getComputedStyle(el);
           const hidden = el.hasAttribute('hidden') ||
                         cs.display === 'none' ||
-                        cs.visibility === 'hidden' ||
-                        !el.offsetHeight;
+                        cs.visibility === 'hidden';
           const empty = !el.textContent.trim();
           if (hidden || empty) el.remove();
         }
