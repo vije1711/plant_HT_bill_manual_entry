@@ -892,7 +892,8 @@
 
       function prunePrintSheets(host){
         if (!host) return;
-        for (const el of Array.from(host.querySelectorAll('.sheet'))){
+        const sheets = Array.from(host.children).filter(el => el.classList.contains('sheet'));
+        for (const el of sheets){
           const cs = window.getComputedStyle(el);
           const hidden = el.hasAttribute('hidden') ||
                         cs.display === 'none' ||
@@ -901,18 +902,18 @@
           const empty = !el.textContent.trim();
           if (hidden || empty) el.remove();
         }
-        const sheets = Array.from(host.querySelectorAll('.sheet'));
-        if (sheets.length <= 1) return;
+        const remaining = Array.from(host.children).filter(el => el.classList.contains('sheet'));
+        if (remaining.length <= 1) return;
         let keep = null;
-        for (let i = sheets.length - 1; i >= 0; i--){
-          const el = sheets[i];
+        for (let i = remaining.length - 1; i >= 0; i--){
+          const el = remaining[i];
           if (el.classList.contains('receipt') || el.classList.contains('rcpt')){
             keep = el;
             break;
           }
         }
-        keep = keep || sheets[sheets.length - 1];
-        for (const el of sheets){
+        keep = keep || remaining[remaining.length - 1];
+        for (const el of remaining){
           if (el !== keep) el.remove();
         }
       }
