@@ -1766,7 +1766,9 @@
               try{ const w = window.open('', '_blank', 'noopener,noreferrer');
                    if (w){ w.document.open(); w.document.write(html); w.document.close(); return; } }catch(_){ }
               try{ const blob = new Blob([html], {type:'text/html'}); const url = URL.createObjectURL(blob);
-                   const w2 = window.open(url, '_blank', 'noopener,noreferrer'); if(!w2){ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
+                   const w2 = window.open(url, '_blank', 'noopener,noreferrer');
+                   setTimeout(() => URL.revokeObjectURL(url), 1000);
+                   if(!w2){ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
             });
           }
         }
@@ -2941,6 +2943,7 @@
         const blob = new Blob([html], {type:'text/html'});
         const url = URL.createObjectURL(blob);
         const w2 = window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         if (!w2) { try{ toast('Popup blocked. Allow popups or use “Save as PDF”.', 'warn'); }catch{ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }
       } catch(e) {
         try{ toast('Could not open print view: ' + (e?.message||e), 'bad'); }catch{ alert('Could not open print view: ' + (e?.message||e)); }
