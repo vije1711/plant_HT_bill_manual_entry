@@ -1207,7 +1207,7 @@
         if(s.code==='EC_SLAB1') dEnergy=D;
         G=(s.code==='WIND_ENERGY_CREDIT'||s.code.startsWith('ARREAR_'))?D:E*F;
         totalD+=D; totalG+=G;
-        sesRows.push({code:s.code,name:s.name,adj:F,rate:E,ses:G});
+        sesRows.push({code:s.code,name:s.name,qty:B,amt:D,adj:F,rate:E,ses:G});
         if(dEl) dEl.textContent = Math.abs(D)<0.005 ? '—' : INR.format(D);
         if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?'—':F.toFixed(prec);}
         if(gEl) gEl.textContent = Math.abs(G)<0.005 ? '—' : INR.format(G);
@@ -2056,8 +2056,25 @@
         else { cell.z = '#,##0.00'; }
       }
 
-      // Column widths + proper AutoFilter over the 5 columns (A:E)
-      ws['!cols'] = [{wch:18},{wch:32},{wch:8},{wch:16},{wch:36}];
+      updateRatesFromInputs();
+      computeSes();
+      const rateRows = [[]];
+      rateRows.push(["Service Code","Service Name","Qty (B)","Tariff (C)","Amt (D)","Contract Rate (E)","Unit Adj (F)","Amount SES (G)"]);
+      sesRows.forEach(r=>{
+        const C=tariffs.rates[r.code]||0;
+        const E=poRates.rates[r.code]||0;
+        rateRows.push([r.code,r.name,r.qty,C,r.amt,E,r.adj,r.ses]);
+      });
+      const preLast=XLSX.utils.decode_range(ws['!ref']).e.r;
+      XLSX.utils.sheet_add_aoa(ws, rateRows, {origin:-1});
+      const range=XLSX.utils.decode_range(ws['!ref']);
+      for(let R=preLast+3;R<=range.e.r;++R){
+        for(let C=2;C<=7;++C){
+          const cell=XLSX.utils.encode_cell({r:R,c:C});
+          if(ws[cell]){ws[cell].t='n'; ws[cell].z='0.00';}
+        }
+      }
+      ws['!cols']=[{wch:18},{wch:32},{wch:8},{wch:16},{wch:36},{wch:14},{wch:12},{wch:14}];
       ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{ r:firstDataRow-1, c:0 }, e:{ r:lastRow, c:4 } }) };
       return ws;
     }
