@@ -1207,7 +1207,7 @@
         if(s.code==='EC_SLAB1') dEnergy=D;
         G=(s.code==='WIND_ENERGY_CREDIT'||s.code.startsWith('ARREAR_'))?D:E*F;
         totalD+=D; totalG+=G;
-        sesRows.push({code:s.code,name:s.name,qty:B,amt:D,adj:F,rate:E,ses:G});
+        sesRows.push({code:s.code,name:s.name,adj:F,rate:E,ses:G});
         if(dEl) dEl.textContent = Math.abs(D)<0.005 ? '—' : INR.format(D);
         if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?'—':F.toFixed(prec);}
         if(gEl) gEl.textContent = Math.abs(G)<0.005 ? '—' : INR.format(G);
@@ -2062,26 +2062,6 @@
       return ws;
     }
 
-    function buildRatesSheet(){
-      computeSes();
-      const rows=[["Service Code","Service Name","Qty (B)","Tariff (C)","Amt (D)","Contract Rate (E)","Unit Adj (F)","Amount SES (G)"]];
-      sesRows.forEach(r=>{
-        const C=tariffs.rates[r.code]||0;
-        const E=poRates.rates[r.code]||0;
-        rows.push([r.code,r.name,r.qty,C,r.amt,E,r.adj,r.ses]);
-      });
-      const ws=XLSX.utils.aoa_to_sheet(rows);
-      const range=XLSX.utils.decode_range(ws['!ref']||'A1');
-      for(let R=1;R<=range.e.r;++R){
-        for(let C=2;C<=7;++C){
-          const cell=XLSX.utils.encode_cell({r:R,c:C});
-          if(ws[cell]) ws[cell].t='n', ws[cell].z='0.00';
-        }
-      }
-      ws['!cols']=[{wch:12},{wch:32},{wch:10},{wch:10},{wch:12},{wch:14},{wch:12},{wch:14}];
-      return ws;
-    }
-
       // --- Display-only sorting: canonical YYYY-MM first (desc), then legacy (stable) ---
       function sortDisplayNames(names){
         const isYYYYMM = n => /^\d{4}-(0[1-9]|1[0-2])$/.test(n);
@@ -2457,9 +2437,6 @@
           _wb.Sheets[label] = ws;
           if(!exists) _wb.SheetNames.push(label);
         }
-        updateRatesFromInputs();
-        _wb.Sheets["Rates"] = buildRatesSheet();
-        if(!_wb.SheetNames.includes("Rates")) _wb.SheetNames.push("Rates");
 
         canonicalizeWorkbook();
         if ((_wb.SheetNames?.length || 0) === 0) {
