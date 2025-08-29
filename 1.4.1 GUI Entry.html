@@ -2999,34 +2999,6 @@
         }catch(_){ }
       };
     }
-    // Do not override the earlier (enhanced) implementation.
-    window.prunePrintSheets = window.prunePrintSheets || function prunePrintSheets(host){
-      try{
-        if (!host) return;
-        // Remove hidden/empty sheets first (use computed styles for robustness)
-        const allSheets = [...host.querySelectorAll('.sheet')];
-        allSheets.forEach(s => {
-          const cs = getComputedStyle(s);
-          const isEmpty = s.matches(':empty');
-          const isHidden = s.hidden || cs.display === 'none' || cs.visibility === 'hidden';
-          if (isEmpty || isHidden) s.remove();
-        });
-
-        // Fast-path: if exactly one non-empty sheet remains, nothing to do
-        {
-          const remaining = [...host.querySelectorAll('.sheet')].filter(s => !s.matches(':empty'));
-          if (remaining.length === 1){
-            return;
-          }
-        }
-
-        const sheets = [...host.querySelectorAll('.sheet')];
-        // Prefer a tagged receipt sheet if present; otherwise keep the last sheet
-        const lastTagged = [...host.querySelectorAll('.sheet.receipt, .sheet.rcpt')].pop();
-        const keep = lastTagged || sheets[sheets.length - 1];
-        sheets.forEach(s => { if (s !== keep) s.remove(); });
-      }catch(_){ }
-    };
   </script>
   <style>
     /* Apply tiny scale only when printing receipt */
