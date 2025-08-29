@@ -1246,7 +1246,22 @@
 
     const toInr = v => INR.format(Number.isFinite(v) ? v : 0);
       const toRate = v => RATE.format(Number.isFinite(v) ? v : 0) + ' /kWh';
+    function showSciHint(el){
+      const hint = el.nextElementSibling;
+      if(hint && hint.classList.contains('hint')){
+        hint.textContent = 'Scientific notation not allowed.';
+        hint.style.display = 'block';
+        el.classList.add('invalid');
+      }
+    }
     function parseInrInput(el, format=true){
+      if(/e/i.test(el.value)){
+        showSciHint(el);
+        el.dataset.sci = '1';
+        el.value = el.value.replace(/e/ig,'');
+      }else{
+        delete el.dataset.sci;
+      }
       const raw = el.value.replace(/[^0-9.\-]/g,'');
       const v = parseFloat(raw);
       if(Number.isFinite(v)){
@@ -1293,7 +1308,6 @@
     function validate(){
       let ok = true;
       const percentIds = ['B15','D15','C16'];
-      const sciIds = ['A4','A17','B17','C17','D17','E17','B15','D15','C16'];
       document.querySelectorAll('input').forEach(el=>{
         if(el.type==='month' || el.type==='file') return;
         const hint = el.nextElementSibling;
@@ -1302,7 +1316,7 @@
         el.classList.remove('invalid');
 
         const raw = el.dataset.value ?? el.value;
-        if (sciIds.includes(el.id) && /e/i.test(String(raw))) {
+        if (el.dataset.sci === '1' || /e/i.test(String(raw))) {
           hint.textContent='Scientific notation not allowed.'; hint.style.display='block'; el.classList.add('invalid'); ok = false; return;
         }
         const val = parseFloat(raw);
@@ -2386,34 +2400,17 @@
 
       document.addEventListener('DOMContentLoaded', () => {
       initRatesManager();
-      // Apply INR masking ONLY outside the Central Dak Receipt card
-      document.querySelectorAll('input[type="text"]').forEach(el=>{
-        if (el.closest('#receiptCard')) return;
-        el.addEventListener('input', ()=>{ parseInrInput(el, false); compute(); });
-        el.addEventListener('blur', ()=>parseInrInput(el));
-      });
-      document.querySelectorAll('input:not([type="text"])').forEach(el=>{
-        el.addEventListener('input', compute);
-      });
-
-      const sciIds = ['A4','A17','B17','C17','D17','E17','B15','D15','C16'];
-      const showSciHint = el=>{
-        const hint = el.nextElementSibling;
-        if(hint && hint.classList.contains('hint')){
-          hint.textContent = 'Scientific notation not allowed.';
-          hint.style.display = 'block';
-          el.classList.add('invalid');
+      // Apply INR masking and numeric guards
+      document.querySelectorAll('input').forEach(el=>{
+        if(el.type==='text' && !el.closest('#receiptCard')){
+          el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
+          el.addEventListener('blur', ()=>parseInrInput(el));
+        }else if(el.type==='number'){
+          el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
+          el.addEventListener('blur', ()=>parseInrInput(el,false));
+        }else{
+          el.addEventListener('input', compute);
         }
-      };
-      sciIds.forEach(id=>{
-        const el=$(id); if(!el) return;
-        el.addEventListener('keydown', e=>{
-          if(e.key==='e' || e.key==='E'){ e.preventDefault(); showSciHint(el); }
-        });
-        el.addEventListener('paste', e=>{
-          const txt = (e.clipboardData || window.clipboardData).getData('text');
-          if(/e/i.test(txt)){ e.preventDefault(); showSciHint(el); }
-        });
       });
 
       ['B15','D15','C16'].forEach(id=>{
