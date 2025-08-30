@@ -449,16 +449,6 @@
             </div>
           </details>
         </div>
-        <!-- Analysis menu -->
-        <div class="menu" aria-label="Analysis">
-          <details>
-            <summary aria-haspopup="menu">Analysis ▾</summary>
-            <div class="menu-panel" role="menu">
-              <button id="analyzeWorkbook" role="menuitem" class="ghost">Build Monthly Trends</button>
-              <button id="exportAnalysisCsv" role="menuitem" class="ghost">Export Analysis CSV</button>
-            </div>
-          </details>
-        </div>
       </div>
       </header>
 
@@ -644,26 +634,6 @@
           <div class="actions" role="group" aria-label="Receipt actions">
             <button id="renderReceiptInCard" type="button" aria-label="Render Central Dak Receipt">Render Receipt</button>
             <button id="saveReceiptPdfInCard" type="button" class="ghost" aria-label="Save Central Dak Receipt as PDF">Save as PDF</button>
-          </div>
-        </section>
-        <!-- Data Analysis card -->
-        <section class="card span-12" id="analysisCard" hidden>
-          <h2>Data Analysis <span class="help">Trends across YYYY-MM sheets</span></h2>
-          <div id="analysisMeta" class="muted" style="margin-bottom:8px;"></div>
-          <div id="analysisChartHost" class="box" style="overflow:auto"><!-- inline SVG injected --></div>
-          <div class="hr"></div>
-          <div style="max-height:320px;overflow:auto">
-            <table id="analysisTable" style="width:100%;border-collapse:collapse;font-size:12px">
-              <thead>
-                <tr>
-                  <th style="text-align:left">Month</th>
-                  <th>A4 kWh</th><th>C9 ₹</th><th>H9 ₹</th><th>I9 ₹</th>
-                  <th>B19 ₹/kWh</th><th>A18 kWh</th><th>C18 kWh</th><th>C26 ₹</th>
-                  <th>Eff Rate ₹/kWh</th><th>Δ C9 MoM ₹</th><th>Δ% C9</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
           </div>
         </section>
     </div>
@@ -3080,135 +3050,5 @@
       min-height:auto;
     }
   </style>
-  <script>
-    (()=>{
-      const fmtINR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
-      const fmt0  = new Intl.NumberFormat('en-IN',{maximumFractionDigits:0});
-      const fmt2  = new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-      // Rates (₹/kWh) should be numeric, not currency:
-      const fmtRate = new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-      function rowGet(ws, addr){
-        const cell = ws && ws[addr];
-        if(!cell) return 0;
-        const v = cell.v != null ? cell.v : cell.w;
-        if(typeof v === 'number') return v;
-        if(typeof v === 'string'){
-          const num = parseFloat(v.replace(/[^0-9.+-]/g,''));
-          return isFinite(num) ? num : 0;
-        }
-        return 0;
-      }
-
-      function deriveMetrics(ws){
-        const A4 = rowGet(ws,'A4');
-        const C9 = rowGet(ws,'C9');
-        const H9 = rowGet(ws,'H9');
-        const I9 = rowGet(ws,'I9');
-        const B19 = rowGet(ws,'B19');
-        const A18 = rowGet(ws,'A18');
-        const C18 = rowGet(ws,'C18');
-        const C26 = rowGet(ws,'C26');
-        const eff = A4 ? C9 / A4 : 0;
-        return {A4,C9,H9,I9,B19,A18,C18,C26,eff};
-      }
-
-      function computeMoM(arr,key){
-        const deltas=[0];
-        for(let i=1;i<arr.length;i++) deltas[i] = arr[i][key] - arr[i-1][key];
-        return deltas;
-      }
-
-      function drawSparkline(host, series, w=900, h=180, pad=24){
-        const min = Math.min(...series);
-        const max = Math.max(...series);
-        const span = max - min || 1;
-        const step = series.length>1 ? (w-2*pad)/(series.length-1) : 0;
-        const pts = series.map((v,i)=>{
-          const x = pad + i*step;
-          const y = h - pad - ((v-min)/span)*(h-2*pad);
-          return `${x},${y}`;
-        }).join(' ');
-        host.innerHTML = `<svg role="img" aria-label="Current Month Bill (C9, INR) trend over months" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`
-          +`<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts}"/>`
-          +`<line x1="0" x2="${w}" y1="${h-pad}" y2="${h-pad}" stroke="var(--muted)" stroke-width="1"/></svg>`;
-      }
-
-      async function analyzeAllSheets(){
-        return withBusy('analyzeWorkbook', async ()=>{
-          let wb = typeof getWB === 'function' ? getWB() : null;
-          if(!wb || !Object.keys(wb.Sheets||{}).length){
-            const file = document.getElementById('uploadXlsx')?.files?.[0];
-            if(file && await loadXLSX()){
-              const data = new Uint8Array(await file.arrayBuffer());
-              wb = XLSX.read(data,{type:'array'});
-            } else {
-              toast('No workbook loaded...');
-              return;
-            }
-          }
-          const sheets = Object.keys(wb.Sheets).filter(n=>/^\d{4}-\d{2}$/.test(n)).sort();
-          if(!sheets.length){ toast('No YYYY-MM sheets found.'); return; }
-          const rows = sheets.map(name=>({month:name,...deriveMetrics(wb.Sheets[name])}));
-          const deltas = computeMoM(rows,'C9');
-          rows.forEach((r,i)=>{
-            r.deltaC9 = deltas[i];
-            r.deltaPct = i && rows[i-1].C9 ? (deltas[i]/rows[i-1].C9*100) : 0;
-          });
-          window.__analysisRows = rows;
-
-          const tbody = document.querySelector('#analysisTable tbody');
-          if(tbody){
-            tbody.innerHTML='';
-            rows.forEach(r=>{
-              const tr=document.createElement('tr');
-              tr.innerHTML =
-                `<td>${r.month}</td>`+
-                `<td style="text-align:right">${fmt0.format(r.A4)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.C9)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.H9)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.I9)}</td>`+
-                `<td style="text-align:right">${fmtRate.format(r.B19)}</td>`+
-                `<td style="text-align:right">${fmt0.format(r.A18)}</td>`+
-                `<td style="text-align:right">${fmt0.format(r.C18)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.C26)}</td>`+
-                `<td style="text-align:right">${fmtRate.format(r.eff)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.deltaC9)}</td>`+
-                `<td style="text-align:right">${fmt2.format(r.deltaPct)}%</td>`;
-              tbody.appendChild(tr);
-            });
-          }
-
-          const meta = document.getElementById('analysisMeta');
-          if(meta) meta.textContent = `Sheets analyzed: ${rows.length} • Range: ${rows[0].month} → ${rows[rows.length-1].month}`;
-          drawSparkline(document.getElementById('analysisChartHost'), rows.map(r=>r.C9));
-          const card = document.getElementById('analysisCard');
-          if(card) card.hidden = false;
-        });
-      }
-
-      function exportAnalysisCsv(){
-        const rows = window.__analysisRows;
-        if(!rows || !rows.length){ toast('No analysis data to export.'); return; }
-        const header = ['Month','A4_kWh','C9_INR','H9_INR','I9_INR','B19_RsPerKWh','A18_kWh','C18_kWh','C26_INR','EffRate_RsPerKWh','DeltaC9_INR','DeltaC9_pct'];
-        const lines = [header.join(',')];
-        rows.forEach(r=>{
-          lines.push([r.month,r.A4,r.C9,r.H9,r.I9,r.B19,r.A18,r.C18,r.C26,r.eff,r.deltaC9,r.deltaPct].join(','));
-        });
-        const blob = new Blob([lines.join('\n')],{type:'text/csv'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'WEG_Analysis.csv';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);
-      }
-
-      document.addEventListener('DOMContentLoaded',()=>{
-        document.getElementById('analyzeWorkbook')?.addEventListener('click', analyzeAllSheets);
-        document.getElementById('exportAnalysisCsv')?.addEventListener('click', exportAnalysisCsv);
-      });
-    })();
-  </script>
 </body>
 </html>
