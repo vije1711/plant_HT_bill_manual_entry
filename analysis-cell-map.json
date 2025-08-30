@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "positional_cells": {
+    "A4_kWh": "A4",
+    "C9_CurrentMonthBill_INR": "C9",
+    "H9_NetPayable_INR": "H9",
+    "I9_ActualPaid_INR": "I9",
+    "B19_WindRate_RsPerKWh": "B19",
+    "A18_Bitlavadia_kWh": "A18",
+    "C18_Nanisindhodi_kWh": "C18",
+    "C26_NetWindCredit_INR": "C26"
+  },
+  "derived": {
+    "A9_TotConsumptionCharge": "A9 = B4+C4+D4+E4−F4−G4+H4+I4",
+    "B9_ED_20pct": "B9 = A9×0.2",
+    "C9_CurrentMonthBill": "C9 = A9+B9",
+    "A19_TotalAllocated": "A19 = A18+C18",
+    "B19_WindRate": "B19 = IF(A19=0,0,C26/A19)"
+  },
+  "tidy_export": {
+    "has_header_row": true,
+    "cell_column_header": "CELL",
+    "value_column_header": "VALUE",
+    "cell_col_letter": "C",
+    "value_col_letter": "D"
+  },
+  "mismatches": []
+}
