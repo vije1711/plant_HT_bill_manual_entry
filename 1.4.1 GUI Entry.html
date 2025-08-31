@@ -3082,6 +3082,14 @@
   </style>
   <script>
     (()=>{
+      // ---- helpers ---------------------------------------------------------
+      function normalizeNumber(raw){
+        if (raw == null) return 0;
+        if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
+        const s = String(raw).replace(/[^0-9.+-]/g, ''); // drop ₹, commas, units
+        const n = parseFloat(s);
+        return Number.isFinite(n) ? n : 0;
+      }
       const fmtINR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
       const fmt0  = new Intl.NumberFormat('en-IN',{maximumFractionDigits:0});
       const fmt2  = new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -3116,7 +3124,7 @@
           })
           .catch(()=>{ warnOnce('[analysis] map missing; using legacy cell addresses'); });
       }
-
+      // Canonical layout: B=FIELD, C=CELL, D=values, E=UNITS/NOTES (ignored)
       function buildCellMap(ws){
         try{
           if(ws.__cellMap) return ws.__cellMap;
@@ -3127,30 +3135,36 @@
             for(let C=0; C<=Math.min(ref.e.c, 16); C++){
               const cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
               if(cell && String(cell.v).trim().toUpperCase() === 'CELL'){
-                headerRow = R; colCell = C; colVal = C + 1; break;
+                headerRow = R; colCell = C;
+                // Numeric values live immediately right of CELL (e.g., C -> D).
+                // The following column (typically E) holds UNITS/NOTES and is ignored.
+                colVal = C + 1;
+                break;
               }
             }
             if(colCell >= 0) break;
           }
-          // Prefer an explicit VALUE header if present on the same header row
+          // Prefer an explicit VALUE header if present on the same header row.
+          // "UNITS/NOTES" is not a numeric column and must be ignored.
           if(headerRow >= 0){
             for(let C=0; C<=Math.min(ref.e.c, 16); C++){
               const vcell = ws[XLSX.utils.encode_cell({r:headerRow,c:C})];
-              if(vcell && String(vcell.v).trim().toUpperCase() === 'VALUE'){ colVal = C; break; }
+              const hv = vcell && String(vcell.v).trim().toUpperCase();
+              if(hv === 'VALUE'){ colVal = C; break; }
             }
           }
-          // If VALUE not found, try the first numeric-looking column to the right of CELL
+          // If we still haven't confirmed, sniff to the right of CELL as a last resort.
+          // This preserves robustness for atypical sheets while preferring our layout.
           if(headerRow >= 0 && colCell >= 0 && colVal === colCell + 1){
             let found = false;
             for(let C = colCell + 1; C <= Math.min(ref.e.c, 16); C++){
-              // Peek a couple of rows to see if they’re numeric
+              // Peek a couple of rows to see if they're numeric
               let sawNumeric = 0, sawTotal = 0;
               for(let R = headerRow + 1; R <= Math.min(headerRow + 6, ref.e.r); R++){
                 const probe = ws[XLSX.utils.encode_cell({r:R,c:C})];
                 if(!probe) continue; sawTotal++;
-                const raw = probe.v ?? probe.w;
-                if(typeof raw === 'number') { sawNumeric++; continue; }
-                if(typeof raw === 'string' && /^[\s+-]?\d+(\.\d+)?$/.test(raw.trim())) sawNumeric++;
+                const n = normalizeNumber(probe.v ?? probe.w);
+                if(Number.isFinite(n) && n !== 0) sawNumeric++;
               }
               if(sawTotal && sawNumeric / sawTotal >= 0.6){ colVal = C; found = true; break; }
             }
@@ -3162,17 +3176,7 @@
               const valCell = ws[XLSX.utils.encode_cell({r:R,c:colVal})];
               const key = keyCell && String(keyCell.v || keyCell.w || '').trim().toUpperCase();
               if(!key) continue;
-              let v = 0;
-              if(valCell){
-                if(typeof valCell.v === 'number') v = valCell.v;
-                else if(valCell.v != null || valCell.w != null){
-                  // Only treat as numeric if it looks numeric; avoid coercing "E4" -> 4
-                  const raw = String(valCell.v ?? valCell.w).trim();
-                  const isNum = /^[\s+-]?\d+(\.\d+)?$/.test(raw);
-                  const num = isNum ? parseFloat(raw) : NaN;
-                  v = Number.isFinite(num) ? num : 0;
-                }
-              }
+              const v = normalizeNumber(valCell ? (valCell.v ?? valCell.w) : 0);
               map[key] = v;
             }
           }
@@ -3185,11 +3189,8 @@
         const cell = ws && ws[addr];
         if(cell){
           const v = cell.v != null ? cell.v : cell.w;
-          if(typeof v === 'number') return v;
-          if(typeof v === 'string'){
-            const num = parseFloat(v.replace(/[^0-9.+-]/g,''));
-            return isFinite(num) ? num : 0;
-          }
+          const num = normalizeNumber(v);
+          if(num || num === 0) return num;
         }
         const map = buildCellMap(ws);
         const key = String(addr || '').toUpperCase();
