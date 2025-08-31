@@ -650,6 +650,22 @@
         <section class="card span-12" id="analysisCard" hidden>
           <h2>Data Analysis <span class="help">Trends across YYYY-MM sheets</span></h2>
           <div id="analysisMeta" class="muted" style="margin-bottom:8px;"></div>
+          <div id="analysisControls" class="muted" style="display:flex; align-items:center; gap:8px; margin:6px 0;">
+            <label for="analysisMetric" style="font-size:12px;">Metric</label>
+            <select id="analysisMetric" style="height:28px; line-height:28px; padding:0 6px;">
+              <option value="A4">A4</option>
+              <option value="C9" selected>C9</option>
+              <option value="H9">H9</option>
+              <option value="I9">I9</option>
+              <option value="B19">B19</option>
+              <option value="A18">A18</option>
+              <option value="C18">C18</option>
+              <option value="C26">C26</option>
+              <option value="EffRate">EffRate</option>
+              <option value="ΔC9">ΔC9</option>
+              <option value="Δ%C9">Δ%C9</option>
+            </select>
+          </div>
           <div id="analysisChartHost" class="box" style="overflow:auto"><!-- inline SVG injected --></div>
           <div class="hr"></div>
           <div style="max-height:320px;overflow:auto">
@@ -3371,7 +3387,29 @@
 
           const meta = document.getElementById('analysisMeta');
           if(meta) meta.textContent = `Sheets analyzed: ${rows.length} • Range: ${rows[0].month} → ${rows[rows.length-1].month}`;
-          drawSparkline(document.getElementById('analysisChartHost'), rows.map(r=>r.C9));
+          // Sparkline metric selector
+          const chartHost = document.getElementById('analysisChartHost');
+          const metricSel = document.getElementById('analysisMetric');
+          const metricKey = (val)=>{
+            switch(String(val||'C9')){
+              case 'EffRate': return 'eff';
+              case 'ΔC9': return 'deltaC9';
+              case 'Δ%C9': return 'deltaPct';
+              case 'A4': case 'C9': case 'H9': case 'I9': case 'B19': case 'A18': case 'C18': case 'C26':
+                return String(val);
+              default: return 'C9';
+            }
+          };
+          const renderSpark = () => {
+            const key = metricKey(metricSel?.value || 'C9');
+            const series = rows.map(r => Number(r[key]) || 0);
+            drawSparkline(chartHost, series);
+          };
+          if (metricSel && !metricSel.dataset.bound) {
+            metricSel.dataset.bound = '1';
+            metricSel.addEventListener('change', renderSpark);
+          }
+          renderSpark();
           const card = document.getElementById('analysisCard');
           if(card) card.hidden = false;
         });
