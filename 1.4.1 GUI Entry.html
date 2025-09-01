@@ -1414,6 +1414,7 @@
     function validate(){
       let ok = true;
       const percentIds = ['B15','D15','C16'];
+      const negativeOkIds = ['G9'];
       document.querySelectorAll('input').forEach(el=>{
         if(el.type==='month' || el.type==='file') return;
         const hint = el.nextElementSibling;
@@ -1430,7 +1431,7 @@
 
         if (percentIds.includes(el.id)) {
           if (val < 0 || val > 100) { hint.textContent='0–100 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false; }
-        } else if (val < 0) {
+        } else if (!negativeOkIds.includes(el.id) && val < 0) {
           hint.textContent='≥ 0 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false;
         }
       });
