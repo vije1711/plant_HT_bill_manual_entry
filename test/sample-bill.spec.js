@@ -54,10 +54,10 @@ test('reference bill calculations', async () => {
   close(qty('TOD_PEAK'), 492888);
   close(tar('TOD_PEAK'), 0.85);
   close(amt('TOD_PEAK'), 418954.80);
-  close(qty('TOD_NIGHT_REBATE'), -62299.15);
+  close(qty('TOD_NIGHT_REBATE'), 6229914.60);
   close(tar('TOD_NIGHT_REBATE'), 1.5);
-  close(amt('TOD_NIGHT_REBATE'), -93448.72);
-  close(qty('PF_CHARGE_SLAB1'), -62299.15);
+  close(amt('TOD_NIGHT_REBATE'), -1 * qty('TOD_NIGHT_REBATE') * 1.5);
+  close(qty('PF_CHARGE_SLAB1'), 6229914.60);
   close(tar('PF_CHARGE_SLAB1'), 2.35);
   close(amt('PF_CHARGE_SLAB1'), qty('PF_CHARGE_SLAB1') * 2.35);
   close(qty('ARREAR_ED'), 10924059.54);
@@ -67,9 +67,9 @@ test('reference bill calculations', async () => {
   // Changing D4 should not affect TOD_NIGHT_REBATE
   setVal('D4', 5000);
   dom.window.compute();
-  close(qty('TOD_NIGHT_REBATE'), -62299.15);
-  close(amt('TOD_NIGHT_REBATE'), -93448.72);
-  close(qty('PF_CHARGE_SLAB1'), -62299.15);
+  close(qty('TOD_NIGHT_REBATE'), 6229914.60);
+  close(amt('TOD_NIGHT_REBATE'), -1 * qty('TOD_NIGHT_REBATE') * 1.5);
+  close(qty('PF_CHARGE_SLAB1'), 6229914.60);
   close(amt('PF_CHARGE_SLAB1'), qty('PF_CHARGE_SLAB1') * 2.35);
   close(qty('ARREAR_ED'), 10929059.54);
   close(amt('ARREAR_ED'), 2185811.91);

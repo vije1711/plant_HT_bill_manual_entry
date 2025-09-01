@@ -1059,15 +1059,15 @@
     const SERVICE_HINTS = {
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'Hint: from “TOU” (HT Bill → H4)',
-      TOD_NIGHT_REBATE: 'Hint: from “EHV Rebate” (HT Bill → G4)',
-      PF_CHARGE_SLAB1: 'Qty auto = Night Rebate kWh; enter PF rate (₹/kWh)',
+      TOD_NIGHT_REBATE: 'Qty auto = EC_SLAB1 Amt (D)',
+      PF_CHARGE_SLAB1: 'Qty auto = EC_SLAB1 Amt (D); PF rate acts as a multiplier',
       ARREAR_ED: 'Hint: Enter Consumption Charges (base for ED)'
     };
     const QTY_PLACEHOLDERS = {
-      PF_CHARGE_SLAB1: 'Auto: Night Rebate kWh',
+      PF_CHARGE_SLAB1: 'Auto: EC_SLAB1 Amt (D)',
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'kWh @ TOU (peak)',
-      TOD_NIGHT_REBATE: 'kWh (night rebate)',
+      TOD_NIGHT_REBATE: 'Auto: EC_SLAB1 Amt (D)',
       ARREAR_ED: 'Consumption Charges (₹)'
     };
     const SERVICE_CODES = SERVICE_LIST.map(s=>s.code);
@@ -1278,10 +1278,13 @@
           case 'TOD_PEAK':{
             const tou=num('H4'); B=C?round2(tou/C):0; break; }
           case 'TOD_NIGHT_REBATE':{
-            const evh = num('G4'); // EHV Rebate (₹)
-            B = C ? round2((-evh)/C) : 0; break; }
-          case 'PF_CHARGE_SLAB1':
-            B=parseFloat($('qty_TOD_NIGHT_REBATE')?.value)||0; break;
+            const dTxt = $('d_EC_SLAB1')?.textContent || '';
+            const dVal = parseFloat(String(dTxt).replace(/[^0-9.\-]/g,'')) || 0;
+            B = dVal; break; }
+          case 'PF_CHARGE_SLAB1':{
+            const dTxt = $('d_EC_SLAB1')?.textContent || '';
+            const dVal = parseFloat(String(dTxt).replace(/[^0-9.\-]/g,'')) || 0;
+            B = dVal; break; }
           case 'ARREAR_ED':{
             const tot=num('B4')+num('C4')+num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4');
             B=round2(tot); break; }
@@ -1295,6 +1298,10 @@
           F=D;
         }else{
           D=B*C;
+          // Ensure Night Rebate is a credit (negative amount & SES):
+          if (s.code==='TOD_NIGHT_REBATE') {
+            D = -Math.abs(D);
+          }
           F=E?D/E:0;
         }
         if(s.code==='EC_SLAB1') dEnergy=D;
