@@ -1060,7 +1060,7 @@
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'Hint: from “TOU” (HT Bill → H4)',
       TOD_NIGHT_REBATE: 'Qty auto = EC_SLAB1 Amt (D)',
-      PF_CHARGE_SLAB1: 'Qty auto = EC_SLAB1 Amt (D); PF rate acts as a multiplier',
+      PF_CHARGE_SLAB1: 'Qty auto = EC_SLAB1 Amt (D); PF rate acts as a multiplier (credit)',
       ARREAR_ED: 'Hint: Enter Consumption Charges (base for ED)'
     };
     const QTY_PLACEHOLDERS = {
@@ -1298,8 +1298,8 @@
           F=D;
         }else{
           D=B*C;
-          // Ensure Night Rebate is a credit (negative amount & SES):
-          if (s.code==='TOD_NIGHT_REBATE') {
+          // Ensure Night Rebate and PF Charge Slab 1 are credits (negative amounts & SES):
+          if (s.code==='TOD_NIGHT_REBATE' || s.code==='PF_CHARGE_SLAB1') {
             D = -Math.abs(D);
           }
           F=E?D/E:0;
