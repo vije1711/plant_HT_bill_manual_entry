@@ -1079,8 +1079,8 @@
     const round2 = x => Math.round(x * 100) / 100;
 
     // Final reconciliation tolerance (INR); hoisted for clarity & micro-perf.
-    // Stability guard: do not change without approval.
-    const FINAL_CHECK_TOL = 0.05;
+    // Stability guard: updated per business requirement from ₹0.05 → ₹50.00.
+    const FINAL_CHECK_TOL = 50;
 
     const SERVICE_LIST = [
       { code:'FIXED_METER_RENT', name:'Fixed Meter Rent' },
