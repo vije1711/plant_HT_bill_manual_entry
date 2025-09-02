@@ -659,11 +659,11 @@
           <div class="f sm"><label>Outstanding Arrears (₹) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
           <div class="f sm"><label>Freeze Amount (₹) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
           <div class="f sm"><label>Delayed Payment Charges (₹) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Advance Payment / Adjust. (₹) <span class="mono">G9</span></label><input type="text" id="G9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Advance Payment / Adjust. (₹) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
-          <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9−G9</span></h3><div class="v" id="H9v">₹0</div></div>
+          <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9+G9</span></h3><div class="v" id="H9v">₹0</div></div>
           <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9−E9</span></h3><div class="v" id="I9v">₹0</div></div>
           <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9−E9</span></h3><div class="v" id="A31v">₹0</div></div>
         </div>
@@ -1630,7 +1630,7 @@
 
       // Adjustments
       const D9=num('D9'), E9=num('E9'), F9=num('F9'), G9=num('G9');
-      const H9 = C9 + D9 + F9 - G9;
+      const H9 = C9 + D9 + F9 + G9;
       const I9 = H9 - E9;
       const A31 = D9 - E9;
       $('H9v').textContent = toInr(H9);
