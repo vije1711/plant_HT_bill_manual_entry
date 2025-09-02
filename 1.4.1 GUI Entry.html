@@ -1,6 +1,6 @@
 <!-- htmlhint tagname-lowercase:false -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="neon">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -366,6 +366,112 @@
     flex-wrap:wrap;
   }
 </style>
+  <!-- Futuristic on-screen theme (UI only) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style id="theme-css">
+    /* Screen-only polish; keeps calculations/data flow untouched */
+    @media screen {
+      :root{
+        --glow-cyan: rgba(34,211,238,.65);
+        --glow-violet: rgba(167,139,250,.55);
+        --grid-line: rgba(255,255,255,.04);
+        --grid-line-2: rgba(255,255,255,.035);
+      }
+
+      /* Futuristic animated grid + soft radial glow */
+      html[data-theme="neon"] body::before{
+        content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+        background:
+          radial-gradient(1200px 600px at 110% -10%, rgba(167,139,250,.12), transparent 60%),
+          radial-gradient(900px 520px at -10% 0%, rgba(34,211,238,.12), transparent 60%),
+          repeating-linear-gradient( to right, var(--grid-line) 0 1px, transparent 1px 100px ),
+          repeating-linear-gradient( to bottom, var(--grid-line-2) 0 1px, transparent 1px 100px );
+        mix-blend-mode: overlay;
+        opacity:.25;
+        transform: translateZ(0);
+        animation: gridFloat 48s linear infinite;
+      }
+      @keyframes gridFloat {
+        from { background-position: 0 0, 0 0, 0 0, 0 0; }
+        to   { background-position: 0 0, 0 0, 100px 100px, 100px 100px; }
+      }
+
+      /* Headings: modern, confident geometry */
+      html[data-theme="neon"] .brand h1,
+      html[data-theme="neon"] h2,
+      html[data-theme="neon"] h3 { font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; letter-spacing:.2px }
+      html[data-theme="neon"] .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace }
+
+      /* Cards: subtle lift + glow on hover */
+      html[data-theme="neon"] .card{ position:relative; overflow:clip }
+      html[data-theme="neon"] .card::after{
+        content:""; position:absolute; inset:-1px; border-radius: inherit; pointer-events:none; z-index:0;
+        background: radial-gradient(240px 160px at 10% -10%, rgba(34,211,238,.18), transparent 60%),
+                    radial-gradient(240px 160px at 110% -10%, rgba(167,139,250,.18), transparent 60%);
+        opacity:.35; filter:saturate(120%);
+      }
+      html[data-theme="neon"] .card:hover{ transform: translateY(-1px); transition: transform .18s ease }
+      html[data-theme="neon"] .card:hover{ box-shadow: 0 24px 60px rgba(0,0,0,.55) }
+
+      /* Buttons: glassy with interactive sheen */
+      html[data-theme="neon"] button,
+      html[data-theme="neon"] .ghost{
+        position:relative; isolation:isolate; transition: filter .15s ease, transform .08s ease;
+        outline-offset: 2px;
+      }
+      html[data-theme="neon"] button::before,
+      html[data-theme="neon"] .ghost::before{
+        content:""; position:absolute; inset:0; border-radius: inherit; z-index:-1;
+        background: linear-gradient(145deg, rgba(167,139,250,.35), rgba(34,211,238,.35));
+        filter: blur(12px); opacity:.0; transition: opacity .2s ease;
+      }
+      html[data-theme="neon"] button:hover::before,
+      html[data-theme="neon"] .ghost:hover::before{ opacity:.3 }
+      html[data-theme="neon"] button:focus-visible{ box-shadow: 0 0 0 3px rgba(34,211,238,.35), 0 0 0 6px rgba(167,139,250,.22) }
+
+      /* Inputs: clearer focus + subtle glow */
+      html[data-theme="neon"] input[type="number"],
+      html[data-theme="neon"] input[type="month"],
+      html[data-theme="neon"] input[type="text"],
+      html[data-theme="neon"] select{
+        transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+      }
+      html[data-theme="neon"] input[type="number"]:focus,
+      html[data-theme="neon"] input[type="month"]:focus,
+      html[data-theme="neon"] input[type="text"]:focus,
+      html[data-theme="neon"] select:focus{
+        border-color: rgba(34,211,238,.45);
+        box-shadow: 0 0 0 3px rgba(34,211,238,.18), 0 6px 22px rgba(0,0,0,.35);
+      }
+      html[data-theme="neon"] input[type="number"]:hover,
+      html[data-theme="neon"] input[type="month"]:hover,
+      html[data-theme="neon"] input[type="text"]:hover,
+      html[data-theme="neon"] select:hover{
+        border-color: rgba(255,255,255,.20);
+      }
+
+      /* Toolbar groups: cleaner label emphasis */
+      html[data-theme="neon"] .group .label{ color: color-mix(in oklab, var(--muted), white 10%) }
+
+      /* Menu summary: hint that it’s interactive */
+      html[data-theme="neon"] .menu summary{ transition: background-color .15s ease, border-color .15s ease }
+      html[data-theme="neon"] .menu summary:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16) }
+
+      /* Toasts: add gentle shadow depth */
+      html[data-theme="neon"] .toast{ box-shadow: 0 10px 30px rgba(0,0,0,.45) }
+    }
+    </style>
+    <script>
+      // Apply saved theme early (default: neon)
+      (function(){
+        try{
+          var pref = localStorage.getItem('ui-theme');
+          if(pref){ document.documentElement.setAttribute('data-theme', pref); }
+        }catch(e){/* ignore */}
+      })();
+    </script>
 <style>
   .table-wrap{
     overflow:auto;
@@ -428,6 +534,11 @@
         </div>
       </div>
       <div class="toolbar">
+        <!-- Theme toggle (UI only) -->
+        <label class="pill" id="themeTogglePill" title="Toggle Neon/Classic">
+          <span>Theme</span>
+          <input type="checkbox" id="themeToggle" aria-label="Neon theme" checked />
+        </label>
         <!-- Month -->
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
         <!-- Sheets menu (searchable) -->
@@ -503,6 +614,20 @@
         </div>
       </div>
       </header>
+      <script>
+        // Lightweight UI-only theme toggle wiring
+        document.addEventListener('DOMContentLoaded', function(){
+          var cb = document.getElementById('themeToggle');
+          if(!cb) return;
+          function apply(mode){
+            document.documentElement.setAttribute('data-theme', mode);
+            try{ localStorage.setItem('ui-theme', mode); }catch(e){}
+          }
+          var current = document.documentElement.getAttribute('data-theme') || 'neon';
+          cb.checked = current !== 'classic';
+          cb.addEventListener('change', function(){ apply(cb.checked ? 'neon' : 'classic'); });
+        });
+      </script>
 
       <div class="grid">
         <!-- Main HT Bill Inputs -->
