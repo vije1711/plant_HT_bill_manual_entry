@@ -824,7 +824,6 @@
             <select id="analysisMetric" style="height:28px; line-height:28px; padding:0 6px;">
               <option value="A4">A4</option>
               <option value="C9" selected>C9</option>
-              <option value="H9">H9</option>
               <option value="I9">I9</option>
               <option value="B19">B19</option>
               <option value="A18">A18</option>
@@ -844,7 +843,7 @@
               <thead>
                 <tr>
                   <th style="text-align:left">Month</th>
-                  <th>A4 kWh</th><th>C9 ₹</th><th>H9 ₹</th><th>I9 ₹</th>
+                  <th>A4 kWh</th><th>C9 ₹</th><th>I9 ₹</th>
                   <th>B19 ₹/kWh</th><th>A18 kWh</th><th>C18 kWh</th><th>C26 ₹</th>
                   <th>Eff Rate ₹/kWh</th><th>Δ C9 MoM ₹</th><th>Δ% C9</th>
                 </tr>
@@ -863,7 +862,6 @@
                 '<th style="text-align:left">Month</th>',
                 ' <th>Monthly Consumption (A4)</th>',
                 ' <th>Current Month Bill (C9)</th>',
-                ' <th>Net Payable (H9)</th>',
                 ' <th>Actual Paid (I9)</th>',
                 ' <th>Wind Rate ₹/kWh (B19)</th>',
                 ' <th>Bitlavadia Share (A18)</th>',
@@ -3539,7 +3537,6 @@
       const METRICS = {
         A4:      {label:'Monthly Consumption (A4)',      unit:'kWh',   fmt:'int'},
         C9:      {label:'Current Month Bill (C9)',       unit:'₹',     fmt:'inr'},
-        H9:      {label:'Net Payable (H9)',              unit:'₹',     fmt:'inr'},
         I9:      {label:'Actual Paid (I9)',              unit:'₹',     fmt:'inr'},
         B19:     {label:'Wind Rate ₹/kWh (B19)',         unit:'₹/kWh', fmt:'rate'},
         A18:     {label:'Bitlavadia Share (A18)',        unit:'kWh',   fmt:'int'},
@@ -3561,7 +3558,7 @@
           case 'EffRate': return 'eff';
           case 'ΔC9': return 'deltaC9';
           case 'Δ%C9': return 'deltaPct';
-          case 'A4': case 'C9': case 'H9': case 'I9': case 'B19': case 'A18': case 'C18': case 'C26':
+          case 'A4': case 'C9': case 'I9': case 'B19': case 'A18': case 'C18': case 'C26':
             return String(val);
           default: return 'C9';
         }
@@ -3650,7 +3647,6 @@
                 `<td>${r.month}</td>`+
                 `<td style="text-align:right">${fmt0.format(r.A4)}</td>`+
                 `<td style="text-align:right">${fmtINR.format(r.C9)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.H9)}</td>`+
                 `<td style="text-align:right">${fmtINR.format(r.I9)}</td>`+
                 `<td style="text-align:right">${fmtRate.format(r.B19)}</td>`+
                 `<td style="text-align:right">${fmt0.format(r.A18)}</td>`+
@@ -3679,10 +3675,10 @@
       function exportAnalysisCsv(){
         const rows = window.__analysisRows;
         if(!rows || !rows.length){ toast('No analysis data to export.'); return; }
-        const header = ['Month','A4_kWh','C9_INR','H9_INR','I9_INR','B19_RsPerKWh','A18_kWh','C18_kWh','C26_INR','EffRate_RsPerKWh','DeltaC9_INR','DeltaC9_pct'];
+        const header = ['Month','A4_kWh','C9_INR','I9_INR','B19_RsPerKWh','A18_kWh','C18_kWh','C26_INR','EffRate_RsPerKWh','DeltaC9_INR','DeltaC9_pct'];
         const lines = [header.join(',')];
         rows.forEach(r=>{
-          lines.push([r.month,r.A4,r.C9,r.H9,r.I9,r.B19,r.A18,r.C18,r.C26,r.eff,r.deltaC9,r.deltaPct].join(','));
+          lines.push([r.month,r.A4,r.C9,r.I9,r.B19,r.A18,r.C18,r.C26,r.eff,r.deltaC9,r.deltaPct].join(','));
         });
         const blob = new Blob([lines.join('\n')],{type:'text/csv'});
         const a = document.createElement('a');
