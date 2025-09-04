@@ -835,7 +835,9 @@
               <option value="Δ%C9">Δ%C9</option>
             </select>
           </div>
-          <div id="analysisChartHost" class="box" style="overflow:auto"><!-- inline SVG injected --></div>
+          <div id="analysisChartHost" class="box" style="overflow:auto">
+            <canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>
+          </div>
           <div class="hr"></div>
           <div style="max-height:320px;overflow:auto">
             <table id="analysisTable" style="width:100%;border-collapse:collapse;font-size:12px">
@@ -3346,6 +3348,10 @@
       min-height:auto;
     }
   </style>
+  <!-- Chart.js (pinned with SRI; keep fallback sparkline if unavailable) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"
+          integrity="sha384-OdZ7mnmcJBFsRlPOjIvfl0lFLABPKyoU0tSjH8j+BgvUqQoRscY6hn00IP42BE8C"
+          crossorigin="anonymous"></script>
   <script>
     (()=>{
       // ---- helpers ---------------------------------------------------------
@@ -3527,6 +3533,91 @@
           +`<line x1="0" x2="${w}" y1="${h-pad}" y2="${h-pad}" stroke="var(--muted)" stroke-width="1"/></svg>`;
       }
 
+      // Chart.js powered chart (fallback to SVG sparkline if Chart is absent)
+      let __analysisChart;
+      // Metric catalog: key -> label, unit, formatter
+      const METRICS = {
+        A4:      {label:'Monthly Consumption (A4)',      unit:'kWh',   fmt:'int'},
+        C9:      {label:'Current Month Bill (C9)',       unit:'₹',     fmt:'inr'},
+        H9:      {label:'Net Payable (H9)',              unit:'₹',     fmt:'inr'},
+        I9:      {label:'Actual Paid (I9)',              unit:'₹',     fmt:'inr'},
+        B19:     {label:'Wind Rate ₹/kWh (B19)',         unit:'₹/kWh', fmt:'rate'},
+        A18:     {label:'Bitlavadia Share (A18)',        unit:'kWh',   fmt:'int'},
+        C18:     {label:'Nanisindhodi Share (C18)',      unit:'kWh',   fmt:'int'},
+        C26:     {label:'Net Wind Credit (C26)',         unit:'₹',     fmt:'inr'},
+        eff:     {label:'Effective Rate (₹/kWh)',        unit:'₹/kWh', fmt:'rate'},
+        deltaC9: {label:'MoM Change in Bill (ΔC9)',      unit:'₹',     fmt:'inr'},
+        deltaPct:{label:'% Change in Bill (ΔC9)',        unit:'%',     fmt:'pct'}
+      };
+      function fmtValue(k,v){
+        const t = METRICS[k]?.fmt;
+        if(t==='inr') return fmtINR.format(v);
+        if(t==='pct') return `${fmt2.format(v)}%`;
+        if(t==='rate') return fmt2.format(v);
+        return fmt0.format(v);
+      }
+      function metricKey(val){
+        switch(String(val||'C9')){
+          case 'EffRate': return 'eff';
+          case 'ΔC9': return 'deltaC9';
+          case 'Δ%C9': return 'deltaPct';
+          case 'A4': case 'C9': case 'H9': case 'I9': case 'B19': case 'A18': case 'C18': case 'C26':
+            return String(val);
+          default: return 'C9';
+        }
+      }
+      function renderAnalysisChart(metric='C9'){
+        const rows = window.__analysisRows || [];
+        const host = document.getElementById('analysisChartHost');
+        if(!rows.length){ host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>'; return; }
+        const labels = rows.map(r=>r.month);
+        const data = rows.map(r=>Number(r[metric]||0));
+        const cfg = METRICS[metric] || {label:metric, unit:''};
+        const canvas = document.getElementById('analysisChart');
+        if(canvas){ canvas.setAttribute('aria-label', `Trend: ${cfg.label} over months`); }
+        if(!(window.Chart && canvas)){
+          drawSparkline(host, data);
+          return;
+        }
+        if(__analysisChart){ __analysisChart.destroy(); }
+        const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--muted') || 'rgba(255,255,255,.12)';
+        const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#61dafb';
+        __analysisChart = new Chart(canvas.getContext('2d'),{
+          type:'line',
+          data:{ labels, datasets:[{
+            label: cfg.label,
+            data,
+            tension:0.25,
+            borderColor: lineColor.trim(),
+            fill:'start',
+            pointRadius:3,
+            pointHoverRadius:5,
+            backgroundColor:(ctx)=>{
+              const {chart}=ctx;
+              const g=chart.ctx.createLinearGradient(0,0,0,chart.height);
+              g.addColorStop(0,lineColor.trim()+"33");
+              g.addColorStop(1,'transparent');
+              return g;
+            }
+          }]},
+          options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+              legend:{display:false},
+              tooltip:{callbacks:{
+                title:(ctx)=>ctx[0]?.label,
+                label:(ctx)=>`${cfg.label}: ${fmtValue(metric, ctx.parsed.y)}`
+              }}
+            },
+            scales:{
+              x:{grid:{color:gridColor},ticks:{maxRotation:0,autoSkip:true}},
+              y:{grid:{color:gridColor},ticks:{callback:(v)=>fmtValue(metric,v)},title:{display:!!cfg.unit,text:cfg.unit}}
+            }
+          }
+        });
+      }
+
       async function analyzeAllSheets(){
         return withBusy('analyzeWorkbook', async ()=>{
           let wb = typeof getWB === 'function' ? getWB() : null;
@@ -3574,29 +3665,12 @@
 
           const meta = document.getElementById('analysisMeta');
           if(meta) meta.textContent = `Sheets analyzed: ${rows.length} • Range: ${rows[0].month} → ${rows[rows.length-1].month}`;
-          // Sparkline metric selector
-          const chartHost = document.getElementById('analysisChartHost');
           const metricSel = document.getElementById('analysisMetric');
-          const metricKey = (val)=>{
-            switch(String(val||'C9')){
-              case 'EffRate': return 'eff';
-              case 'ΔC9': return 'deltaC9';
-              case 'Δ%C9': return 'deltaPct';
-              case 'A4': case 'C9': case 'H9': case 'I9': case 'B19': case 'A18': case 'C18': case 'C26':
-                return String(val);
-              default: return 'C9';
-            }
-          };
-          const renderSpark = () => {
-            const key = metricKey(metricSel?.value || 'C9');
-            const series = rows.map(r => Number(r[key]) || 0);
-            drawSparkline(chartHost, series);
-          };
-          if (metricSel && !metricSel.dataset.bound) {
+          if(metricSel && !metricSel.dataset.bound){
             metricSel.dataset.bound = '1';
-            metricSel.addEventListener('change', renderSpark);
+            metricSel.addEventListener('change', ()=> renderAnalysisChart(metricKey(metricSel.value)));
           }
-          renderSpark();
+          renderAnalysisChart(metricKey(metricSel?.value || 'C9'));
           const card = document.getElementById('analysisCard');
           if(card) card.hidden = false;
         });
