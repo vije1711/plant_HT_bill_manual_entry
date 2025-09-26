@@ -1,4 +1,4 @@
-<!-- htmlhint tagname-lowercase:false -->
+﻿<!-- htmlhint tagname-lowercase:false -->
 <!DOCTYPE html>
 <html lang="en" data-theme="neon">
 <head>
@@ -141,7 +141,7 @@
       -webkit-overflow-scrolling:touch;
       scroll-snap-type:x proximity;
     }
-    /* Hide legacy sheet pills strip in favor of Sheets ▾ menu */
+    /* Hide legacy sheet pills strip in favor of Sheets &#9662; menu */
     #sheetList{display:none !important}
     .right{float:right}
 
@@ -321,7 +321,7 @@
 
   </style>
 <style>
-  /* Scoped “slim” layout for the receipt card only */
+  /* Scoped &ldquo;slim&rdquo; layout for the receipt card only */
   #receiptCard .fields{
     display:grid;
     grid-template-columns: 1fr 1fr;
@@ -455,7 +455,7 @@
       /* Toolbar groups: cleaner label emphasis */
       html[data-theme="neon"] .group .label{ color: color-mix(in oklab, var(--muted), white 10%) }
 
-      /* Menu summary: hint that it’s interactive */
+      /* Menu summary: hint that it&rsquo;s interactive */
       html[data-theme="neon"] .menu summary{ transition: background-color .15s ease, border-color .15s ease }
       html[data-theme="neon"] .menu summary:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16) }
 
@@ -530,7 +530,7 @@
         </svg>
         <div>
           <h1>WEG Billing Calculator</h1>
-          <div class="sub">Single‑file tool for HT bill + wind credits • Excel export with month sheets</div>
+          <div class="sub">Single&#8209;file tool for HT bill + wind credits &bull; Excel export with month sheets</div>
         </div>
       </div>
       <div class="toolbar">
@@ -544,10 +544,10 @@
         <!-- Sheets menu (searchable) -->
         <div class="menu" aria-label="Sheets">
           <details id="sheetsMenu">
-            <summary aria-haspopup="menu">Sheets ▾</summary>
+            <summary aria-haspopup="menu">Sheets &#9662;</summary>
             <div class="menu-panel" role="menu">
               <div class="pill" style="display:flex;gap:6px;align-items:center;min-height:30px">
-                <input id="sheetSearch" type="text" placeholder="Search sheets…" aria-label="Search sheets" style="height:28px;line-height:28px;padding:0 8px;width:100%">
+                <input id="sheetSearch" type="text" placeholder="Search sheets&hellip;" aria-label="Search sheets" style="height:28px;line-height:28px;padding:0 8px;width:100%">
               </div>
               <div id="sheetMenuList" style="max-height:320px;overflow:auto"></div>
             </div>
@@ -558,7 +558,7 @@
         <!-- Workbook menu -->
         <div class="menu" aria-label="Workbook">
           <details>
-            <summary aria-haspopup="menu">Workbook ▾</summary>
+            <summary aria-haspopup="menu">Workbook &#9662;</summary>
             <div class="menu-panel" role="menu">
               <button id="addSheet" role="menuitem" class="ghost">Add/Update Sheet</button>
               <button id="uploadExcel" role="menuitem" class="ghost">Upload</button>
@@ -575,7 +575,7 @@
         <!-- IOM Output menu -->
         <div class="menu" aria-label="IOM Output">
           <details>
-            <summary aria-haspopup="menu">Make IOM ▾</summary>
+            <summary aria-haspopup="menu">Make IOM &#9662;</summary>
             <div class="menu-panel" role="menu">
               <button id="renderHtml" role="menuitem" class="ghost">Render IOM</button>
               <button id="menuSavePdf" role="menuitem" class="ghost">Save as PDF</button>
@@ -594,7 +594,7 @@
         <!-- Utilities menu -->
         <div class="menu" aria-label="Utilities">
           <details>
-            <summary aria-haspopup="menu">Utilities ▾</summary>
+            <summary aria-haspopup="menu">Utilities &#9662;</summary>
             <div class="menu-panel" role="menu">
               <button id="resetSample" role="menuitem" class="ghost">Sample Data</button>
               <button id="resetAll" role="menuitem" class="ghost">Reset</button>
@@ -605,7 +605,7 @@
         <!-- Analysis menu -->
         <div class="menu" aria-label="Analysis">
           <details>
-            <summary aria-haspopup="menu">Analysis ▾</summary>
+            <summary aria-haspopup="menu">Analysis &#9662;</summary>
             <div class="menu-panel" role="menu">
               <button id="analyzeWorkbook" role="menuitem" class="ghost">Build Monthly Trends</button>
               <button id="exportAnalysisCsv" role="menuitem" class="ghost">Export Analysis CSV</button>
@@ -632,53 +632,53 @@
       <div class="grid">
         <!-- Main HT Bill Inputs -->
       <section class="card span-6">
-        <h2>HT Bill — Inputs <span class="help">Manual entries from utility bill</span></h2>
+        <h2>HT Bill &mdash; Inputs <span class="help">Manual entries from utility bill</span></h2>
         <div class="fields">
           <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001" min="0"/><span class="hint"></span></div>
-          <div class="f"><label>Demand Charges (₹) <span class="mono">B4</span></label><input type="text" id="B4"/><span class="hint"></span></div>
-          <div class="f"><label>Energy Charges (₹) <span class="mono">C4</span></label><input type="text" id="C4"/><span class="hint"></span></div>
-          <div class="f"><label>Night Rebate (₹) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
-          <div class="f"><label>Fuel Charge (₹) <span class="mono">E4</span></label><input type="text" id="E4"/><span class="hint"></span></div>
-          <div class="f"><label>PF Rebate (₹) <span class="mono">F4</span></label><input type="text" id="F4"/><span class="hint"></span></div>
-          <div class="f"><label>EHV Rebate (₹) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
-          <div class="f"><label>TOU (₹) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
-          <div class="f"><label>GT Charges (₹) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
+          <div class="f"><label>Demand Charges (&#8377;) <span class="mono">B4</span></label><input type="text" id="B4"/><span class="hint"></span></div>
+          <div class="f"><label>Energy Charges (&#8377;) <span class="mono">C4</span></label><input type="text" id="C4"/><span class="hint"></span></div>
+          <div class="f"><label>Night Rebate (&#8377;) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
+          <div class="f"><label>Fuel Charge (&#8377;) <span class="mono">E4</span></label><input type="text" id="E4"/><span class="hint"></span></div>
+          <div class="f"><label>PF Rebate (&#8377;) <span class="mono">F4</span></label><input type="text" id="F4"/><span class="hint"></span></div>
+          <div class="f"><label>EHV Rebate (&#8377;) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
+          <div class="f"><label>TOU (&#8377;) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
+          <div class="f"><label>GT Charges (&#8377;) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
-          <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4−F4−G4+H4+I4</span></h3><div class="v" id="A9v">₹0</div></div>
-          <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9×0.2</span></h3><div class="v" id="B9v">₹0</div></div>
-          <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">₹0</div></div>
+          <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
+          <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
+          <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
         </div>
       </section>
 
       <!-- Adjustments -->
       <section class="card span-6">
-        <h2>Adjustments & Carry‑forward <span class="help">Manual entries</span></h2>
+        <h2>Adjustments & Carry&#8209;forward <span class="help">Manual entries</span></h2>
         <div class="fields">
-          <div class="f sm"><label>Outstanding Arrears (₹) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Freeze Amount (₹) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Delayed Payment Charges (₹) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Advance Payment / Adjust. (₹) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
+          <div class="f sm"><label>Outstanding Arrears (&#8377;) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
+          <div class="f sm"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
-          <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9+G9</span></h3><div class="v" id="H9v">₹0</div></div>
-          <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9−E9</span></h3><div class="v" id="I9v">₹0</div></div>
-          <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9−E9</span></h3><div class="v" id="A31v">₹0</div></div>
+          <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9+G9</span></h3><div class="v" id="H9v">&#8377;0</div></div>
+          <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9&minus;E9</span></h3><div class="v" id="I9v">&#8377;0</div></div>
+          <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9&minus;E9</span></h3><div class="v" id="A31v">&#8377;0</div></div>
         </div>
       </section>
 
       <!-- WEG Inputs -->
       <section class="card span-6">
-        <h2>WEG — Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
+        <h2>WEG &mdash; Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
         <div class="fields">
           <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
           <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
           <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
         </div>
         <details>
-          <summary class="muted">Monthly Generation (MWh) — expand</summary>
+          <summary class="muted">Monthly Generation (MWh) &mdash; expand</summary>
           <div class="fields" style="margin-top:10px">
             <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
             <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
@@ -689,33 +689,33 @@
         </details>
         <div class="hr"></div>
         <div class="kpi">
-          <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1−C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
-          <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1−C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
+          <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1&minus;C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
+          <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1&minus;C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
           <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
         </div>
       </section>
 
       <!-- WEG Credits -->
       <section class="card span-6">
-        <h2>Wind Credits & Debits <span class="help">Prior‐month adjustments</span></h2>
+        <h2>Wind Credits & Debits <span class="help">Prior&#8208;month adjustments</span></h2>
         <div class="fields">
-          <div class="f sm"><label>Credit Board Charges (₹) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Credit ED Charges (₹) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Credit TDS (₹) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Debit Board Charges (₹) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Debit Electricity Duty (₹) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Debit Wheeling Charges (₹) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Credit Board Charges (&#8377;) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Credit ED Charges (&#8377;) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Credit TDS (&#8377;) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Debit Board Charges (&#8377;) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Debit Electricity Duty (&#8377;) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
+          <div class="f sm"><label>Debit Wheeling Charges (&#8377;) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
         </div>
         <div class="hr"></div>
         <div class="kpi">
-          <div class="box"><h3>Total Credit (₹) <span class="mono">A26 = A24+B24</span></h3><div class="v" id="A26v">₹0</div></div>
-          <div class="box"><h3>Total Debit (₹) <span class="mono">B26 = D24+E24+F24</span></h3><div class="v" id="B26v">₹0</div></div>
-          <div class="box"><h3>Net Wind Credit (₹) <span class="mono">C26 = A26−B26</span></h3><div class="v" id="C26v">₹0</div></div>
+          <div class="box"><h3>Total Credit (&#8377;) <span class="mono">A26 = A24+B24</span></h3><div class="v" id="A26v">&#8377;0</div></div>
+          <div class="box"><h3>Total Debit (&#8377;) <span class="mono">B26 = D24+E24+F24</span></h3><div class="v" id="B26v">&#8377;0</div></div>
+          <div class="box"><h3>Net Wind Credit (&#8377;) <span class="mono">C26 = A26&minus;B26</span></h3><div class="v" id="C26v">&#8377;0</div></div>
         </div>
         <div class="kpi">
-          <div class="box"><h3>Wind Rate (₹ / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">₹0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as ₹0.00/kWh</small></div>
-          <div class="box"><h3>Share of 4.5 MW WEG (₹) <span class="mono">F16 = B19×A18</span></h3><div class="v" id="F16v">₹0</div></div>
-          <div class="box"><h3>Share of 14.7 MW WEG (₹) <span class="mono">G16 = B19×C18</span></h3><div class="v" id="G16v">₹0</div></div>
+          <div class="box"><h3>Wind Rate (&#8377; / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">&#8377;0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as &#8377;0.00/kWh</small></div>
+          <div class="box"><h3>Share of 4.5 MW WEG (&#8377;) <span class="mono">F16 = B19&times;A18</span></h3><div class="v" id="F16v">&#8377;0</div></div>
+          <div class="box"><h3>Share of 14.7 MW WEG (&#8377;) <span class="mono">G16 = B19&times;C18</span></h3><div class="v" id="G16v">&#8377;0</div></div>
         </div>
       </section>
 
@@ -723,13 +723,13 @@
         <section class="card span-12">
           <h2>Final Bill for IOM</h2>
           <div class="kpi">
-            <div class="box"><h3 class="mono">Formula: C9 − F16 − G16 − C24 + A31 + F9</h3>
-              <div class="v" id="FINALv" style="font-size:30px">₹0</div>
-              <div class="muted">Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS + Balance Pending (prev) + Delay Charges</div>
+            <div class="box"><h3 class="mono">Formula: C9 &minus; F16 &minus; G16 &minus; C24 + A31 + F9</h3>
+              <div class="v" id="FINALv" style="font-size:30px">&#8377;0</div>
+              <div class="muted">Mapping: Current Month Bill &minus; Share(4.5MW) &minus; Share(14.7MW) &minus; Credit TDS + Balance Pending (prev) + Delay Charges</div>
               <div id="finalCheckBadge" class="pill" style="margin-top:8px" role="status" aria-live="polite">
                 <span id="FINALstatusv" aria-hidden="true"></span>
-                &nbsp;Check • I9 (= H9 − E9): <span id="I9checkv">₹0</span>
-                &nbsp;•&nbsp; Δ vs FINAL: <span id="FINALdeltav">₹0</span>
+                &nbsp;Check &bull; I9 (= H9 &minus; E9): <span id="I9checkv">&#8377;0</span>
+                &nbsp;&bull;&nbsp; &Delta; vs FINAL: <span id="FINALdeltav">&#8377;0</span>
               </div>
             </div>
           </div>
@@ -762,7 +762,7 @@
               <tbody id="ratesBody"></tbody>
             </table>
           </div>
-          <div id="parityBadge" class="pill" style="margin-top:8px;">ΣD ₹0.00 | ΣG ₹0.00 | Δ ₹0.00</div>
+          <div id="parityBadge" class="pill" style="margin-top:8px;">&Sigma;D &#8377;0.00 | &Sigma;G &#8377;0.00 | &Delta; &#8377;0.00</div>
           <input type="file" id="ratesFile" accept="application/json" style="display:none" multiple>
         </section>
         <!-- Long Text for SAP -->
@@ -777,7 +777,7 @@
       </section>
         <!-- Central Dak Receipt Inputs -->
         <section class="card span-8" id="receiptCard">
-          <h2>Central Dak Receipt — Inputs</h2>
+          <h2>Central Dak Receipt &mdash; Inputs</h2>
           <div class="fields">
             <!-- Row 1 -->
             <div class="f">
@@ -830,8 +830,8 @@
               <option value="C18">C18</option>
               <option value="C26">C26</option>
               <option value="EffRate">EffRate</option>
-              <option value="ΔC9">ΔC9</option>
-              <option value="Δ%C9">Δ%C9</option>
+              <option value="&Delta;C9">&Delta;C9</option>
+              <option value="&Delta;%C9">&Delta;%C9</option>
             </select>
           </div>
           <div id="analysisChartHost" class="box" style="overflow:auto">
@@ -843,9 +843,9 @@
               <thead>
                 <tr>
                   <th style="text-align:left">Month</th>
-                  <th>A4 kWh</th><th>C9 ₹</th><th>I9 ₹</th>
-                  <th>B19 ₹/kWh</th><th>A18 kWh</th><th>C18 kWh</th><th>C26 ₹</th>
-                  <th>Eff Rate ₹/kWh</th><th>Δ C9 MoM ₹</th><th>Δ% C9</th>
+                  <th>A4 kWh</th><th>C9 &#8377;</th><th>I9 &#8377;</th>
+                  <th>B19 &#8377;/kWh</th><th>A18 kWh</th><th>C18 kWh</th><th>C26 &#8377;</th>
+                  <th>Eff Rate &#8377;/kWh</th><th>&Delta; C9 MoM &#8377;</th><th>&Delta;% C9</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -863,13 +863,13 @@
                 ' <th>Monthly Consumption (A4)</th>',
                 ' <th>Current Month Bill (C9)</th>',
                 ' <th>Actual Paid (I9)</th>',
-                ' <th>Wind Rate ₹/kWh (B19)</th>',
+                ' <th>Wind Rate &#8377;/kWh (B19)</th>',
                 ' <th>Bitlavadia Share (A18)</th>',
                 ' <th>Nanisindhodi Share (C18)</th>',
                 ' <th>Net Wind Credit (C26)</th>',
-                ' <th>Effective Rate ₹/kWh</th>',
-                ' <th>MoM Change in Bill (ΔC9)</th>',
-                ' <th>% Change in Bill (ΔC9)</th>'
+                ' <th>Effective Rate &#8377;/kWh</th>',
+                ' <th>MoM Change in Bill (&Delta;C9)</th>',
+                ' <th>% Change in Bill (&Delta;C9)</th>'
               ].join('');
             }catch(_){ }
           });
@@ -913,7 +913,7 @@
     <script src="./xlsx.full.min.js"></script>
     <!-- pdfMake support removed -->
     <script>
-      // Tries: ?xlsx=override → ./xlsx.full.min.js (local) → CDNs
+      // Tries: ?xlsx=override &rarr; ./xlsx.full.min.js (local) &rarr; CDNs
       let __xlsxLoading = null;
     async function loadXLSX(){
       if (window.XLSX) return true; // already present (e.g., local tag succeeded)
@@ -960,7 +960,7 @@
       if (btn){
         btn.disabled = true;
         btn.dataset.prevText = prevText;
-        btn.textContent = 'Working…';
+        btn.textContent = 'Working&hellip;';
       }
       try{
         return await fn();
@@ -1174,7 +1174,7 @@
       // Ensure receipt helpers are defined where they are used
       const inr = (n) => {
         try { return new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', minimumFractionDigits:2, maximumFractionDigits:2}).format(Number(n)||0) + '/-'; }
-        catch { return '₹' + (Number(n)||0).toFixed(2) + '/-'; }
+        catch { return '&#8377;' + (Number(n)||0).toFixed(2) + '/-'; }
       };
       const cleanAmount = (str) => {
         const cleaned = String(str ?? '').replace(/[^0-9.\-]/g,''); const n = parseFloat(cleaned);
@@ -1204,7 +1204,7 @@
     const round2 = x => Math.round(x * 100) / 100;
 
     // Final reconciliation tolerance (INR); hoisted for clarity & micro-perf.
-    // Stability guard: updated per business requirement from ₹0.05 → ₹50.00.
+    // Stability guard: updated per business requirement from &#8377;0.05 &rarr; &#8377;50.00.
     const FINAL_CHECK_TOL = 50;
 
     const SERVICE_LIST = [
@@ -1227,7 +1227,7 @@
     ];
     const SERVICE_HINTS = {
       EC_SLAB1: 'KWh billed.',
-      TOD_PEAK: 'Hint: from “TOU” (HT Bill → H4)',
+      TOD_PEAK: 'Hint: from &ldquo;TOU&rdquo; (HT Bill &rarr; H4)',
       TOD_NIGHT_REBATE: 'Qty auto = EC_SLAB1 Amt (D)',
       PF_CHARGE_SLAB1: 'Qty auto = EC_SLAB1 Amt (D); PF rate acts as a multiplier (credit)',
       ARREAR_ED: 'Hint: Enter Consumption Charges (base for ED)'
@@ -1237,7 +1237,7 @@
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'kWh @ TOU (peak)',
       TOD_NIGHT_REBATE: 'Auto: EC_SLAB1 Amt (D)',
-      ARREAR_ED: 'Consumption Charges (₹)'
+      ARREAR_ED: 'Consumption Charges (&#8377;)'
     };
     const SERVICE_CODES = SERVICE_LIST.map(s=>s.code);
 
@@ -1324,10 +1324,10 @@
           <td><span class="mono">${s.code}</span><div class="muted">${s.name}</div>${hintHtml}</td>
           <td class="num"><input type="number" ${qtyAttrs} id="qty_${s.code}" ${qtyDis} ${ph}/></td>
           <td class="num"><input type="number" step="0.000001" id="tar_${s.code}" disabled/></td>
-          <td class="num"><span id="d_${s.code}" class="muted">—</span></td>
+          <td class="num"><span id="d_${s.code}" class="muted">&mdash;</span></td>
           <td class="num"><input type="number" step="0.000001" id="po_${s.code}" disabled/></td>
-          <td class="num"><span id="f_${s.code}" class="muted">—</span></td>
-          <td class="num"><span id="g_${s.code}" class="muted">—</span></td>`;
+          <td class="num"><span id="f_${s.code}" class="muted">&mdash;</span></td>
+          <td class="num"><span id="g_${s.code}" class="muted">&mdash;</span></td>`;
         body.appendChild(tr);
       });
       SERVICE_LIST.forEach(s=>{
@@ -1478,14 +1478,14 @@
         totalD+=D; totalG+=G;
         sesRows.push({code:s.code,name:s.name,qty:B,amt:D,adj:F,rate:E,ses:G});
         if(dEl){
-          dEl.textContent = Math.abs(D)<0.005 ? '—' : INR.format(D);
+          dEl.textContent = Math.abs(D)<0.005 ? '&mdash;' : INR.format(D);
           dEl.classList.toggle('bad', D < -0.004);
           dEl.classList.toggle('good', D > 0.004);
           dEl.classList.toggle('muted', Math.abs(D) <= 0.004);
         }
-        if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?'—':F.toFixed(prec);}
+        if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?'&mdash;':F.toFixed(prec);}
         if(gEl){
-          gEl.textContent = Math.abs(G)<0.005 ? '—' : INR.format(G);
+          gEl.textContent = Math.abs(G)<0.005 ? '&mdash;' : INR.format(G);
           gEl.classList.toggle('bad', G < -0.004);
           gEl.classList.toggle('good', G > 0.004);
           gEl.classList.toggle('muted', Math.abs(G) <= 0.004);
@@ -1504,7 +1504,7 @@
 
         const delta=totalG-totalD;
         const deltaC9=totalD-c9;
-        badge.textContent=`ΣD ${INR.format(totalD)} | ΣG ${INR.format(totalG)} | Δ ${INR.format(delta)} | vs C9 ${INR.format(deltaC9)}`;
+        badge.textContent=`&Sigma;D ${INR.format(totalD)} | &Sigma;G ${INR.format(totalG)} | &Delta; ${INR.format(delta)} | vs C9 ${INR.format(deltaC9)}`;
         badge.classList.remove('good','bad');
         badge.classList.add(Math.abs(delta)<=FINAL_CHECK_TOL && Math.abs(deltaC9)<=FINAL_CHECK_TOL ? 'good' : 'bad');
       }
@@ -1609,9 +1609,9 @@
         if (!Number.isFinite(val)) return; // allow empty/unfilled during typing
 
         if (percentIds.includes(el.id)) {
-          if (val < 0 || val > 100) { hint.textContent='0–100 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false; }
+          if (val < 0 || val > 100) { hint.textContent='0&ndash;100 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false; }
         } else if (!negativeOkIds.includes(el.id) && val < 0) {
-          hint.textContent='≥ 0 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false;
+          hint.textContent='&ge; 0 only.'; hint.style.display='block'; el.classList.add('invalid'); ok = false;
         }
       });
       return ok;
@@ -1668,10 +1668,10 @@
       $('G16v').textContent = toInr(G16);
 
       // Final Bill for IOM
-      const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 − F16 − G16 − Credit TDS + Balance Pending + Delay Charges
+      const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 &minus; F16 &minus; G16 &minus; Credit TDS + Balance Pending + Delay Charges
       $('FINALv').textContent = toInr(FINAL);
 
-      // Cross-check: I9 (= H9 − E9) should reconcile with FINAL
+      // Cross-check: I9 (= H9 &minus; E9) should reconcile with FINAL
       const I9_check = (Number(H9) || 0) - (Number(E9) || 0);
       const deltaFinal = FINAL - I9_check;
       const badge = $('finalCheckBadge');
@@ -1684,7 +1684,7 @@
         // Visual state + symbol
         badge.classList.remove('good','bad');
         badge.classList.add(withinTol ? 'good' : 'bad');
-        if (statusSpan) statusSpan.textContent = withinTol ? '✓' : '✗';
+        if (statusSpan) statusSpan.textContent = withinTol ? '&#10003;' : '&#10007;';
         // Accessibility: narrate current status & values
         const a11y =
           `Final check: I9 ${toInr(I9_check)}, delta vs FINAL ${toInr(deltaFinal)}, `
@@ -1701,7 +1701,7 @@
     // Reuse formatters from existing code:
     const INR_FMT = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:2 });
     const asINR = v => Number.isFinite(+v) ? INR_FMT.format(+v) : (v ?? '');
-    // DO NOT EDIT — Stability Guard:
+    // DO NOT EDIT &mdash; Stability Guard:
     // Per stakeholder directive these identifiers never change and must NOT be read from inputs/models.
     const SAP_VENDOR_CODE = 'ZG0435';
     const SAP_BANKT = 'SBI1';
@@ -1721,27 +1721,27 @@
 
       // HT Bill
       add('HT Bill','Monthly Consumption','A4', model.A4,'kWh');
-      add('HT Bill','Demand Charges','B4', model.B4,'₹');
-      add('HT Bill','Energy Charges','C4', model.C4,'₹');
-      add('HT Bill','Night Rebate','D4', model.D4,'₹');
-      add('HT Bill','Fuel Charge','E4', model.E4,'₹');
-      add('HT Bill','PF Rebate','F4', model.F4,'₹');
-      add('HT Bill','EHV Rebate','G4', model.G4,'₹');
-      add('HT Bill','TOU','H4', model.H4,'₹');
-      add('HT Bill','GT Charges','I4', model.I4,'₹');
+      add('HT Bill','Demand Charges','B4', model.B4,'&#8377;');
+      add('HT Bill','Energy Charges','C4', model.C4,'&#8377;');
+      add('HT Bill','Night Rebate','D4', model.D4,'&#8377;');
+      add('HT Bill','Fuel Charge','E4', model.E4,'&#8377;');
+      add('HT Bill','PF Rebate','F4', model.F4,'&#8377;');
+      add('HT Bill','EHV Rebate','G4', model.G4,'&#8377;');
+      add('HT Bill','TOU','H4', model.H4,'&#8377;');
+      add('HT Bill','GT Charges','I4', model.I4,'&#8377;');
 
-      add('HT Bill (calc)','Total Consumption Charge','A9', model.A9,'₹');
-      add('HT Bill (calc)','ED @ 20%','B9', model.B9,'₹');
-      add('HT Bill (calc)','Current Month Bill','C9', model.C9,'₹');
+      add('HT Bill (calc)','Total Consumption Charge','A9', model.A9,'&#8377;');
+      add('HT Bill (calc)','ED @ 20%','B9', model.B9,'&#8377;');
+      add('HT Bill (calc)','Current Month Bill','C9', model.C9,'&#8377;');
 
       // Adjust
-      add('Adjust','Outstanding Arrears','D9', model.D9,'₹');
-      add('Adjust','Freeze Amount','E9', model.E9,'₹');
-      add('Adjust','Delayed Payment Charges','F9', model.F9,'₹');
-      add('Adjust','Advance Payment / Adjust.','G9', model.G9,'₹');
-      add('Adjust (calc)','Net Payable','H9', model.H9,'₹');
-      add('Adjust (calc)','Actual Amount to be Paid','I9', model.I9,'₹');
-      add('Adjust (calc)','Balance Pending from Previous Month','A31', model.A31,'₹');
+      add('Adjust','Outstanding Arrears','D9', model.D9,'&#8377;');
+      add('Adjust','Freeze Amount','E9', model.E9,'&#8377;');
+      add('Adjust','Delayed Payment Charges','F9', model.F9,'&#8377;');
+      add('Adjust','Advance Payment / Adjust.','G9', model.G9,'&#8377;');
+      add('Adjust (calc)','Net Payable','H9', model.H9,'&#8377;');
+      add('Adjust (calc)','Actual Amount to be Paid','I9', model.I9,'&#8377;');
+      add('Adjust (calc)','Balance Pending from Previous Month','A31', model.A31,'&#8377;');
 
       // WEG
       add('WEG','Share Bitlavadia (%)','B15', model.B15,'%');
@@ -1757,21 +1757,21 @@
       add('WEG (calc)','Total Allocated (kWh)','A19', model.A19,'kWh');
 
       // Wind Credits / Debits
-      add('Wind Credits','Credit Board Charges','A24', model.A24,'₹');
-      add('Wind Credits','Credit ED Charges','B24', model.B24,'₹');
-      add('Wind Credits','Credit TDS','C24', model.C24,'₹');
-      add('Wind Debits','Debit Board Charges','D24', model.D24,'₹');
-      add('Wind Debits','Debit Electricity Duty','E24', model.E24,'₹');
-      add('Wind Debits','Debit Wheeling Charges','F24', model.F24,'₹');
-      add('Wind (calc)','Total Credit','A26', model.A26,'₹');
-      add('Wind (calc)','Total Debit','B26', model.B26,'₹');
-      add('Wind (calc)','Net Wind Credit','C26', model.C26,'₹');
-      add('Wind (calc)','Wind Rate (₹/kWh)','B19', model.B19,'₹/kWh');
-      add('Wind (calc)','Share 4.5 MW (₹)','F16', model.F16,'₹');
-      add('Wind (calc)','Share 14.7 MW (₹)','G16', model.G16,'₹');
+      add('Wind Credits','Credit Board Charges','A24', model.A24,'&#8377;');
+      add('Wind Credits','Credit ED Charges','B24', model.B24,'&#8377;');
+      add('Wind Credits','Credit TDS','C24', model.C24,'&#8377;');
+      add('Wind Debits','Debit Board Charges','D24', model.D24,'&#8377;');
+      add('Wind Debits','Debit Electricity Duty','E24', model.E24,'&#8377;');
+      add('Wind Debits','Debit Wheeling Charges','F24', model.F24,'&#8377;');
+      add('Wind (calc)','Total Credit','A26', model.A26,'&#8377;');
+      add('Wind (calc)','Total Debit','B26', model.B26,'&#8377;');
+      add('Wind (calc)','Net Wind Credit','C26', model.C26,'&#8377;');
+      add('Wind (calc)','Wind Rate (&#8377;/kWh)','B19', model.B19,'&#8377;/kWh');
+      add('Wind (calc)','Share 4.5 MW (&#8377;)','F16', model.F16,'&#8377;');
+      add('Wind (calc)','Share 14.7 MW (&#8377;)','G16', model.G16,'&#8377;');
 
       // FINAL
-      add('FINAL','Final Bill for IOM','—', model.FINAL,'₹');
+      add('FINAL','Final Bill for IOM','&mdash;', model.FINAL,'&#8377;');
 
       return { secs, order };
     }
@@ -1779,7 +1779,7 @@
     function buildIomStatementHtml(model, monthLabel, generatedAt){
       // Remove leading rupee sign plus any regular/NBSP/NNBSP spacing
       const inrNoSymbol = (v) => String(asINR(v) || '')
-        .replace(/^[₹\s\u00A0\u202F]+/, '')
+        .replace(/^[&#8377;\s\u00A0\u202F]+/, '')
         .trim();
       const el = document.createElement('div');
       el.className = 'sheet';
@@ -1788,11 +1788,11 @@
       // Do not read from model: hard-coded by policy (see Stability Guard above).
       const vendorCode = SAP_VENDOR_CODE;
       const bankT = SAP_BANKT;
-      try { document.title = `IOM - HT Bill – ${monthLabel}`; } catch {}
+      try { document.title = `IOM - HT Bill &ndash; ${monthLabel}`; } catch {}
       el.innerHTML = `
         <div class="doc-header">
           <div>
-            <div class="company">GAIL (India) Limited – Samakhiali, Gujarat</div>
+            <div class="company">GAIL (India) Limited &ndash; Samakhiali, Gujarat</div>
             <div class="dept">Electrical Department</div>
             <h2 role="heading" aria-level="1">IOM - HT Bill</h2>
             <div class="mini">Billing Month: <b>${monthLabel}</b></div>
@@ -1803,18 +1803,18 @@
         </div>
         <div
           class="info-bar"
-          title="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI – Bhachau"
-          aria-label="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI – Bhachau"
-        >Please pay to <b>Paschim&nbsp;Gujarat&nbsp;Vij&nbsp;Company&nbsp;Ltd</b> (Vendor Code: <b>${vendorCode}</b>). Bank A/C No.: <b>31729314272</b>; RTGS/NEFT IFSC: <b>SBIN0000554</b>; Branch: <b>SBI – Bhachau</b></div>
+          title="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI &ndash; Bhachau"
+          aria-label="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI &ndash; Bhachau"
+        >Please pay to <b>Paschim&nbsp;Gujarat&nbsp;Vij&nbsp;Company&nbsp;Ltd</b> (Vendor Code: <b>${vendorCode}</b>). Bank A/C No.: <b>31729314272</b>; RTGS/NEFT IFSC: <b>SBIN0000554</b>; Branch: <b>SBI &ndash; Bhachau</b></div>
         <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
           <h3>Amount Mapping (per formula)</h3>
           <div class="footer-note" style="margin:0 0 6px 0;">
-            Mapping: Current Month Bill – Share(4.5MW) – Share(14.7MW) – Credit TDS + Balance Pending (prev) + Delay Charges
+            Mapping: Current Month Bill &ndash; Share(4.5MW) &ndash; Share(14.7MW) &ndash; Credit TDS + Balance Pending (prev) + Delay Charges
           </div>
           <div class="kv" role="row" aria-roledescription="header">
             <div class="label" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">Component <span class="mono">(cell)</span></div>
             <div class="value" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">Amount</div>
-            <div class="unit" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">₹</div>
+            <div class="unit" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">&#8377;</div>
           </div>
           ${([
             ['Current Month Bill',           'C9',    model.C9,  'none'],
@@ -1825,18 +1825,18 @@
             ['Delay Charges',                'F9',    model.F9,  'plus'],
           ]).map(([label, cell, val, sign]) => {
             const amt = Math.abs(+val || 0);
-            const s = amt === 0 ? '' : (sign === 'minus' ? '−' : (sign === 'plus' ? '+' : ''));
+            const s = amt === 0 ? '' : (sign === 'minus' ? '&minus;' : (sign === 'plus' ? '+' : ''));
             return `
             <div class="kv" role="row">
               <div class="label" role="rowheader">${label} <span class="mono">${cell}</span></div>
               <div class="value" role="cell">${s}${inrNoSymbol(amt)}</div>
-              <div class="unit" role="cell">₹</div>
+              <div class="unit" role="cell">&#8377;</div>
             </div>`;
           }).join('')}
           <div class="kv" role="row" aria-roledescription="total">
             <div class="label" role="rowheader"><b>Net Payable</b></div>
             <div class="value total" role="cell">${inrNoSymbol(model.FINAL)}</div>
-            <div class="unit" role="cell">₹</div>
+            <div class="unit" role="cell">&#8377;</div>
           </div>
         </section>
         <section class="sec" role="region" aria-labelledby="cert-h">
@@ -2068,7 +2068,7 @@
               try{ const blob = new Blob([html], {type:'text/html'}); const url = URL.createObjectURL(blob);
                    const w2 = window.open(url, '_blank', 'noopener,noreferrer');
                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                   if(!w2){ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
+                   if(!w2){ alert('Popup blocked. Allow popups or use &ldquo;Save as PDF&rdquo;.'); } }catch(e){ alert('Could not open print view: ' + (e?.message||e)); }
             });
           }
         }
@@ -2169,7 +2169,7 @@
             $('billMonth').value = mm;
           } else {
             // Keep UX calm: just inform without breaking flow.
-            toast(`Sheet "${name}" isn’t a YYYY-MM label. Month picker left unchanged.`, 'info');
+            toast(`Sheet "${name}" isn&rsquo;t a YYYY-MM label. Month picker left unchanged.`, 'info');
           }
           // Continue with compute() so the action still proceeds as before.
           compute();
@@ -2183,7 +2183,7 @@
         btnDel.className = 'ghost';
         btnDel.tabIndex = -1;
         btnDel.setAttribute('aria-label', `Remove ${name}`);
-        btnDel.textContent = '×';
+        btnDel.textContent = '&times;';
         btnDel.addEventListener('click', async (e) => {
           e.stopPropagation();
           const options = [...list.querySelectorAll('[role="option"]')];
@@ -2248,35 +2248,35 @@
         }
 
       // Header row
-      r(['WEG Billing – Month', monthLabel]);
+      r(['WEG Billing &ndash; Month', monthLabel]);
       r(['Generated at', new Date().toLocaleString()]);
       r([]);
 
       r(['SECTION','FIELD','CELL','VALUE','UNITS/NOTES']);
       // HT Bill
       r(['HT Bill','Monthly Consumption','A4', model.A4, 'kWh']);
-      r(['HT Bill','Demand Charges','B4', model.B4, '₹']);
-      r(['HT Bill','Energy Charges','C4', model.C4, '₹']);
-      r(['HT Bill','Night Rebate','D4', model.D4, '₹']);
-      r(['HT Bill','Fuel Charge','E4', model.E4, '₹']);
-      r(['HT Bill','PF Rebate','F4', model.F4, '₹']);
-      r(['HT Bill','EHV Rebate','G4', model.G4, '₹']);
-      r(['HT Bill','TOU','H4', model.H4, '₹']);
-      r(['HT Bill','GT Charges','I4', model.I4, '₹']);
+      r(['HT Bill','Demand Charges','B4', model.B4, '&#8377;']);
+      r(['HT Bill','Energy Charges','C4', model.C4, '&#8377;']);
+      r(['HT Bill','Night Rebate','D4', model.D4, '&#8377;']);
+      r(['HT Bill','Fuel Charge','E4', model.E4, '&#8377;']);
+      r(['HT Bill','PF Rebate','F4', model.F4, '&#8377;']);
+      r(['HT Bill','EHV Rebate','G4', model.G4, '&#8377;']);
+      r(['HT Bill','TOU','H4', model.H4, '&#8377;']);
+      r(['HT Bill','GT Charges','I4', model.I4, '&#8377;']);
       // mark calculated rows as currency so Excel formats them
-      r(['HT Bill (calc)','Total Consumption Charge','A9', model.A9, '₹']);
-      r(['HT Bill (calc)','ED @ 20%','B9', model.B9, '₹']);
-      r(['HT Bill (calc)','Current Month Bill','C9', model.C9, '₹']);
+      r(['HT Bill (calc)','Total Consumption Charge','A9', model.A9, '&#8377;']);
+      r(['HT Bill (calc)','ED @ 20%','B9', model.B9, '&#8377;']);
+      r(['HT Bill (calc)','Current Month Bill','C9', model.C9, '&#8377;']);
       r([]);
 
       // Adjustments
-      r(['Adjust','Outstanding Arrears','D9', model.D9, '₹']);
-      r(['Adjust','Freeze Amount','E9', model.E9, '₹']);
-      r(['Adjust','Delayed Payment Charges','F9', model.F9, '₹']);
-      r(['Adjust','Advance Payment / Adjust.','G9', model.G9, '₹']);
-      r(['Adjust (calc)','Net Payable','H9', model.H9, '₹']);
-      r(['Adjust (calc)','Actual Amount to be Paid','I9', model.I9, '₹']);
-      r(['Adjust (calc)','Balance Pending from Previous Month','A31', model.A31, '₹']);
+      r(['Adjust','Outstanding Arrears','D9', model.D9, '&#8377;']);
+      r(['Adjust','Freeze Amount','E9', model.E9, '&#8377;']);
+      r(['Adjust','Delayed Payment Charges','F9', model.F9, '&#8377;']);
+      r(['Adjust','Advance Payment / Adjust.','G9', model.G9, '&#8377;']);
+      r(['Adjust (calc)','Net Payable','H9', model.H9, '&#8377;']);
+      r(['Adjust (calc)','Actual Amount to be Paid','I9', model.I9, '&#8377;']);
+      r(['Adjust (calc)','Balance Pending from Previous Month','A31', model.A31, '&#8377;']);
       r([]);
 
       // WEG Inputs
@@ -2294,22 +2294,22 @@
       r([]);
 
       // Credits & Debits
-      r(['Wind Credits','Credit Board Charges','A24', model.A24, '₹']);
-      r(['Wind Credits','Credit ED Charges','B24', model.B24, '₹']);
-      r(['Wind Credits','Credit TDS','C24', model.C24, '₹']);
-      r(['Wind Debits','Debit Board Charges','D24', model.D24, '₹']);
-      r(['Wind Debits','Debit Electricity Duty','E24', model.E24, '₹']);
-      r(['Wind Debits','Debit Wheeling Charges','F24', model.F24, '₹']);
-      r(['Wind (calc)','Total Credit','A26', model.A26, '₹']);
-      r(['Wind (calc)','Total Debit','B26', model.B26, '₹']);
-      r(['Wind (calc)','Net Wind Credit','C26', model.C26, '₹']);
-      r(['Wind (calc)','Wind Rate (₹/kWh)','B19', model.B19, '₹/kWh']);
-      r(['Wind (calc)','Share 4.5 MW (₹)','F16', model.F16, '₹']);
-      r(['Wind (calc)','Share 14.7 MW (₹)','G16', model.G16, '₹']);
+      r(['Wind Credits','Credit Board Charges','A24', model.A24, '&#8377;']);
+      r(['Wind Credits','Credit ED Charges','B24', model.B24, '&#8377;']);
+      r(['Wind Credits','Credit TDS','C24', model.C24, '&#8377;']);
+      r(['Wind Debits','Debit Board Charges','D24', model.D24, '&#8377;']);
+      r(['Wind Debits','Debit Electricity Duty','E24', model.E24, '&#8377;']);
+      r(['Wind Debits','Debit Wheeling Charges','F24', model.F24, '&#8377;']);
+      r(['Wind (calc)','Total Credit','A26', model.A26, '&#8377;']);
+      r(['Wind (calc)','Total Debit','B26', model.B26, '&#8377;']);
+      r(['Wind (calc)','Net Wind Credit','C26', model.C26, '&#8377;']);
+      r(['Wind (calc)','Wind Rate (&#8377;/kWh)','B19', model.B19, '&#8377;/kWh']);
+      r(['Wind (calc)','Share 4.5 MW (&#8377;)','F16', model.F16, '&#8377;']);
+      r(['Wind (calc)','Share 14.7 MW (&#8377;)','G16', model.G16, '&#8377;']);
       r([]);
 
       // Final
-      r(['FINAL','Final Bill for IOM','—', model.FINAL, '₹']);
+      r(['FINAL','Final Bill for IOM','&mdash;', model.FINAL, '&#8377;']);
 
       const valueCol = 3;          // VALUE index
       const NUM = x => (typeof x === 'number' ? x
@@ -2351,8 +2351,8 @@
         if (!cell || cell.t !== 'n') continue;
         const unit = unitAt(r);
         if (unit === '%') { cell.v = cell.v / 100; cell.z = '0.00%'; }
-        else if (unit === '₹') { cell.z = '₹#,##0.00'; }
-        else if (unit === '₹/kWh') { cell.z = '₹#,##0.000000'; }
+        else if (unit === '&#8377;') { cell.z = '&#8377;#,##0.00'; }
+        else if (unit === '&#8377;/kWh') { cell.z = '&#8377;#,##0.000000'; }
         else if (unit === 'MWh') { cell.z = '0.000'; }
         else if (unit === 'kWh') { cell.z = '#,##0'; }
         else { cell.z = '#,##0.00'; }
@@ -2493,7 +2493,7 @@
           `   4.3. Debit Wheeling Charges: ${amt(model.F24)}`,
           `   4.4. Delayed Payment Charges: ${amt(model.F9)}`,
           `   Total Debit: ${amt(totalDebit)}`,
-          `6. Balance pending credit of Previous Month (if any) (=Freeze Amount – Out Standing Arrear): ${amt(balPrev)}`,
+          `6. Balance pending credit of Previous Month (if any) (=Freeze Amount &ndash; Out Standing Arrear): ${amt(balPrev)}`,
           `7. Final Bill (=Current Month Bill + Debit Adjustment - Credit Adjustment - Balance pending credit of Previous Month): ${amt(model.FINAL)}`,
           ''
         ];
@@ -2593,13 +2593,13 @@
       delBtn.className = 'ghost del';
       delBtn.setAttribute('aria-label', 'Remove '+name);
       delBtn.title = 'Remove';
-      delBtn.textContent = '×';
+      delBtn.textContent = '&times;';
       row.appendChild(delBtn);
       row.addEventListener('click', (e) => {
         if (e.target && e.target.classList && e.target.classList.contains('del')) return;
         const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
         if (mm) document.getElementById('billMonth').value = mm;
-        else toast('Sheet "'+name+'" isn’t a YYYY-MM label. Month picker left unchanged.','info');
+        else toast('Sheet "'+name+'" isn&rsquo;t a YYYY-MM label. Month picker left unchanged.','info');
         compute();
         const d = document.getElementById('sheetsMenu');
         if (d && d.hasAttribute('open')) d.removeAttribute('open');
@@ -2754,7 +2754,7 @@
 
         canonicalizeWorkbook();
         if ((_wb.SheetNames?.length || 0) === 0) {
-          toast('No sheets to download. Turn on auto‑update or add a month sheet first.', 'warn');
+          toast('No sheets to download. Turn on auto&#8209;update or add a month sheet first.', 'warn');
           return;
         }
 
@@ -2818,7 +2818,7 @@
         const host = document.getElementById('htmlPrintHost');
         if (!host) return;
         if (host.getAttribute('aria-busy') === 'true') {
-          toast('Preview is busy, please wait…', 'info');
+          toast('Preview is busy, please wait&hellip;', 'info');
           return;
         }
         try {
@@ -2858,7 +2858,7 @@
       if (btnSave) btnSave.addEventListener('click', () => {
         const host = document.getElementById('htmlPrintHost');
         if (!host) { toast('Please render a preview first.', 'warn'); return; }
-        if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait…', 'info'); return; }
+        if (host.getAttribute('aria-busy') === 'true') { toast('Preview is busy, please wait&hellip;', 'info'); return; }
         if (!host.querySelector('.sheet')) {
           toast('Please render a preview first.', 'warn');
           return;
@@ -3186,7 +3186,7 @@
         try{ (window.renderHtml || window.renderHtmlPreview || window.renderHtml)?.(); }catch(_){ }
         sheet = document.getElementById('htmlPrintHost')?.querySelector('.sheet');
       }
-      if(!sheet){ try{ toast('No IOM to print. Click “Render IOM” first.', 'bad'); }catch(_){ } return; }
+      if(!sheet){ try{ toast('No IOM to print. Click &ldquo;Render IOM&rdquo; first.', 'bad'); }catch(_){ } return; }
       // Guarantee IOM scoping for popup rules (even if host forgot to tag)
       sheet.classList.add('iom');
 
@@ -3239,7 +3239,7 @@
         `  });`+
         `})();`;
 
-      const month = (host.dataset && host.dataset.monthLabel) ? ` – ${host.dataset.monthLabel}` : '';
+      const month = (host.dataset && host.dataset.monthLabel) ? ` &ndash; ${host.dataset.monthLabel}` : '';
       const html =
         `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light"><title>IOM - HT Bill${month}</title><style>${css}</style></head>`+
         `<body>${sheet.outerHTML}<script>${script}<\/script></body></html>`;
@@ -3252,7 +3252,7 @@
         const url = URL.createObjectURL(blob);
         const w2 = window.open(url, '_blank', 'noopener,noreferrer');
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        if (!w2) { try{ toast('Popup blocked. Allow popups or use “Save as PDF”.', 'warn'); }catch{ alert('Popup blocked. Allow popups or use “Save as PDF”.'); } }
+        if (!w2) { try{ toast('Popup blocked. Allow popups or use &ldquo;Save as PDF&rdquo;.', 'warn'); }catch{ alert('Popup blocked. Allow popups or use &ldquo;Save as PDF&rdquo;.'); } }
       } catch(e) {
         try{ toast('Could not open print view: ' + (e?.message||e), 'bad'); }catch{ alert('Could not open print view: ' + (e?.message||e)); }
       }
@@ -3309,7 +3309,7 @@
   }
   </style>
   <script>
-    // Fit receipt to a single A4 page with a modest scale only if needed (≤ 10%)
+    // Fit receipt to a single A4 page with a modest scale only if needed (&le; 10%)
     if (typeof window.setRcptPrintScaleIfNeeded !== 'function') {
       window.setRcptPrintScaleIfNeeded = function(sheet){
         try{
@@ -3356,14 +3356,14 @@
       function normalizeNumber(raw){
         if (raw == null) return 0;
         if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
-        const s = String(raw).replace(/[^0-9.+-]/g, ''); // drop ₹, commas, units
+        const s = String(raw).replace(/[^0-9.+-]/g, ''); // drop &#8377;, commas, units
         const n = parseFloat(s);
         return Number.isFinite(n) ? n : 0;
       }
       const fmtINR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'});
       const fmt0  = new Intl.NumberFormat('en-IN',{maximumFractionDigits:0});
       const fmt2  = new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-      // Rates (₹/kWh) should be numeric, not currency:
+      // Rates (&#8377;/kWh) should be numeric, not currency:
       const fmtRate = new Intl.NumberFormat('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 
       // Load authoritative cell map; warn once if missing or invalid then fall back
@@ -3384,11 +3384,11 @@
             if(Array.isArray(j.mismatches) && j.mismatches.length){
               const details = j.mismatches.map(m=>{
                 if(m && typeof m === 'object' && 'field' in m){
-                  return `${m.field}: expected ${m.expected_cell ?? '?'} → ${m.actual_cell ?? '?'}`;
+                  return `${m.field}: expected ${m.expected_cell ?? '?'} &rarr; ${m.actual_cell ?? '?'}`;
                 }
                 return '[invalid mismatch entry]';
               }).join('; ');
-              warnOnce(`[analysis] map loaded with mismatches → ${details}`);
+              warnOnce(`[analysis] map loaded with mismatches &rarr; ${details}`);
             }
             window.__analysisCellMap = j;
           })
@@ -3536,15 +3536,15 @@
       // Metric catalog: key -> label, unit, formatter
       const METRICS = {
         A4:      {label:'Monthly Consumption (A4)',      unit:'kWh',   fmt:'int'},
-        C9:      {label:'Current Month Bill (C9)',       unit:'₹',     fmt:'inr'},
-        I9:      {label:'Actual Paid (I9)',              unit:'₹',     fmt:'inr'},
-        B19:     {label:'Wind Rate ₹/kWh (B19)',         unit:'₹/kWh', fmt:'rate'},
+        C9:      {label:'Current Month Bill (C9)',       unit:'&#8377;',     fmt:'inr'},
+        I9:      {label:'Actual Paid (I9)',              unit:'&#8377;',     fmt:'inr'},
+        B19:     {label:'Wind Rate &#8377;/kWh (B19)',         unit:'&#8377;/kWh', fmt:'rate'},
         A18:     {label:'Bitlavadia Share (A18)',        unit:'kWh',   fmt:'int'},
         C18:     {label:'Nanisindhodi Share (C18)',      unit:'kWh',   fmt:'int'},
-        C26:     {label:'Net Wind Credit (C26)',         unit:'₹',     fmt:'inr'},
-        eff:     {label:'Effective Rate (₹/kWh)',        unit:'₹/kWh', fmt:'rate'},
-        deltaC9: {label:'MoM Change in Bill (ΔC9)',      unit:'₹',     fmt:'inr'},
-        deltaPct:{label:'% Change in Bill (ΔC9)',        unit:'%',     fmt:'pct'}
+        C26:     {label:'Net Wind Credit (C26)',         unit:'&#8377;',     fmt:'inr'},
+        eff:     {label:'Effective Rate (&#8377;/kWh)',        unit:'&#8377;/kWh', fmt:'rate'},
+        deltaC9: {label:'MoM Change in Bill (&Delta;C9)',      unit:'&#8377;',     fmt:'inr'},
+        deltaPct:{label:'% Change in Bill (&Delta;C9)',        unit:'%',     fmt:'pct'}
       };
       function fmtValue(k,v){
         const t = METRICS[k]?.fmt;
@@ -3556,8 +3556,8 @@
       function metricKey(val){
         switch(String(val||'C9')){
           case 'EffRate': return 'eff';
-          case 'ΔC9': return 'deltaC9';
-          case 'Δ%C9': return 'deltaPct';
+          case '&Delta;C9': return 'deltaC9';
+          case '&Delta;%C9': return 'deltaPct';
           case 'A4': case 'C9': case 'I9': case 'B19': case 'A18': case 'C18': case 'C26':
             return String(val);
           default: return 'C9';
@@ -3660,7 +3660,7 @@
           }
 
           const meta = document.getElementById('analysisMeta');
-          if(meta) meta.textContent = `Sheets analyzed: ${rows.length} • Range: ${rows[0].month} → ${rows[rows.length-1].month}`;
+          if(meta) meta.textContent = `Sheets analyzed: ${rows.length} &bull; Range: ${rows[0].month} &rarr; ${rows[rows.length-1].month}`;
           const metricSel = document.getElementById('analysisMetric');
           if(metricSel && !metricSel.dataset.bound){
             metricSel.dataset.bound = '1';
