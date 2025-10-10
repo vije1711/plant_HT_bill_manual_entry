@@ -41,8 +41,8 @@ test('arrear rows use G = D when PO rate not 1', async () => {
   assert.equal(d, 100);
   assert.equal(g, 100);
 
-  const badgeText = doc.getElementById('parityBadge').textContent;
-  const match = badgeText.match(/Δ ([^|]+) \| vs C9 ([^|]+)/);
+  const badgeText = doc.getElementById('parityBadge').textContent.replace(/\u00a0/g, ' ');
+  const match = badgeText.match(/Δ\s*([^|]+)\|\s*vs C9\s*([^|]+)/);
   const delta = toNum(match[1]);
   const deltaC9 = toNum(match[2]);
   assert.equal(delta, 0);
@@ -52,7 +52,7 @@ test('arrear rows use G = D when PO rate not 1', async () => {
   // Now remove A9/B9 to verify fallback to C9v
   doc.getElementById('A9v').remove(); doc.getElementById('B9v').remove();
   dom.window.computeSes();
-  const match2 = doc.getElementById('parityBadge').textContent.match(/vs C9 ([^|]+)/);
+  const match2 = doc.getElementById('parityBadge').textContent.replace(/\u00a0/g, ' ').match(/vs C9\s*([^|]+)/);
   const deltaC9_fallback = toNum(match2[1]); // ΣD(=100) − C9v(=999) = −899.00
   assert.ok(Math.abs(deltaC9_fallback + 899.00) <= 0.01);
 });
