@@ -1570,11 +1570,14 @@
     let sesRows = [];
     const rateErrors = new Map();
 
-    function sanitizeRates(obj, defaults){
+    function sanitizeRates(obj, defaults, opts){
+      const percentAware = typeof opts === 'boolean' ? opts : opts?.percentAware !== false;
       obj = obj || {};
       obj.meta = obj.meta || {};
       obj.meta.units = obj.meta.units || {};
-      PERCENT_FIELDS.forEach(code=>{ obj.meta.units[code] = 'percent'; });
+      if(percentAware){
+        PERCENT_FIELDS.forEach(code=>{ obj.meta.units[code] = 'percent'; });
+      }
       obj.rates = obj.rates || {};
       const unknown = Object.keys(obj.rates).filter(k=>!SERVICE_CODES.includes(k));
       if(unknown.length) toast(`Unknown service codes: ${unknown.join(', ')}`, 'warn');
@@ -1582,7 +1585,7 @@
       SERVICE_CODES.forEach(code=>{
         let value = obj.rates.hasOwnProperty(code) ? obj.rates[code] : defaults[code] ?? 0;
         value = parseFloat(value);
-        if(PERCENT_FIELDS.has(code)){
+        if(percentAware && PERCENT_FIELDS.has(code)){
           if(Number.isFinite(value) && value > 0 && value <= 1){
             value = value * 100;
             console.info(`[migration] converted ${code} from decimal to percent`);
@@ -1702,7 +1705,7 @@
       if(!t) toast('Tariff defaults loaded; Save to persist.', 'info');
       if(!p) toast('PO rate defaults loaded; Save to persist.', 'info');
       tariffs = sanitizeRates(t || tariffs, DEFAULT_TARIFFS);
-      poRates = sanitizeRates(p || poRates, DEFAULT_PO_RATES);
+      poRates = sanitizeRates(p || poRates, DEFAULT_PO_RATES, false);
     }
 
     function updateRatesFromInputs(){
