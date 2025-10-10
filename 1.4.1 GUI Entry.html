@@ -421,6 +421,14 @@
     .hint{display:none;color:var(--bad);font-size:11px;margin-top:4px}
     .warn-text{display:none;color:var(--muted);font-size:11px;margin-top:4px}
     .invalid{border-color:var(--bad)!important}
+    .rate-cell{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+    .rate-input{display:flex;align-items:center;gap:6px;justify-content:flex-end;width:100%}
+    .rate-input.percent{padding-right:2px}
+    .rate-input .suffix{font-size:12px;color:var(--muted);}
+    .rate-preview{font-size:11px;color:var(--muted);margin-top:0;display:none;text-align:right;width:100%}
+    .rate-cell.editing .rate-preview{display:block}
+    .info-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(148,163,184,.24);color:var(--muted);font-size:11px;margin-left:6px;cursor:help}
+    .rate-hint{min-height:0}
 
 
     /* Toolbar group layout */
@@ -1027,7 +1035,7 @@
                 <tr>
                   <th style="text-align:left;">Service</th>
                   <th class="num">Qty (B)</th>
-                  <th class="num">Tariff (C)</th>
+                  <th class="num">Tariff (C) &mdash; number | % for PF &amp; TOD Night</th>
                   <th class="num">Amt (D)</th>
                   <th class="num">Contract Rate (E)</th>
                   <th class="num">Unit Adj (F)</th>
@@ -1477,6 +1485,7 @@
     };
     const roundUp0 = x => Math.ceil(x);
     const round2 = x => Math.round(x * 100) / 100;
+    const hasAtMostTwoDecimals = v => Math.abs(Math.round(v * 100) - v * 100) < 1e-6;
 
     // Final reconciliation tolerance (INR); hoisted for clarity & micro-perf.
     // Stability guard: updated per business requirement from &#8377;0.05 &rarr; &#8377;50.00.
@@ -1515,6 +1524,8 @@
       ARREAR_ED: 'Consumption Charges (&#8377;)'
     };
     const SERVICE_CODES = SERVICE_LIST.map(s=>s.code);
+    const PERCENT_FIELDS = new Set(['PF_CHARGE_SLAB1','TOD_NIGHT_REBATE']);
+    const PERCENT_PATTERN = /^\d{1,3}(\.\d{0,2})?$/;
 
     const DEFAULT_TARIFFS = {
       FIXED_METER_RENT:0,
@@ -1554,18 +1565,137 @@
       WIND_ENERGY_CREDIT:-1
     };
 
-    let tariffs = { version:1, meta:{supplier:'PGVCL',currency:'INR'}, effective:'', rates:{...DEFAULT_TARIFFS} };
+    let tariffs = { version:1, meta:{supplier:'PGVCL',currency:'INR',units:{}}, effective:'', rates:{...DEFAULT_TARIFFS} };
     let poRates = { version:1, meta:{po_number:'',currency:'INR'}, rates:{...DEFAULT_PO_RATES} };
     let sesRows = [];
+    const rateErrors = new Map();
 
-    function sanitizeRates(obj, defaults){
+    function sanitizeRates(obj, defaults, opts){
+      const percentAware = typeof opts === 'boolean' ? opts : opts?.percentAware !== false;
       obj = obj || {};
+      obj.meta = obj.meta || {};
+      obj.meta.units = obj.meta.units || {};
+      if(percentAware){
+        PERCENT_FIELDS.forEach(code=>{ obj.meta.units[code] = 'percent'; });
+      }
       obj.rates = obj.rates || {};
       const unknown = Object.keys(obj.rates).filter(k=>!SERVICE_CODES.includes(k));
       if(unknown.length) toast(`Unknown service codes: ${unknown.join(', ')}`, 'warn');
       unknown.forEach(k=>delete obj.rates[k]);
-      SERVICE_CODES.forEach(code=>{ if(!(code in obj.rates)) obj.rates[code] = defaults[code] ?? 0; });
+      SERVICE_CODES.forEach(code=>{
+        let value = obj.rates.hasOwnProperty(code) ? obj.rates[code] : defaults[code] ?? 0;
+        value = parseFloat(value);
+        if(percentAware && PERCENT_FIELDS.has(code)){
+          if(Number.isFinite(value) && value > 0 && value <= 1){
+            value = value * 100;
+            console.info(`[migration] converted ${code} from decimal to percent`);
+          }
+          if(!Number.isFinite(value)) value = defaults[code] ?? 0;
+          value = Math.max(0, Math.min(100, value));
+          value = Math.round(value * 100) / 100;
+        }else{
+          if(!Number.isFinite(value)) value = defaults[code] ?? 0;
+        }
+        obj.rates[code] = value;
+      });
       return obj;
+    }
+
+    function percentValueValid(v){
+      return Number.isFinite(v) && v >= 0 && v <= 100 && hasAtMostTwoDecimals(v);
+    }
+
+    function setRateError(code, msg){
+      const input = $('tar_'+code);
+      const hint = $('hint_tar_'+code);
+      const cell = input?.closest('.rate-cell');
+      if(msg){
+        if(input) input.classList.add('invalid');
+        if(hint){ hint.textContent = msg; hint.style.display = 'block'; }
+        rateErrors.set(code, msg);
+      }else{
+        if(input) input.classList.remove('invalid');
+        if(hint){ hint.textContent = ''; hint.style.display = 'none'; }
+        rateErrors.delete(code);
+      }
+      if(cell) cell.classList.toggle('has-error', !!msg);
+      updateSaveButtonState();
+    }
+
+    function updateSaveButtonState(){
+      const btn = $('saveRates');
+      if(!btn) return;
+      btn.toggleAttribute('disabled', rateErrors.size > 0);
+    }
+
+    function percentPreview(value){
+      const applied = (value/100).toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+      return `Applied as ${applied || '0'} in formulas`;
+    }
+
+    function updatePercentPreview(code){
+      const preview = $('preview_tar_'+code);
+      const input = $('tar_'+code);
+      const cell = input?.closest('.rate-cell');
+      if(!preview || !input) return;
+      const val = parseFloat(input.value);
+      if(Number.isFinite(val)){
+        preview.textContent = percentPreview(val);
+        preview.style.display = '';
+      }else{
+        preview.textContent = '';
+        preview.style.display = 'none';
+      }
+      if(cell){
+        cell.classList.toggle('editing', !input.disabled);
+      }
+    }
+
+    function enforcePercentInput(code){
+      const input = $('tar_'+code);
+      if(!input) return;
+      input.dataset.prev = input.value;
+      input.addEventListener('input', ()=>{
+        const { value } = input;
+        if(value === ''){
+          setRateError(code, 'Required.');
+          input.dataset.prev = '';
+          updatePercentPreview(code);
+          return;
+        }
+        if(/e/i.test(value) || value.startsWith('-') || !PERCENT_PATTERN.test(value)){
+          input.value = input.dataset.prev || '';
+          return;
+        }
+        const numVal = parseFloat(value);
+        if(!Number.isFinite(numVal) || numVal > 100){
+          input.value = input.dataset.prev || '';
+          return;
+        }
+        input.dataset.prev = value;
+        if(percentValueValid(numVal)){
+          setRateError(code, '');
+        }else{
+          setRateError(code, 'Max 2 decimals.');
+        }
+        updatePercentPreview(code);
+      });
+      input.addEventListener('blur', ()=>{
+        const val = parseFloat(input.value);
+        if(!percentValueValid(val)){
+          if(input.value===''){
+            setRateError(code, 'Required.');
+          }else{
+            setRateError(code, '0–100 with max 2 decimals.');
+          }
+        }else{
+          setRateError(code, '');
+          input.value = val.toFixed(2);
+        }
+        updatePercentPreview(code);
+        computeSes();
+      });
+      updatePercentPreview(code);
     }
 
     function loadRates(){
@@ -1575,18 +1705,27 @@
       if(!t) toast('Tariff defaults loaded; Save to persist.', 'info');
       if(!p) toast('PO rate defaults loaded; Save to persist.', 'info');
       tariffs = sanitizeRates(t || tariffs, DEFAULT_TARIFFS);
-      poRates = sanitizeRates(p || poRates, DEFAULT_PO_RATES);
+      poRates = sanitizeRates(p || poRates, DEFAULT_PO_RATES, false);
     }
 
     function updateRatesFromInputs(){
       SERVICE_LIST.forEach(s=>{
-        const tEl=$('tar_'+s.code); if(tEl) tariffs.rates[s.code]=parseFloat(tEl.value)||0;
+        const tEl=$('tar_'+s.code);
+        if(tEl){
+          const val=parseFloat(tEl.value);
+          if(PERCENT_FIELDS.has(s.code)){
+            if(percentValueValid(val)) tariffs.rates[s.code]=Math.round(val*100)/100;
+          }else{
+            tariffs.rates[s.code]=Number.isFinite(val)?val:0;
+          }
+        }
         const pEl=$('po_'+s.code); if(pEl) poRates.rates[s.code]=parseFloat(pEl.value)||0;
       });
     }
 
     function renderRatesTable(){
       const body=$('ratesBody'); if(!body) return;
+      rateErrors.clear();
       body.innerHTML='';
       SERVICE_LIST.forEach(s=>{
         const tr=document.createElement('tr');
@@ -1595,10 +1734,15 @@
         const hint = SERVICE_HINTS[s.code];
         const hintHtml = hint ? `<div class="muted" style="font-size:11px">${hint}</div>` : '';
         const ph = QTY_PLACEHOLDERS[s.code] ? `placeholder="${QTY_PLACEHOLDERS[s.code]}"` : '';
+        const percent = PERCENT_FIELDS.has(s.code);
+        const infoTip = percent ? `<span class="info-tip" role="img" tabindex="0" aria-label="Enter percent (0–100). Example: 2.35" title="Enter percent (0–100). Example: 2.35">&#9432;</span>` : '';
+        const tariffInput = percent
+          ? `<div class="rate-cell"><div class="rate-input percent"><input type="number" min="0" max="100" step="0.01" inputmode="decimal" pattern="^\\d{1,3}(\\.\\d{0,2})?$" id="tar_${s.code}" disabled/><span class="suffix">%</span></div><div class="rate-preview muted" id="preview_tar_${s.code}"></div><div class="hint rate-hint" id="hint_tar_${s.code}"></div></div>`
+          : `<input type="number" step="0.000001" id="tar_${s.code}" disabled/>`;
         tr.innerHTML=`
-          <td><span class="mono">${s.code}</span><div class="muted">${s.name}</div>${hintHtml}</td>
+          <td><span class="mono">${s.code}</span>${infoTip}<div class="muted">${s.name}</div>${hintHtml}</td>
           <td class="num"><input type="number" ${qtyAttrs} id="qty_${s.code}" ${qtyDis} ${ph}/></td>
-          <td class="num"><input type="number" step="0.000001" id="tar_${s.code}" disabled/></td>
+          <td class="num">${tariffInput}</td>
           <td class="num"><span id="d_${s.code}" class="muted">&mdash;</span></td>
           <td class="num"><input type="number" step="0.000001" id="po_${s.code}" disabled/></td>
           <td class="num"><span id="f_${s.code}" class="muted">&mdash;</span></td>
@@ -1606,26 +1750,74 @@
         body.appendChild(tr);
       });
       SERVICE_LIST.forEach(s=>{
-        $('tar_'+s.code).value = tariffs.rates[s.code];
+        const tarInput = $('tar_'+s.code);
+        if(tarInput){
+          const value = tariffs.rates[s.code];
+          if(PERCENT_FIELDS.has(s.code)){
+            const parsed = Number(value);
+            const safe = Number.isFinite(parsed) ? parsed : 0;
+            tarInput.value = safe.toFixed(2);
+          }else{
+            tarInput.value = value;
+          }
+        }
         $('po_'+s.code).value = poRates.rates[s.code];
+        if(PERCENT_FIELDS.has(s.code)){
+          enforcePercentInput(s.code);
+          updatePercentPreview(s.code);
+          setRateError(s.code, percentValueValid(tariffs.rates[s.code]) ? '' : 'Required.');
+        }
       });
       body.querySelectorAll('input').forEach(el=>el.addEventListener('input', compute));
       computeSes();
+      updateSaveButtonState();
     }
 
     function toggleEditRates(){
       const editing = $('tar_'+SERVICE_CODES[0])?.disabled;
       SERVICE_LIST.forEach(s=>{
-        $('tar_'+s.code)?.toggleAttribute('disabled', !editing);
+        const tarInput = $('tar_'+s.code);
+        tarInput?.toggleAttribute('disabled', !editing);
         $('po_'+s.code)?.toggleAttribute('disabled', !editing);
+        if(PERCENT_FIELDS.has(s.code) && tarInput){
+          updatePercentPreview(s.code);
+        }
       });
       const btn=$('editRates'); if(btn) btn.textContent = editing ? 'Done' : 'Edit Rates';
     }
 
+    function validatePercentRates(){
+      for(const code of PERCENT_FIELDS){
+        const input = $('tar_'+code);
+        const val = parseFloat(input?.value);
+        if(!percentValueValid(val)){
+          toast(`${code} must be a percent between 0 and 100 (max 2 decimals).`, 'warn');
+          input?.focus();
+          return false;
+        }
+      }
+      return true;
+    }
+
     function saveRates(){
       if(!$('ratesCard')) return;
+      if(rateErrors.size){
+        toast('Resolve validation errors before saving.', 'warn');
+        return;
+      }
+      if(!validatePercentRates()) return;
       updateRatesFromInputs();
       tariffs.effective = monthLabel();
+      tariffs.meta = tariffs.meta || {};
+      tariffs.meta.units = tariffs.meta.units || {};
+      PERCENT_FIELDS.forEach(code=>{ tariffs.meta.units[code] = 'percent'; });
+      for(const code of PERCENT_FIELDS){
+        const value = tariffs.rates[code];
+        if(!percentValueValid(value)){
+          toast(`${code} must be a percent between 0 and 100 (max 2 decimals).`, 'warn');
+          return;
+        }
+      }
       localStorage.setItem('tariffs.v1', JSON.stringify(tariffs));
       localStorage.setItem('po_rates.v1', JSON.stringify(poRates));
       downloadJson(tariffs,'tariffs.json');
@@ -1672,11 +1864,12 @@
       computeSes();
       if(!sesRows.length){ toast('No data for CSV.', 'warn'); return; }
       const note=monthLabel();
-      const lines=['ServiceCode,ServiceName,UnitAdjusted,ContractRate,AmountSES,Note'];
+      const lines=['ServiceCode,ServiceName,UnitAdjusted,ContractRate,AmountSES,TariffValue,TariffUnit,Note'];
       sesRows.forEach(r=>{
         if(Math.abs(r.ses)<=0.004) return;
         const qty=r.adj.toFixed(2);
-        lines.push(`${r.code},${r.name},${qty},${r.rate.toFixed(2)},${r.ses.toFixed(2)},${note}`);
+        const tariffVal = Number.isFinite(r.tariff) ? (r.unit==='percent' ? r.tariff.toFixed(2) : r.tariff.toFixed(6)) : '';
+        lines.push(`${r.code},${r.name},${qty},${r.rate.toFixed(2)},${r.ses.toFixed(2)},${tariffVal},${r.unit},${note}`);
       });
       const csv=lines.join('\n');
       const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -1737,21 +1930,22 @@
         }
         if(qtyEl) qtyEl.value = Number.isInteger(B) ? B : B.toFixed(2);
         let D=0,F=0,G=0;
+        const isPercent = PERCENT_FIELDS.has(s.code);
         if(s.code.startsWith('ARREAR_')){
           D=B*C;
           F=D;
+        }else if(isPercent){
+          const applied = (C||0)/100;
+          D = -Math.abs(B * applied);
+          F=E?D/E:0;
         }else{
           D=B*C;
-          // Ensure Night Rebate and PF Charge Slab 1 are credits (negative amounts & SES):
-          if (s.code==='TOD_NIGHT_REBATE' || s.code==='PF_CHARGE_SLAB1') {
-            D = -Math.abs(D);
-          }
           F=E?D/E:0;
         }
         if(s.code==='EC_SLAB1') dEnergy=D;
         G=(s.code==='WIND_ENERGY_CREDIT'||s.code.startsWith('ARREAR_'))?D:E*F;
         totalD+=D; totalG+=G;
-        sesRows.push({code:s.code,name:s.name,qty:B,amt:D,adj:F,rate:E,ses:G});
+        sesRows.push({code:s.code,name:s.name,qty:B,amt:D,adj:F,rate:E,ses:G,tariff:C,unit:isPercent?'percent':'number'});
         if(dEl){
           dEl.textContent = Math.abs(D)<0.005 ? '&mdash;' : INR.format(D);
           dEl.classList.toggle('bad', D < -0.004);
@@ -1779,7 +1973,7 @@
 
         const delta=totalG-totalD;
         const deltaC9=totalD-c9;
-        badge.textContent=`&Sigma;D ${INR.format(totalD)} | &Sigma;G ${INR.format(totalG)} | &Delta; ${INR.format(delta)} | vs C9 ${INR.format(deltaC9)}`;
+        badge.textContent=`ΣD ${INR.format(totalD)} | ΣG ${INR.format(totalG)} | Δ ${INR.format(delta)} | vs C9 ${INR.format(deltaC9)}`;
         badge.classList.remove('good','bad');
         badge.classList.add(Math.abs(delta)<=FINAL_CHECK_TOL && Math.abs(deltaC9)<=FINAL_CHECK_TOL ? 'good' : 'bad');
       }
@@ -2091,7 +2285,7 @@
       // Do not read from model: hard-coded by policy (see Stability Guard above).
       const vendorCode = SAP_VENDOR_CODE;
       const bankT = SAP_BANKT;
-      try { document.title = `IOM - HT Bill &ndash; ${monthLabel}`; } catch {}
+      try { document.title = `IOM - HT Bill – ${monthLabel}`; } catch {}
       el.innerHTML = `
         <div class="doc-header">
           <div>
