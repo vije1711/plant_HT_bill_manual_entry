@@ -1,4 +1,4 @@
-﻿<!-- htmlhint tagname-lowercase:false -->
+﻿﻿<!-- htmlhint tagname-lowercase:false -->
 <!DOCTYPE html>
 <html lang="en" data-theme="neon">
 <head>
@@ -77,6 +77,57 @@
       background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
       border:1px solid rgba(255,255,255,.08);
       border-radius:var(--radius);padding:18px 18px 12px 18px;box-shadow:var(--shadow)
+    }
+    .extras-group{margin:6px 0 0;display:flex;flex-direction:column;gap:6px;}
+    .extras-panel{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:6px 10px;
+      background:rgba(15,23,42,.32);
+    }
+    .extras-panel summary{
+      list-style:none;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:600;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .extras-panel summary::marker,
+    .extras-panel summary::-webkit-details-marker{display:none;}
+    .extras-panel[open] summary{color:var(--ink);}
+    .extras-body{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+    .extras-list{display:flex;flex-direction:column;gap:6px;}
+    .extras-row{
+      display:grid;
+      grid-template-columns:minmax(160px,2fr) minmax(140px,1fr) auto auto;
+      gap:8px;
+      align-items:center;
+    }
+    .extras-label{width:100%;}
+    .extras-amount{width:100%;}
+    .extras-include{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .extras-include input{width:18px;height:18px;}
+    .extras-remove{justify-self:end;}
+    .extras-empty{font-size:12px;color:var(--muted);}
+    .extras-add{align-self:flex-start;}
+    @media(max-width:720px){
+      .extras-row{
+        grid-template-columns:1fr;
+        gap:6px;
+      }
+      .extras-remove{justify-self:flex-start;}
+      .extras-include{justify-content:flex-start;}
     }
     .main-final .final-card{
       display:flex;
@@ -423,7 +474,25 @@
     .invalid{border-color:var(--bad)!important}
     .rate-cell{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
     .rate-input{display:flex;align-items:center;gap:6px;justify-content:flex-end;width:100%}
-    .rate-input.percent{padding-right:2px}
+    .rate-input.percent{
+      position:relative;
+      display:block;
+      padding-right:0;
+    }
+    .rate-input.percent input{
+      width:100%;
+      padding-right:24px;
+      text-align:right;
+    }
+    .rate-input.percent .suffix{
+      position:absolute;
+      top:50%;
+      right:8px;
+      transform:translateY(-50%);
+      font-size:12px;
+      color:var(--muted);
+      pointer-events:none;
+    }
     .rate-input .suffix{font-size:12px;color:var(--muted);}
     .rate-preview{font-size:11px;color:var(--muted);margin-top:0;display:none;text-align:right;width:100%}
     .rate-cell.editing .rate-preview{display:block}
@@ -938,6 +1007,32 @@
           <div class="f sm"><label>Debit Board Charges (&#8377;) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
           <div class="f sm"><label>Debit Electricity Duty (&#8377;) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
           <div class="f sm"><label>Debit Wheeling Charges (&#8377;) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
+        </div>
+        <div class="extras-group" aria-label="Adjustable extras">
+          <details class="extras-panel" id="creditsExtrasPanel">
+            <summary>Credits Extras (optional)</summary>
+            <div class="extras-body">
+              <div class="extras-empty" id="creditsExtrasEmpty">No extras added.</div>
+              <div class="extras-list" id="creditsExtrasList"></div>
+            </div>
+            <button type="button" class="ghost extras-add" id="creditsExtrasAdd">Add item</button>
+          </details>
+          <details class="extras-panel" id="finalExtrasPanel">
+            <summary>Final Adjustments Extras (optional)</summary>
+            <div class="extras-body">
+              <div class="extras-empty" id="finalExtrasEmpty">No extras added.</div>
+              <div class="extras-list" id="finalExtrasList"></div>
+            </div>
+            <button type="button" class="ghost extras-add" id="finalExtrasAdd">Add item</button>
+          </details>
+          <details class="extras-panel" id="debitsExtrasPanel">
+            <summary>Debits Extras (optional)</summary>
+            <div class="extras-body">
+              <div class="extras-empty" id="debitsExtrasEmpty">No extras added.</div>
+              <div class="extras-list" id="debitsExtrasList"></div>
+            </div>
+            <button type="button" class="ghost extras-add" id="debitsExtrasAdd">Add item</button>
+          </details>
         </div>
         <div class="hr"></div>
         <div class="kpi">
@@ -1463,6 +1558,7 @@
         const cleaned = String(str ?? '').replace(/[^0-9.\-]/g,''); const n = parseFloat(cleaned);
         return Number.isFinite(n) ? n : 0;
       };
+      const EM_DASH = '\u2014';
       const validDDMMYYYY = (s) => {
         if(!/^\d{2}-\d{2}-\d{4}$/.test(String(s||''))) return false;
         const [dd,mm,yyyy] = s.split('-').map(Number); const dt = new Date(yyyy, mm-1, dd);
@@ -1477,6 +1573,287 @@
         A17:1,B17:1,C17:2,D17:1,E17:1,
         A24:500,B24:200,C24:100,D24:50,E24:25,F24:25
       };
+
+    const EXTRA_BUCKET_KEYS = ['credits','final','debits'];
+    const CDR_EXTRAS_KEY = 'cdr_extras_v1';
+    const extrasState = {
+      credits: [],
+      final: [],
+      debits: []
+    };
+    window.cdrExtras = extrasState;
+
+    const makeExtraId = () => {
+      try{
+        if(typeof crypto !== 'undefined' && crypto.randomUUID){
+          return crypto.randomUUID();
+        }
+      }catch(e){}
+      return 'ex_' + Date.now().toString(16) + Math.random().toString(16).slice(2,8);
+    };
+    const toFiniteNumber = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+    function normalizeExtrasArray(arr){
+      if(!Array.isArray(arr)) return [];
+      return arr.map(item=>{
+        if(!item || typeof item !== 'object') return null;
+        const id = typeof item.id === 'string' && item.id.trim() ? item.id.trim() : makeExtraId();
+        const label = typeof item.label === 'string' ? item.label : '';
+        const amount = toFiniteNumber(item.amount);
+        const include = item.include !== false;
+        return { id, label, amount, include };
+      }).filter(Boolean);
+    }
+    function persistExtras(){
+      const payload = {};
+      EXTRA_BUCKET_KEYS.forEach(bucket=>{
+        payload[bucket] = (extrasState[bucket] || []).map(item=>({
+          id: item.id,
+          label: item.label,
+          amount: toFiniteNumber(item.amount),
+          include: !!item.include
+        }));
+      });
+      try{
+        localStorage.setItem(CDR_EXTRAS_KEY, JSON.stringify(payload));
+      }catch(err){
+        console.warn('Could not persist extras:', err);
+      }
+    }
+    function loadExtras(){
+      let data = null;
+      try{
+        data = JSON.parse(localStorage.getItem(CDR_EXTRAS_KEY) || 'null');
+      }catch(err){
+        console.warn('Could not read extras:', err);
+      }
+      EXTRA_BUCKET_KEYS.forEach(bucket=>{
+        const arr = data && Array.isArray(data[bucket]) ? normalizeExtrasArray(data[bucket]) : [];
+        extrasState[bucket] = arr;
+      });
+      renderExtras();
+    }
+    const extrasSum = (bucket) => {
+      const arr = extrasState[bucket] || [];
+      return arr.reduce((sum, item)=>{
+        if(!item || !item.include) return sum;
+        const num = toFiniteNumber(item.amount);
+        return sum + num;
+      }, 0);
+    };
+    const snapshotExtras = (bucket) => {
+      return (extrasState[bucket] || []).map(item=>({
+        id: item.id,
+        label: item.label,
+        amount: toFiniteNumber(item.amount),
+        include: !!item.include
+      }));
+    };
+
+    const EXTRA_UI_CONFIG = {
+      credits: {
+        listId: 'creditsExtrasList',
+        emptyId: 'creditsExtrasEmpty',
+        panelId: 'creditsExtrasPanel',
+        addId: 'creditsExtrasAdd',
+        labelAria: 'Credits extra label',
+        amountAria: 'Credits extra amount',
+        includeAria: 'Include credits extra',
+        removeAria: 'Remove credits extra'
+      },
+      final: {
+        listId: 'finalExtrasList',
+        emptyId: 'finalExtrasEmpty',
+        panelId: 'finalExtrasPanel',
+        addId: 'finalExtrasAdd',
+        labelAria: 'Final adjustment extra label',
+        amountAria: 'Final adjustment extra amount',
+        includeAria: 'Include final adjustment extra',
+        removeAria: 'Remove final adjustment extra'
+      },
+      debits: {
+        listId: 'debitsExtrasList',
+        emptyId: 'debitsExtrasEmpty',
+        panelId: 'debitsExtrasPanel',
+        addId: 'debitsExtrasAdd',
+        labelAria: 'Debits extra label',
+        amountAria: 'Debits extra amount',
+        includeAria: 'Include debits extra',
+        removeAria: 'Remove debits extra'
+      }
+    };
+
+    function refreshExtrasOutputs(){
+      const container = document.querySelector('.final-breakdown');
+      if(!container) return;
+      container.querySelectorAll('.item[data-extra-bucket="final"]').forEach(el=>el.remove());
+      const extras = snapshotExtras('final').filter(item=>item.include);
+      if(!extras.length) return;
+      const anchor = $('FINAL_C24v')?.closest('.item');
+      const parent = anchor?.parentElement || container;
+      let ref = anchor;
+      extras.forEach(extra=>{
+        const itemEl = document.createElement('div');
+        itemEl.className = 'item';
+        itemEl.dataset.extraBucket = 'final';
+        itemEl.dataset.extraId = extra.id;
+
+        const labelEl = document.createElement('div');
+        labelEl.className = 'label';
+        const labelText = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Final adjustment extra';
+        labelEl.textContent = labelText;
+        const tag = document.createElement('span');
+        tag.className = 'mono';
+        tag.textContent = 'extra';
+        labelEl.appendChild(document.createTextNode(' '));
+        labelEl.appendChild(tag);
+
+        const valueEl = document.createElement('div');
+        const amt = toFiniteNumber(extra.amount);
+        const abs = Math.abs(amt);
+        let cls = 'base';
+        let text = toInr(amt);
+        if(abs > 0.004){
+          if(amt >= 0){
+            cls = 'minus';
+            text = '−\u00A0' + toInr(abs);
+          }else{
+            cls = 'plus';
+            text = '+\u00A0' + toInr(abs);
+          }
+        }
+        valueEl.className = `value ${cls}`;
+        valueEl.textContent = text;
+
+        itemEl.appendChild(labelEl);
+        itemEl.appendChild(valueEl);
+
+        if(ref && ref.parentElement){
+          ref.insertAdjacentElement('afterend', itemEl);
+        }else{
+          parent.appendChild(itemEl);
+        }
+        ref = itemEl;
+      });
+    }
+
+    function buildExtraRow(bucket, item){
+      const config = EXTRA_UI_CONFIG[bucket];
+      const row = document.createElement('div');
+      row.className = 'extras-row';
+      row.dataset.extraId = item.id;
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.className = 'extras-label';
+      labelInput.value = item.label || '';
+      labelInput.placeholder = 'Label';
+      labelInput.setAttribute('aria-label', config.labelAria);
+      labelInput.addEventListener('input', ()=>{
+        item.label = labelInput.value;
+        persistExtrasDebounced();
+        refreshExtrasOutputs();
+      });
+
+      const amountInput = document.createElement('input');
+      amountInput.type = 'text';
+      amountInput.inputMode = 'decimal';
+      amountInput.className = 'extras-amount';
+      amountInput.setAttribute('aria-label', config.amountAria);
+      amountInput.dataset.value = toFiniteNumber(item.amount);
+      const hasValue = item.amount || item.amount === 0;
+      amountInput.value = hasValue ? toInr(toFiniteNumber(item.amount)) : '';
+      amountInput.addEventListener('input', ()=>{
+        parseInrInput(amountInput, false);
+        item.amount = toFiniteNumber(amountInput.dataset.value);
+        persistExtrasDebounced();
+        refreshExtrasOutputs();
+        compute();
+      });
+      amountInput.addEventListener('blur', ()=>parseInrInput(amountInput));
+
+      const includeWrap = document.createElement('div');
+      includeWrap.className = 'extras-include';
+      const includeInput = document.createElement('input');
+      includeInput.type = 'checkbox';
+      includeInput.checked = item.include !== false;
+      includeInput.setAttribute('aria-label', config.includeAria);
+      includeInput.addEventListener('change', ()=>{
+        item.include = includeInput.checked;
+        persistExtrasDebounced();
+        refreshExtrasOutputs();
+        compute();
+      });
+      const includeLabel = document.createElement('span');
+      includeLabel.textContent = 'Include';
+      includeWrap.appendChild(includeInput);
+      includeWrap.appendChild(includeLabel);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'ghost extras-remove';
+      removeBtn.textContent = 'Remove';
+      removeBtn.setAttribute('aria-label', config.removeAria);
+      removeBtn.addEventListener('click', ()=>{
+        extrasState[bucket] = (extrasState[bucket] || []).filter(x=>x.id !== item.id);
+        persistExtras();
+        renderExtrasPanel(bucket);
+        refreshExtrasOutputs();
+        compute();
+      });
+
+      row.appendChild(labelInput);
+      row.appendChild(amountInput);
+      row.appendChild(includeWrap);
+      row.appendChild(removeBtn);
+      return row;
+    }
+
+    function renderExtrasPanel(bucket){
+      const config = EXTRA_UI_CONFIG[bucket];
+      const listEl = $(config.listId);
+      const emptyEl = $(config.emptyId);
+      const addBtn = $(config.addId);
+      if(addBtn && !addBtn.dataset.bound){
+        addBtn.dataset.bound = '1';
+        addBtn.addEventListener('click', ()=>{
+          const newItem = { id: makeExtraId(), label:'', amount:0, include:true };
+          extrasState[bucket] = [...(extrasState[bucket] || []), newItem];
+          persistExtras();
+          renderExtrasPanel(bucket);
+          const panelEl = $(config.panelId);
+          if(panelEl) panelEl.open = true;
+          refreshExtrasOutputs();
+          compute();
+          requestAnimationFrame(()=>{
+            const focusEl = document.querySelector(`[data-extra-id=\"${newItem.id}\"] .extras-label`);
+            focusEl?.focus();
+          });
+        });
+      }
+      if(!listEl) return;
+      const items = extrasState[bucket] || [];
+      listEl.innerHTML = '';
+      if(emptyEl) emptyEl.style.display = items.length ? 'none' : 'block';
+      items.forEach(item=>{
+        const row = buildExtraRow(bucket, item);
+        listEl.appendChild(row);
+      });
+      const panel = $(config.panelId);
+      if(panel){
+        if(items.length === 0 && panel.hasAttribute('open')){
+          panel.removeAttribute('open');
+        }
+        panel.dataset.count = String(items.length);
+      }
+    }
+
+    function renderExtras(){
+      EXTRA_BUCKET_KEYS.forEach(renderExtrasPanel);
+      refreshExtrasOutputs();
+    }
 
     const $ = id => document.getElementById(id);
     const num = id => {
@@ -1743,10 +2120,10 @@
           <td><span class="mono">${s.code}</span>${infoTip}<div class="muted">${s.name}</div>${hintHtml}</td>
           <td class="num"><input type="number" ${qtyAttrs} id="qty_${s.code}" ${qtyDis} ${ph}/></td>
           <td class="num">${tariffInput}</td>
-          <td class="num"><span id="d_${s.code}" class="muted">&mdash;</span></td>
+          <td class="num"><span id="d_${s.code}" class="muted">${EM_DASH}</span></td>
           <td class="num"><input type="number" step="0.000001" id="po_${s.code}" disabled/></td>
-          <td class="num"><span id="f_${s.code}" class="muted">&mdash;</span></td>
-          <td class="num"><span id="g_${s.code}" class="muted">&mdash;</span></td>`;
+          <td class="num"><span id="f_${s.code}" class="muted">${EM_DASH}</span></td>
+          <td class="num"><span id="g_${s.code}" class="muted">${EM_DASH}</span></td>`;
         body.appendChild(tr);
       });
       SERVICE_LIST.forEach(s=>{
@@ -1947,14 +2324,14 @@
         totalD+=D; totalG+=G;
         sesRows.push({code:s.code,name:s.name,qty:B,amt:D,adj:F,rate:E,ses:G,tariff:C,unit:isPercent?'percent':'number'});
         if(dEl){
-          dEl.textContent = Math.abs(D)<0.005 ? '&mdash;' : INR.format(D);
+          dEl.textContent = Math.abs(D)<0.005 ? EM_DASH : INR.format(D);
           dEl.classList.toggle('bad', D < -0.004);
           dEl.classList.toggle('good', D > 0.004);
           dEl.classList.toggle('muted', Math.abs(D) <= 0.004);
         }
-        if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?'&mdash;':F.toFixed(prec);}
+        if(fEl){const prec=2; fEl.textContent=Math.abs(F)<0.005?EM_DASH:F.toFixed(prec);}
         if(gEl){
-          gEl.textContent = Math.abs(G)<0.005 ? '&mdash;' : INR.format(G);
+          gEl.textContent = Math.abs(G)<0.005 ? EM_DASH : INR.format(G);
           gEl.classList.toggle('bad', G < -0.004);
           gEl.classList.toggle('good', G > 0.004);
           gEl.classList.toggle('muted', Math.abs(G) <= 0.004);
@@ -2030,6 +2407,8 @@
     const debounce = (fn, delay=200) => {
       let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), delay); };
     };
+
+    const persistExtrasDebounced = debounce(persistExtras, 200);
 
     function confirmModal(msg){
       return new Promise(resolve=>{
@@ -2120,8 +2499,11 @@
 
       // Credits/Debits
       const A24=num('A24'), B24=num('B24'), C24=num('C24'), D24=num('D24'), E24=num('E24'), F24=num('F24');
-      const A26 = A24 + B24;
-      const B26 = D24 + E24 + F24;
+      const creditsExtraTotal = extrasSum('credits');
+      const debitsExtraTotal = extrasSum('debits');
+      const finalExtrasTotal = extrasSum('final');
+      const A26 = A24 + B24 + creditsExtraTotal;
+      const B26 = D24 + E24 + F24 + debitsExtraTotal;
       const C26 = A26 - B26;
       $('A26v').textContent = toInr(A26);
       $('B26v').textContent = toInr(B26);
@@ -2137,8 +2519,12 @@
       $('G16v').textContent = toInr(G16);
 
       // Final Bill for IOM
-      const FINAL = C9 - F16 - G16 - C24 + A31 + F9; // C9 &minus; F16 &minus; G16 &minus; Credit TDS + Balance Pending + Delay Charges
+      const FINAL = C9 - F16 - G16 - (C24 + finalExtrasTotal) + A31 + F9; // C9 &minus; F16 &minus; G16 &minus; Credit TDS (+ extras) + Balance Pending + Delay Charges
       $('FINALv').textContent = toInr(FINAL);
+      const mappingText = finalExtrasTotal
+        ? 'Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS − Final adj. extras + Balance Pending (prev) + Delay Charges'
+        : 'Mapping: Current Month Bill − Share(4.5MW) − Share(14.7MW) − Credit TDS + Balance Pending (prev) + Delay Charges';
+      document.querySelectorAll('.final-main .mapping').forEach(el=>{ el.textContent = mappingText; });
       const setFinalLine = (id, val, mode='base') => {
         const el = $(id);
         if (!el) return;
@@ -2161,7 +2547,7 @@
 
       // Cross-check: I9 (= H9 &minus; E9) should reconcile with FINAL
       const I9_check = (Number(H9) || 0) - (Number(E9) || 0);
-      const adjustments = C26 + C24 + G9;
+      const adjustments = C26 + C24 + G9 + finalExtrasTotal;
       const expectedFinal = I9_check - adjustments;
       const deltaFinal = FINAL - expectedFinal;
       const badge = $('finalCheckBadge');
@@ -2189,10 +2575,30 @@
         badge.setAttribute('aria-label', a11y);
         badge.title = a11y;
       }
+      refreshExtrasOutputs();
       computeSes();
       persistDebounced();
       try { window.dispatchEvent(new CustomEvent('receipt:refresh')); } catch(_){ }
-      return strict && !ok ? null : { A4,B4,C4,D4,E4,F4,G4,H4,I4, A9,B9,C9, D9,E9,F9,G9,H9,I9, B15,D15,C16, A17,B17,C17,D17,E17, A18,C18,A19, A24,B24,C24,D24,E24,F24, A26,B26,C26, B19,F16,G16, A31, FINAL, I9_check };
+      return strict && !ok ? null : {
+        A4,B4,C4,D4,E4,F4,G4,H4,I4,
+        A9,B9,C9,
+        D9,E9,F9,G9,H9,I9,
+        B15,D15,C16,
+        A17,B17,C17,D17,E17,
+        A18,C18,A19,
+        A24,B24,C24,D24,E24,F24,
+        A26,B26,C26,
+        B19,F16,G16,
+        A31,
+        FINAL,
+        I9_check,
+        creditsExtrasTotal: creditsExtraTotal,
+        debitsExtrasTotal: debitsExtraTotal,
+        finalExtrasTotal,
+        creditsExtras: snapshotExtras('credits'),
+        debitsExtras: snapshotExtras('debits'),
+        finalExtras: snapshotExtras('final')
+      };
     }
 
     // Reuse formatters from existing code:
@@ -2257,9 +2663,17 @@
       add('Wind Credits','Credit Board Charges','A24', model.A24,'&#8377;');
       add('Wind Credits','Credit ED Charges','B24', model.B24,'&#8377;');
       add('Wind Credits','Credit TDS','C24', model.C24,'&#8377;');
+      (model.creditsExtras || []).filter(e=>e && e.include).forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Credits extra';
+        add('Wind Credits', `${label} (extra)`, 'extra', extra.amount,'&#8377;');
+      });
       add('Wind Debits','Debit Board Charges','D24', model.D24,'&#8377;');
       add('Wind Debits','Debit Electricity Duty','E24', model.E24,'&#8377;');
       add('Wind Debits','Debit Wheeling Charges','F24', model.F24,'&#8377;');
+      (model.debitsExtras || []).filter(e=>e && e.include).forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Debits extra';
+        add('Wind Debits', `${label} (extra)`, 'extra', extra.amount,'&#8377;');
+      });
       add('Wind (calc)','Total Credit','A26', model.A26,'&#8377;');
       add('Wind (calc)','Total Debit','B26', model.B26,'&#8377;');
       add('Wind (calc)','Net Wind Credit','C26', model.C26,'&#8377;');
@@ -2268,6 +2682,10 @@
       add('Wind (calc)','Share 14.7 MW (&#8377;)','G16', model.G16,'&#8377;');
 
       // FINAL
+      (model.finalExtras || []).filter(e=>e && e.include).forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Final adjustment extra';
+        add('FINAL', `${label} (extra)`, 'extra', extra.amount,'&#8377;');
+      });
       add('FINAL','Final Bill for IOM','&mdash;', model.FINAL,'&#8377;');
 
       return { secs, order };
@@ -2285,6 +2703,22 @@
       // Do not read from model: hard-coded by policy (see Stability Guard above).
       const vendorCode = SAP_VENDOR_CODE;
       const bankT = SAP_BANKT;
+      const finalExtras = (model.finalExtras || []).filter(e=>e && e.include);
+      const mappingRows = [
+        ['Current Month Bill',           'C9',    model.C9,  'none'],
+        ['Share of 4.5MW WEG',           'F16',   model.F16, 'minus'],
+        ['Share of 14.7MW WEG',          'G16',   model.G16, 'minus'],
+        ['Credit TDS',                   'C24',   model.C24, 'minus'],
+      ];
+      finalExtras.forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? `${extra.label.trim()} (extra)` : 'Final adjustment extra (extra)';
+        mappingRows.push([label, '—', extra.amount, 'final-extra']);
+      });
+      const hasFinalExtras = mappingRows.length > 4;
+      mappingRows.push(
+        ['Balance Pending (prev)',       'A31',   model.A31, 'plus'],
+        ['Delay Charges',                'F9',    model.F9,  'plus']
+      );
       try { document.title = `IOM - HT Bill – ${monthLabel}`; } catch {}
       el.innerHTML = `
         <div class="doc-header">
@@ -2306,27 +2740,27 @@
         <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
           <h3>Amount Mapping (per formula)</h3>
           <div class="footer-note" style="margin:0 0 6px 0;">
-            Mapping: Current Month Bill &ndash; Share(4.5MW) &ndash; Share(14.7MW) &ndash; Credit TDS + Balance Pending (prev) + Delay Charges
+            Mapping: Current Month Bill &ndash; Share(4.5MW) &ndash; Share(14.7MW) &ndash; Credit TDS${hasFinalExtras ? ' &ndash; Final adj. extras' : ''} + Balance Pending (prev) + Delay Charges
           </div>
           <div class="kv" role="row" aria-roledescription="header">
             <div class="label" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">Component <span class="mono">(cell)</span></div>
             <div class="value" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">Amount</div>
             <div class="unit" role="columnheader" style="color:#6b7280;text-transform:uppercase;font-size:11px;">&#8377;</div>
           </div>
-          ${([
-            ['Current Month Bill',           'C9',    model.C9,  'none'],
-            ['Share of 4.5MW WEG',           'F16',   model.F16, 'minus'],
-            ['Share of 14.7MW WEG',          'G16',   model.G16, 'minus'],
-            ['Credit TDS',                   'C24',   model.C24, 'minus'],
-            ['Balance Pending (prev)',       'A31',   model.A31, 'plus'],
-            ['Delay Charges',                'F9',    model.F9,  'plus'],
-          ]).map(([label, cell, val, sign]) => {
-            const amt = Math.abs(+val || 0);
-            const s = amt === 0 ? '' : (sign === 'minus' ? '&minus;' : (sign === 'plus' ? '+' : ''));
+          ${mappingRows.map(([label, cell, val, sign]) => {
+            const valNum = Number(val) || 0;
+            const amt = Math.abs(valNum);
+            let sym = '';
+            if (sign === 'minus') sym = amt === 0 ? '' : '&minus;';
+            else if (sign === 'plus') sym = amt === 0 ? '' : '+';
+            else if (sign === 'final-extra') {
+              sym = amt === 0 ? '' : (valNum >= 0 ? '&minus;' : '+');
+            }
+            const cellText = cell && cell.trim() ? cell.trim() : '—';
             return `
             <div class="kv" role="row">
-              <div class="label" role="rowheader">${label} <span class="mono">${cell}</span></div>
-              <div class="value" role="cell">${s}${inrNoSymbol(amt)}</div>
+              <div class="label" role="rowheader">${esc(label)} <span class="mono">${esc(cellText)}</span></div>
+              <div class="value" role="cell">${sym}${inrNoSymbol(amt)}</div>
               <div class="unit" role="cell">&#8377;</div>
             </div>`;
           }).join('')}
@@ -2593,6 +3027,7 @@
     function persist(){
       const inputs = {};
       document.querySelectorAll('input').forEach(el=>{
+        if(!el.id) return;
         inputs[el.id] = el.value;
       });
       const _wb = getWB();
@@ -2798,7 +3233,15 @@
       r(['Wind Debits','Debit Electricity Duty','E24', model.E24, '&#8377;']);
       r(['Wind Debits','Debit Wheeling Charges','F24', model.F24, '&#8377;']);
       r(['Wind (calc)','Total Credit','A26', model.A26, '&#8377;']);
+      (model.creditsExtras || []).filter(e=>e && e.include).forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Credits extra';
+        r(['Wind Credits (extra)', label, 'extra', extra.amount, '&#8377;']);
+      });
       r(['Wind (calc)','Total Debit','B26', model.B26, '&#8377;']);
+      (model.debitsExtras || []).filter(e=>e && e.include).forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Debits extra';
+        r(['Wind Debits (extra)', label, 'extra', extra.amount, '&#8377;']);
+      });
       r(['Wind (calc)','Net Wind Credit','C26', model.C26, '&#8377;']);
       r(['Wind (calc)','Wind Rate (&#8377;/kWh)','B19', model.B19, '&#8377;/kWh']);
       r(['Wind (calc)','Share 4.5 MW (&#8377;)','F16', model.F16, '&#8377;']);
@@ -2806,6 +3249,10 @@
       r([]);
 
       // Final
+      (model.finalExtras || []).filter(e=>e && e.include).forEach(extra=>{
+        const label = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Final adjustment extra';
+        r(['FINAL (extra)', label, 'extra', extra.amount, '&#8377;']);
+      });
       r(['FINAL','Final Bill for IOM','&mdash;', model.FINAL, '&#8377;']);
 
       const valueCol = 3;          // VALUE index
@@ -2965,12 +3412,49 @@
         return parts.join(' ').trim();
       }
 
+      function enumerateSection(major, startMinor, items){
+        let step = 0;
+        return items.map(({ label, amount }) => {
+          const code = `${major}.${String(startMinor + step).padStart(2,'0')}`;
+          step += 1;
+          return { code, label, amount };
+        });
+      }
+
       function buildSapLongText(model, billMonth){
         const prev = prevMonthLabel(billMonth);
+        const creditExtras = (model.creditsExtras || []).filter(e=>e && e.include);
+        const debitExtras = (model.debitsExtras || []).filter(e=>e && e.include);
+        const finalExtras = (model.finalExtras || []).filter(e=>e && e.include);
         const amt = v => `${INR.format(Number(v || 0))}/-.`;
         const totalCreditAdj = Number(model.F16 || 0) + Number(model.G16 || 0);
-        const totalDebit = Number(model.D24 || 0) + Number(model.E24 || 0) + Number(model.F24 || 0) + Number(model.F9 || 0);
+        const totalDebit = Number(model.D24 || 0) + Number(model.E24 || 0) + Number(model.F24 || 0) + Number(model.F9 || 0) + Number(model.debitsExtrasTotal || 0);
         const balPrev = Number(model.E9 || 0) - Number(model.D9 || 0);
+        const creditLinesSource = [
+          { label:'Credit Board Charges', amount:model.A24 },
+          { label:'Credit ED Charges', amount:model.B24 },
+          { label:'Credit TDS', amount:model.C24 },
+          ...creditExtras.map(extra=>{
+            const name = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Credits extra';
+            return { label:`${name} (Credits extra)`, amount:extra.amount };
+          }),
+          ...finalExtras.map(extra=>{
+            const name = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Final adjustment extra';
+            return { label:`${name} (Final adj. extra)`, amount:extra.amount };
+          })
+        ];
+        const debitLinesSource = [
+          { label:'Debit Board Charges', amount:model.D24 },
+          { label:'Debit Electricity duty', amount:model.E24 },
+          { label:'Debit Wheeling Charges', amount:model.F24 },
+          { label:'Delayed Payment Charges', amount:model.F9 },
+          ...debitExtras.map(extra=>{
+            const name = (extra.label && extra.label.trim()) ? extra.label.trim() : 'Debits extra';
+            return { label:`${name} (Debits extra)`, amount:extra.amount };
+          })
+        ];
+        const creditLines = enumerateSection('3', 1, creditLinesSource).map(item=>`   ${item.code}. ${item.label}: ${amt(item.amount)}`);
+        const debitLines = enumerateSection('4', 1, debitLinesSource).map(item=>`   ${item.code}. ${item.label}: ${amt(item.amount)}`);
         const lines = [
           'Long Text for SAP:',
           `Bill Certification for ${billMonth} as given below: -`,
@@ -2980,17 +3464,12 @@
           `   A. Share of 4.5MW WEG: ${amt(model.F16)}`,
           `   B. Share 14.7MW WEG: ${amt(model.G16)}`,
           '3. CREDIT ADJUSTMENT AMOUNT:',
-          `   3.05. Credit Board Charges: ${amt(model.A24)}`,
-          `   3.08. Credit ED Charges: ${amt(model.B24)}`,
-          `   3.14. Credit TDS: ${amt(model.C24)}`,
+          ...creditLines,
           `   Total Credit: ${amt(model.A26)}`,
           '4. DEBIT ADJUSTMENT AMOUNT:',
-          `   4.1. Debit Board Charges: ${amt(model.D24)}`,
-          `   4.2. Debit Electricity duty: ${amt(model.E24)}`,
-          `   4.3. Debit Wheeling Charges: ${amt(model.F24)}`,
-          `   4.4. Delayed Payment Charges: ${amt(model.F9)}`,
+          ...debitLines,
           `   Total Debit: ${amt(totalDebit)}`,
-          `6. Balance pending credit of Previous Month (if any) (=Freeze Amount &ndash; Out Standing Arrear): ${amt(balPrev)}`,
+          `6. Balance pending credit of Previous Month (if any) (=Freeze Amount - Out Standing Arrear): ${amt(balPrev)}`,
           `7. Final Bill (=Current Month Bill + Debit Adjustment - Credit Adjustment - Balance pending credit of Previous Month): ${amt(model.FINAL)}`,
           ''
         ];
@@ -3527,6 +4006,7 @@
         });
       })();
 
+      loadExtras();
       const restored = restore();
       compute();
       refreshSheetList();
