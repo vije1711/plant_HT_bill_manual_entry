@@ -22,7 +22,6 @@
       --shadow: 0 20px 50px rgba(0,0,0,.45);
       --radius: 18px;
       --warn-outline: rgba(255,120,120,.6);
-      --masonry-row: 12px;
     }
     /* Force a light palette for export */
     :root { color-scheme: light only; }
@@ -72,14 +71,12 @@
     button:active{transform:translateY(1px)}
     .ghost{background:rgba(255,255,255,.05)}
 
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-items:start}
-    .grid.masonry-ready{grid-auto-rows:var(--masonry-row,12px);grid-auto-flow:dense}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
     .card{
       grid-column: span 12;
       background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
       border:1px solid rgba(255,255,255,.08);
-      border-radius:var(--radius);padding:18px 18px 12px 18px;box-shadow:var(--shadow);
-      align-self:start;
+      border-radius:var(--radius);padding:18px 18px 12px 18px;box-shadow:var(--shadow)
     }
     .extras-group{margin:6px 0 0;display:flex;flex-direction:column;gap:6px;}
     .extras-panel{
@@ -285,8 +282,6 @@
       .span-3{grid-column:span 3}
       .span-5{grid-column:span 5}
       .span-9{grid-column:span 9}
-      .card.final-bill-right{grid-column:7 / -1}
-      .card.final-check-stack{grid-column:7 / -1}
     }
 
     .card h2{margin:0 0 12px 0;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
@@ -347,8 +342,8 @@
     #finalCheckBadge{
       display:flex;
       align-items:center;
-      gap:20px;
-      padding:18px 20px 20px;
+      gap:24px;
+      padding:20px 24px 22px;
       border-radius:24px;
       background:linear-gradient(140deg, rgba(22,163,239,.22), rgba(147,51,234,.16));
       border:1px solid rgba(255,255,255,.12);
@@ -361,17 +356,17 @@
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      width:108px;
+      width:118px;
       border-radius:20px;
       background:rgba(15,23,42,.6);
       color:var(--ink);
       text-align:center;
-      gap:8px;
-      padding:16px 12px;
+      gap:10px;
+      padding:18px 14px;
       backdrop-filter:blur(10px);
     }
     #finalCheckBadge .status{
-      font-size:32px;
+      font-size:34px;
       line-height:1;
       font-weight:700;
     }
@@ -383,8 +378,8 @@
     }
     #finalCheckBadge .metrics{
       display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
-      gap:12px 22px;
+      grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
+      gap:16px 34px;
       width:100%;
     }
     #finalCheckBadge .metric{
@@ -400,7 +395,7 @@
       color:rgba(226,232,240,.75);
     }
     #finalCheckBadge .metric-value{
-      font-size:20px;
+      font-size:21px;
       font-weight:700;
       color:var(--ink);
       white-space:nowrap;
@@ -421,24 +416,6 @@
         }
       #finalCheckBadge .status-wrap{width:108px;}
       #finalCheckBadge .metrics{grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));}
-    }
-    @media(min-width:1100px){
-      #finalCheckBadge{
-        align-items:stretch;
-        gap:18px;
-        padding:18px 22px;
-      }
-      #finalCheckBadge .status-wrap{
-        height:100%;
-      }
-      #finalCheckBadge .metrics{
-        grid-template-columns:repeat(4, minmax(0, 1fr));
-        gap:12px 18px;
-        align-items:center;
-      }
-      #finalCheckBadge .metric{
-        min-height:0;
-      }
     }
     .pill button{padding:2px 6px}
     .pill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -965,55 +942,6 @@
           cb.addEventListener('change', function(){ apply(cb.checked ? 'neon' : 'classic'); });
         });
       </script>
-      <script>
-        document.addEventListener('DOMContentLoaded', function(){
-          var grid = document.querySelector('.grid');
-          if(!grid) return;
-          var cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
-          if(!cards.length) return;
-          var detailsPanels = Array.prototype.slice.call(grid.querySelectorAll('details'));
-          var root = document.documentElement;
-          var rowSize = parseFloat(getComputedStyle(root).getPropertyValue('--masonry-row')) || 12;
-          var gap = parseFloat(getComputedStyle(grid).getPropertyValue('row-gap')) || 0;
-          function measureGap(){
-            gap = parseFloat(getComputedStyle(grid).getPropertyValue('row-gap')) || 0;
-          }
-          function setSpan(card){
-            var rect = card.getBoundingClientRect();
-            var span = Math.max(1, Math.ceil((rect.height + gap) / (rowSize + gap)));
-            card.style.gridRowEnd = 'span ' + span;
-          }
-          function layout(){
-            measureGap();
-            grid.classList.add('masonry-ready');
-            cards.forEach(setSpan);
-          }
-          function scheduleLayout(){
-            if(typeof requestAnimationFrame === 'function'){
-              requestAnimationFrame(layout);
-            }else{
-              setTimeout(layout, 0);
-            }
-          }
-          if(typeof ResizeObserver === 'function'){
-            var resizeObserver = new ResizeObserver(function(entries){
-              entries.forEach(function(entry){
-                if(entry && entry.target){
-                  setSpan(entry.target);
-                }
-              });
-            });
-            cards.forEach(function(card){ resizeObserver.observe(card); });
-          }
-          if(detailsPanels.length){
-            detailsPanels.forEach(function(panel){
-              panel.addEventListener('toggle', scheduleLayout);
-            });
-          }
-          window.addEventListener('resize', scheduleLayout);
-          layout();
-        });
-      </script>
 
       <div class="grid">
         <!-- Main HT Bill Inputs -->
@@ -1151,7 +1079,7 @@
       </section>
 
         <!-- Final Bill -->
-        <section class="card span-7 main-final final-bill-right">
+        <section class="card span-7 main-final">
           <h2>Final Bill for IOM</h2>
           <div class="final-card">
             <div class="final-main">
@@ -1188,7 +1116,7 @@
           </div>
         </section>
         <!-- Rates Manager -->
-        <section class="card span-5 final-check-card final-check-stack">
+        <section class="card span-5 final-check-card">
           <h2>Final Bill Check</h2>
           <p class="muted" style="margin-top:-4px;margin-bottom:12px;">Reconcile FINAL with adjustments before approval.</p>
           <div id="finalCheckBadge" class="pill pill-check" role="status" aria-live="polite">
