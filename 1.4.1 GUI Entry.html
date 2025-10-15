@@ -1,4 +1,4 @@
-﻿﻿<!-- htmlhint tagname-lowercase:false -->
+﻿<!-- htmlhint tagname-lowercase:false -->
 <!DOCTYPE html>
 <html lang="en" data-theme="neon">
 <head>
@@ -22,7 +22,6 @@
       --shadow: 0 20px 50px rgba(0,0,0,.45);
       --radius: 18px;
       --warn-outline: rgba(255,120,120,.6);
-      --masonry-row: 10px;
     }
     /* Force a light palette for export */
     :root { color-scheme: light only; }
@@ -72,14 +71,12 @@
     button:active{transform:translateY(1px)}
     .ghost{background:rgba(255,255,255,.05)}
 
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-items:start}
-    .grid.masonry-ready{grid-auto-rows:var(--masonry-row,12px);grid-auto-flow:dense}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
     .card{
       grid-column: span 12;
       background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
       border:1px solid rgba(255,255,255,.08);
-      border-radius:var(--radius);padding:18px 18px 12px 18px;box-shadow:var(--shadow);
-      align-self:start;
+      border-radius:var(--radius);padding:18px 18px 12px 18px;box-shadow:var(--shadow)
     }
     .extras-group{margin:6px 0 0;display:flex;flex-direction:column;gap:6px;}
     .extras-panel{
@@ -211,148 +208,13 @@
       .main-final .final-main{flex:1;}
     }
     .final-check-card{
-      position:relative;
       display:flex;
       flex-direction:column;
-      gap:18px;
+      gap:16px;
       margin-top:10px;
-      padding:22px 24px 20px;
-      border-radius:24px;
-      background:radial-gradient(140% 120% at 82% 12%, rgba(34,211,238,.16), transparent 65%),
-                 radial-gradient(120% 120% at -15% 95%, rgba(167,139,250,.18), transparent 60%),
-                 rgba(11,18,36,.88);
-      border:1px solid rgba(148,163,184,.2);
-      box-shadow:0 26px 60px rgba(15,23,42,.46);
-      overflow:hidden;
-      isolation:isolate;
     }
-    .final-check-card::before{
-      content:'';
-      position:absolute;
-      inset:-35% -40%;
-      background:radial-gradient(70% 70% at 50% 50%, rgba(34,211,238,.18), transparent 80%);
-      opacity:.55;
-      filter:blur(0);
-      z-index:0;
-    }
-    .final-check-card > *{position:relative;z-index:1;}
-    .final-check-card h2{margin-bottom:4px;}
-    .final-check-card .pill{align-self:flex-start;}
-    .final-check-card .pill-check{margin-top:0;}
-    .final-check-card .intro-text{font-size:12.5px;color:rgba(226,232,240,.78);margin:-2px 0 6px;line-height:1.55;}
-    .final-check-card .delta-visual{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      padding:14px 16px 16px;
-      border-radius:18px;
-      background:rgba(15,23,42,.66);
-      border:1px solid rgba(148,163,184,.2);
-      box-shadow:0 18px 40px rgba(15,23,42,.32);
-    }
-    .final-check-card .delta-visual .delta-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      font-size:11px;
-      letter-spacing:.18em;
-      text-transform:uppercase;
-      color:rgba(226,232,240,.72);
-    }
-    .final-check-card .delta-visual .delta-header .percent{font-size:13px;font-weight:700;color:var(--ink);letter-spacing:.04em;}
-    .final-check-card .delta-bar{
-      position:relative;
-      height:10px;
-      border-radius:999px;
-      background:rgba(148,163,184,.24);
-      overflow:hidden;
-    }
-    .final-check-card .delta-bar-fill{
-      position:absolute;
-      inset:0;
-      width:0%;
-      border-radius:inherit;
-      background:linear-gradient(90deg, rgba(34,197,94,.85), rgba(16,185,129,.8));
-      transition:width .45s cubic-bezier(.45,0,.1,1);
-    }
-    .final-check-card .delta-bar-fill.warn{background:linear-gradient(90deg, rgba(248,113,113,.88), rgba(239,68,68,.82));}
-    .final-check-card .delta-footnote{font-size:11px;color:rgba(226,232,240,.55);}
-    .final-check-card .final-check-guidance{
-      display:grid;
-      gap:12px;
-    }
-    .final-check-card .guide-title{
-      font-size:11px;
-      letter-spacing:.2em;
-      text-transform:uppercase;
-      color:rgba(226,232,240,.65);
-    }
-    .final-check-card .guide-list{
-      margin:0;
-      padding:0;
-      list-style:none;
-      display:grid;
-      gap:10px;
-    }
-    .final-check-card .guide-list li{
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      padding:10px 14px;
-      border-radius:16px;
-      background:rgba(15,23,42,.58);
-      border:1px solid rgba(148,163,184,.16);
-      box-shadow:0 14px 32px rgba(15,23,42,.28);
-      font-size:12.5px;
-      color:rgba(226,232,240,.82);
-    }
-    .final-check-card .guide-text{line-height:1.45;}
-    .final-check-card .guide-icon{
-      flex:0 0 auto;
-      width:22px;
-      height:22px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      background:rgba(34,211,238,.22);
-      color:rgba(34,211,238,.92);
-      box-shadow:0 8px 18px rgba(34,211,238,.25);
-    }
-    .final-check-card .guide-text strong{font-weight:700;color:var(--ink);}
-    .final-check-card .final-check-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-    .final-check-card .final-check-actions a{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 12px;
-      border-radius:999px;
-      background:rgba(15,23,42,.6);
-      border:1px solid rgba(148,163,184,.22);
-      color:var(--ink);
-      font-size:12px;
-      font-weight:600;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      text-decoration:none;
-      box-shadow:0 12px 28px rgba(15,23,42,.3);
-      transition:background .25s ease, transform .25s ease;
-    }
-    .final-check-card .final-check-actions a::after{
-      content:'→';
-      font-size:12px;
-      opacity:.8;
-    }
-    .final-check-card .final-check-actions a:hover{background:rgba(15,23,42,.74);transform:translateY(-1px);}
-    .final-check-card .final-check-actions a:focus-visible{outline:var(--ring);outline-offset:2px;}
-    @media(max-width:720px){
-      .final-check-card{padding:20px 18px 18px;}
-      .final-check-card .delta-visual{padding:12px 14px 14px;}
+    .final-check-card .pill-check{
+      margin-top:0;
     }
     #analysisCard{
       display:flex;
@@ -425,8 +287,6 @@
       .span-3{grid-column:span 3}
       .span-5{grid-column:span 5}
       .span-9{grid-column:span 9}
-      .card.final-bill-right{grid-column:7 / -1}
-      .card.final-check-stack{grid-column:7 / -1}
     }
 
     .card h2{margin:0 0 12px 0;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
@@ -494,31 +354,31 @@
     #finalCheckBadge{
       display:flex;
       align-items:center;
-      gap:20px;
-      padding:18px 20px 20px;
+      gap:24px;
+      padding:20px 24px 22px;
       border-radius:24px;
       background:linear-gradient(140deg, rgba(22,163,239,.22), rgba(147,51,234,.16));
       border:1px solid rgba(255,255,255,.12);
       box-shadow:0 26px 58px rgba(15,23,42,.45);
       width:100%;
-      margin:0;
+      margin:4px 0 0;
     }
     #finalCheckBadge .status-wrap{
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      width:108px;
+      width:118px;
       border-radius:20px;
       background:rgba(15,23,42,.6);
       color:var(--ink);
       text-align:center;
-      gap:8px;
-      padding:16px 12px;
+      gap:10px;
+      padding:18px 14px;
       backdrop-filter:blur(10px);
     }
     #finalCheckBadge .status{
-      font-size:32px;
+      font-size:34px;
       line-height:1;
       font-weight:700;
     }
@@ -530,8 +390,8 @@
     }
     #finalCheckBadge .metrics{
       display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
-      gap:12px 22px;
+      grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
+      gap:16px 34px;
       width:100%;
     }
     #finalCheckBadge .metric{
@@ -570,24 +430,6 @@
         }
       #finalCheckBadge .status-wrap{width:108px;}
       #finalCheckBadge .metrics{grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));}
-    }
-    @media(min-width:1100px){
-      #finalCheckBadge{
-        align-items:stretch;
-        gap:18px;
-        padding:18px 22px;
-      }
-      #finalCheckBadge .status-wrap{
-        height:100%;
-      }
-      #finalCheckBadge .metrics{
-        grid-template-columns:repeat(4, minmax(0, 1fr));
-        gap:12px 18px;
-        align-items:center;
-      }
-      #finalCheckBadge .metric{
-        min-height:0;
-      }
     }
     .pill button{padding:2px 6px}
     .pill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -1114,52 +956,6 @@
           cb.addEventListener('change', function(){ apply(cb.checked ? 'neon' : 'classic'); });
         });
       </script>
-      <script>
-        document.addEventListener('DOMContentLoaded', function(){
-          var grid = document.querySelector('.grid');
-          if(!grid) return;
-          var cards = Array.prototype.slice.call(grid.querySelectorAll('.card'));
-          if(!cards.length) return;
-          var detailsPanels = Array.prototype.slice.call(grid.querySelectorAll('details'));
-          var root = document.documentElement;
-          var rowSize = parseFloat(getComputedStyle(root).getPropertyValue('--masonry-row')) || 12;
-          var gap = parseFloat(getComputedStyle(grid).getPropertyValue('row-gap')) || 0;
-          function measureGap(){
-            gap = parseFloat(getComputedStyle(grid).getPropertyValue('row-gap')) || 0;
-          }
-          function setSpan(card){
-            var rect = card.getBoundingClientRect();
-            var span = Math.max(1, Math.ceil((rect.height + gap) / (rowSize + gap)));
-            card.style.gridRowEnd = 'span ' + span;
-          }
-          function layout(){
-            measureGap();
-            grid.classList.add('masonry-ready');
-            cards.forEach(setSpan);
-          }
-          function scheduleLayout(){
-            if(typeof requestAnimationFrame === 'function'){
-              requestAnimationFrame(layout);
-            }else{
-              setTimeout(layout, 0);
-            }
-          }
-          if(typeof ResizeObserver === 'function'){
-            var resizeObserver = new ResizeObserver(function(){
-              scheduleLayout();
-            });
-            cards.forEach(function(card){ resizeObserver.observe(card); });
-          }
-          if(detailsPanels.length){
-            detailsPanels.forEach(function(panel){
-              panel.addEventListener('toggle', scheduleLayout);
-            });
-          }
-          window.addEventListener('resize', scheduleLayout);
-          window.addEventListener('load', scheduleLayout);
-          layout();
-        });
-      </script>
 
       <div class="grid">
         <!-- Main HT Bill Inputs -->
@@ -1228,7 +1024,7 @@
       </section>
 
       <!-- WEG Credits -->
-      <section class="card span-6" id="windCreditsCard">
+      <section class="card span-6">
         <h2>Wind Credits & Debits <span class="help">Prior&#8208;month adjustments</span></h2>
         <div class="fields">
           <div class="f" style="grid-column:span 12;">
@@ -1297,7 +1093,7 @@
       </section>
 
         <!-- Final Bill -->
-        <section class="card span-7 main-final final-bill-right">
+        <section class="card span-7 main-final">
           <h2>Final Bill for IOM</h2>
           <div class="final-card">
             <div class="final-main">
@@ -1334,9 +1130,9 @@
           </div>
         </section>
         <!-- Rates Manager -->
-        <section class="card span-5 final-check-card final-check-stack">
+        <section class="card span-5 final-check-card">
           <h2>Final Bill Check</h2>
-          <p class="intro-text">Reconcile FINAL with adjustments before approval.</p>
+          <p class="muted" style="margin-top:-4px;margin-bottom:12px;">Reconcile FINAL with adjustments before approval.</p>
           <div id="finalCheckBadge" class="pill pill-check" role="status" aria-live="polite">
             <div class="status-wrap" aria-hidden="true">
               <span id="FINALstatusv" class="status">✓</span>
@@ -1359,37 +1155,6 @@
                 <span class="metric-label">&Delta; vs FINAL</span>
                 <span class="metric-value" id="FINALdeltav">&#8377;0</span>
               </div>
-            </div>
-          </div>
-          <div class="delta-visual" aria-hidden="true">
-            <div class="delta-header">
-              <span class="label">Tolerance usage</span>
-              <span class="percent" id="FINALdeltaPercent">0%</span>
-            </div>
-            <div class="delta-bar">
-              <div class="delta-bar-fill" id="FINALdeltaFill"></div>
-            </div>
-            <div class="delta-footnote">Target Δ ≤ &#8377;50.00</div>
-          </div>
-          <div class="final-check-guidance">
-            <div class="guide-title">Review checklist</div>
-            <ul class="guide-list">
-              <li>
-                <div class="guide-icon">①</div>
-                <div class="guide-text">Verify <strong>Wind Credits &amp; Debits</strong> entries and optional extras mirror the IOM memo before approval.</div>
-              </li>
-              <li>
-                <div class="guide-icon">②</div>
-                <div class="guide-text">Confirm <strong>Delay Charges (F9)</strong> and <strong>Balance Pending (A31)</strong> reconcile with the prior cycle&rsquo;s bill.</div>
-              </li>
-              <li>
-                <div class="guide-icon">③</div>
-                <div class="guide-text">Expand <strong>Monthly Generation</strong> and ensure Bitlavadia/Nanisindhodi inputs align with the turbine reports.</div>
-              </li>
-            </ul>
-            <div class="final-check-actions">
-              <a href="#windCreditsCard" class="final-check-link" aria-label="Jump to Wind Credits and Debits card">Wind Credits</a>
-              <a href="#ratesCard" class="final-check-link" aria-label="Jump to Rates Manager card">Rates Manager</a>
             </div>
           </div>
         </section>
@@ -2831,8 +2596,6 @@
       const expectedFinal = I9_check - adjustments;
       const deltaFinal = FINAL - expectedFinal;
       const badge = $('finalCheckBadge');
-      const deltaFillEl = $('FINALdeltaFill');
-      const deltaPercentEl = $('FINALdeltaPercent');
       if (badge) {
         const i9Span = $('I9checkv'), adjSpan = $('FINALadjv'), expSpan = $('FINALexpectedv'), dSpan = $('FINALdeltav');
         const statusSpan = $('FINALstatusv'), statusLabelSpan = $('FINALstatusLabel');
@@ -2850,45 +2613,12 @@
         badge.classList.add(withinTol ? 'good' : 'bad');
         if (statusSpan) statusSpan.textContent = withinTol ? '✓' : '✕';
         if (statusLabelSpan) statusLabelSpan.textContent = withinTol ? 'Check' : 'Review';
-        if (deltaPercentEl) {
-          let label = '0%';
-          if (FINAL_CHECK_TOL > 0) {
-            const usagePct = Math.abs(deltaFinal) / FINAL_CHECK_TOL * 100;
-            if (Number.isFinite(usagePct)) {
-              if (usagePct >= 999) {
-                label = '999%+';
-              } else if (usagePct >= 100) {
-                label = Math.round(usagePct) + '%';
-              } else {
-                const rounded = Math.round(usagePct * 10) / 10;
-                label = (Math.abs(rounded - Math.round(rounded)) < 0.05
-                  ? Math.round(rounded).toString()
-                  : rounded.toFixed(1)) + '%';
-              }
-            }
-          }
-          deltaPercentEl.textContent = label;
-        }
-        if (deltaFillEl) {
-          let widthPct = 0;
-          if (FINAL_CHECK_TOL > 0 && Number.isFinite(deltaFinal)) {
-            widthPct = Math.min(100, Math.abs(deltaFinal) / FINAL_CHECK_TOL * 100);
-          }
-          deltaFillEl.style.width = widthPct.toFixed(1) + '%';
-          deltaFillEl.classList.toggle('warn', !withinTol);
-        }
         // Accessibility: narrate current status & values
         const a11y =
           `Final check: I9 ${toInr(I9_check)}, adjustments ${toInr(adjustments)}, expected FINAL ${toInr(expectedFinal)}, delta vs FINAL ${toInr(deltaFinal)}, `
           + (withinTol ? 'status OK' : 'status NOT OK');
         badge.setAttribute('aria-label', a11y);
         badge.title = a11y;
-      } else {
-        if (deltaPercentEl) deltaPercentEl.textContent = '0%';
-        if (deltaFillEl) {
-          deltaFillEl.style.width = '0%';
-          deltaFillEl.classList.remove('warn');
-        }
       }
       refreshExtrasOutputs();
       computeSes();
