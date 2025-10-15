@@ -346,6 +346,53 @@
     .muted{color:var(--muted)}
     .hr{height:1px;background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03));margin:14px 0}
 
+    .card-split{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr);
+      grid-template-areas:
+        "in"
+        "out";
+      gap:20px;
+      align-items:start;
+    }
+    .card-out,
+    .card-in{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .card-in{grid-area:in;justify-self:start;width:100%;}
+    .card-out{
+      grid-area:out;
+      justify-self:end;
+      width:100%;
+      max-width:480px;
+    }
+    @media(max-width:899px){
+      .card-out{
+        justify-self:start;
+        max-width:none;
+      }
+    }
+    @media(min-width:900px){
+      .card-split{
+        grid-template-columns:minmax(0, 1.45fr) minmax(0, 1fr);
+        grid-template-areas:"in out";
+        gap:30px;
+      }
+      .card-in{justify-self:start;}
+      .card-out{align-self:start;}
+    }
+    .kpi-stack{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .kpi-stack .box{
+      grid-column:auto;
+      width:100%;
+    }
+
     .pill{display:inline-flex;align-items:center;gap:8px;padding:2px 6px;border-radius:999px;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;
       min-height:34px;flex:0 0 auto;scroll-snap-align:start}
@@ -959,136 +1006,154 @@
 
       <div class="grid">
         <!-- Main HT Bill Inputs -->
-      <section class="card span-6">
+      <section class="card span-12">
         <h2>HT Bill &mdash; Inputs <span class="help">Manual entries from utility bill</span></h2>
-        <div class="fields">
-          <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001" min="0"/><span class="hint"></span></div>
-          <div class="f"><label>Demand Charges (&#8377;) <span class="mono">B4</span></label><input type="text" id="B4"/><span class="hint"></span></div>
-          <div class="f"><label>Energy Charges (&#8377;) <span class="mono">C4</span></label><input type="text" id="C4"/><span class="hint"></span></div>
-          <div class="f"><label>Night Rebate (&#8377;) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
-          <div class="f"><label>Fuel Charge (&#8377;) <span class="mono">E4</span></label><input type="text" id="E4"/><span class="hint"></span></div>
-          <div class="f"><label>PF Rebate (&#8377;) <span class="mono">F4</span></label><input type="text" id="F4"/><span class="hint"></span></div>
-          <div class="f"><label>EHV Rebate (&#8377;) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
-          <div class="f"><label>TOU (&#8377;) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
-          <div class="f"><label>GT Charges (&#8377;) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
-        </div>
-        <div class="hr"></div>
-        <div class="kpi">
-          <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
-          <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
-          <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
+        <div class="card-split">
+          <div class="card-in">
+            <div class="fields">
+              <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001" min="0"/><span class="hint"></span></div>
+              <div class="f"><label>Demand Charges (&#8377;) <span class="mono">B4</span></label><input type="text" id="B4"/><span class="hint"></span></div>
+              <div class="f"><label>Energy Charges (&#8377;) <span class="mono">C4</span></label><input type="text" id="C4"/><span class="hint"></span></div>
+              <div class="f"><label>Night Rebate (&#8377;) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
+              <div class="f"><label>Fuel Charge (&#8377;) <span class="mono">E4</span></label><input type="text" id="E4"/><span class="hint"></span></div>
+              <div class="f"><label>PF Rebate (&#8377;) <span class="mono">F4</span></label><input type="text" id="F4"/><span class="hint"></span></div>
+              <div class="f"><label>EHV Rebate (&#8377;) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
+              <div class="f"><label>TOU (&#8377;) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
+              <div class="f"><label>GT Charges (&#8377;) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
+            </div>
+          </div>
+          <div class="card-out">
+            <div class="kpi kpi-stack">
+              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
+              <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
+              <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- Adjustments -->
-      <section class="card span-6">
+      <section class="card span-12">
         <h2>Adjustments & Carry&#8209;forward <span class="help">Manual entries</span></h2>
-        <div class="fields">
-          <div class="f sm"><label>Outstanding Arrears (&#8377;) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
-          <div class="f sm"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
-        </div>
-        <div class="hr"></div>
-        <div class="kpi">
-          <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9+G9</span></h3><div class="v" id="H9v">&#8377;0</div></div>
-          <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9&minus;E9</span></h3><div class="v" id="I9v">&#8377;0</div></div>
-          <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9&minus;E9</span></h3><div class="v" id="A31v">&#8377;0</div></div>
+        <div class="card-split">
+          <div class="card-in">
+            <div class="fields">
+              <div class="f sm"><label>Outstanding Arrears (&#8377;) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
+              <div class="f sm"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
+              <div class="f sm"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
+              <div class="f sm"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
+            </div>
+          </div>
+          <div class="card-out">
+            <div class="kpi">
+              <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9+G9</span></h3><div class="v" id="H9v">&#8377;0</div></div>
+              <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9&minus;E9</span></h3><div class="v" id="I9v">&#8377;0</div></div>
+              <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9&minus;E9</span></h3><div class="v" id="A31v">&#8377;0</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- WEG Inputs -->
-      <section class="card span-6">
+      <section class="card span-12">
         <h2>WEG &mdash; Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
-        <div class="fields">
-          <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-          <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-          <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-        </div>
-        <details>
-          <summary class="muted">Monthly Generation (MWh) &mdash; expand</summary>
-          <div class="fields" style="margin-top:10px">
-            <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
-            <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
-            <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
-            <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
-            <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
+        <div class="card-split">
+          <div class="card-in">
+            <div class="fields">
+              <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+              <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+              <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+            </div>
+            <details>
+              <summary class="muted">Monthly Generation (MWh) &mdash; expand</summary>
+              <div class="fields" style="margin-top:10px">
+                <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
+              </div>
+            </details>
           </div>
-        </details>
-        <div class="hr"></div>
-        <div class="kpi">
-          <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1&minus;C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
-          <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1&minus;C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
-          <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
+          <div class="card-out">
+            <div class="kpi">
+              <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1&minus;C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
+              <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1&minus;C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
+              <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- WEG Credits -->
-      <section class="card span-6">
+      <section class="card span-12">
         <h2>Wind Credits & Debits <span class="help">Prior&#8208;month adjustments</span></h2>
-        <div class="fields">
-          <div class="f" style="grid-column:span 12;">
-            <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Credit Adjustments</div>
-          </div>
-          <div class="f sm"><label>Credit Board Charges (&#8377;) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Credit ED Charges (&#8377;) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
-          <div class="f sm" style="grid-column:span 12;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-            <details class="extras-panel" id="creditsExtrasPanel">
-              <summary>Credits Extras (optional)</summary>
-              <div class="extras-body">
-                <div class="extras-empty" id="creditsExtrasEmpty">No extras added.</div>
-                <div class="extras-list" id="creditsExtrasList"></div>
+        <div class="card-split">
+          <div class="card-in">
+            <div class="fields">
+              <div class="f" style="grid-column:span 12;">
+                <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Credit Adjustments</div>
               </div>
-              <button type="button" class="ghost extras-add" id="creditsExtrasAdd">Add item</button>
-            </details>
-          </div>
-          <div class="f" style="grid-column:1 / -1;">
-            <div style="height:1px;background:rgba(148,163,184,.25);margin:6px 0;"></div>
-          </div>
-          <div class="f" style="grid-column:span 12;">
-            <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Final Adjustments</div>
-          </div>
-          <div class="f sm"><label>Credit TDS (&#8377;) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
-          <div class="f sm" style="grid-column:span 12;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-            <details class="extras-panel" id="finalExtrasPanel">
-              <summary>Final Adjustments Extras (optional)</summary>
-              <div class="extras-body">
-                <div class="extras-empty" id="finalExtrasEmpty">No extras added.</div>
-                <div class="extras-list" id="finalExtrasList"></div>
+              <div class="f sm"><label>Credit Board Charges (&#8377;) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
+              <div class="f sm"><label>Credit ED Charges (&#8377;) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
+              <div class="f sm" style="grid-column:span 12;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
+                <details class="extras-panel" id="creditsExtrasPanel">
+                  <summary>Credits Extras (optional)</summary>
+                  <div class="extras-body">
+                    <div class="extras-empty" id="creditsExtrasEmpty">No extras added.</div>
+                    <div class="extras-list" id="creditsExtrasList"></div>
+                  </div>
+                  <button type="button" class="ghost extras-add" id="creditsExtrasAdd">Add item</button>
+                </details>
               </div>
-              <button type="button" class="ghost extras-add" id="finalExtrasAdd">Add item</button>
-            </details>
-          </div>
-          <div class="f" style="grid-column:1 / -1;">
-            <div style="height:1px;background:rgba(148,163,184,.25);margin:6px 0;"></div>
-          </div>
-          <div class="f" style="grid-column:span 12;">
-            <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Debits</div>
-          </div>
-          <div class="f sm"><label>Debit Board Charges (&#8377;) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Debit Electricity Duty (&#8377;) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
-          <div class="f sm"><label>Debit Wheeling Charges (&#8377;) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
-          <div class="f" style="grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-            <details class="extras-panel" id="debitsExtrasPanel">
-              <summary>Debits Extras (optional)</summary>
-              <div class="extras-body">
-                <div class="extras-empty" id="debitsExtrasEmpty">No extras added.</div>
-                <div class="extras-list" id="debitsExtrasList"></div>
+              <div class="f" style="grid-column:1 / -1;">
+                <div style="height:1px;background:rgba(148,163,184,.25);margin:6px 0;"></div>
               </div>
-              <button type="button" class="ghost extras-add" id="debitsExtrasAdd">Add item</button>
-            </details>
+              <div class="f" style="grid-column:span 12;">
+                <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Final Adjustments</div>
+              </div>
+              <div class="f sm"><label>Credit TDS (&#8377;) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
+              <div class="f sm" style="grid-column:span 12;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
+                <details class="extras-panel" id="finalExtrasPanel">
+                  <summary>Final Adjustments Extras (optional)</summary>
+                  <div class="extras-body">
+                    <div class="extras-empty" id="finalExtrasEmpty">No extras added.</div>
+                    <div class="extras-list" id="finalExtrasList"></div>
+                  </div>
+                  <button type="button" class="ghost extras-add" id="finalExtrasAdd">Add item</button>
+                </details>
+              </div>
+              <div class="f" style="grid-column:1 / -1;">
+                <div style="height:1px;background:rgba(148,163,184,.25);margin:6px 0;"></div>
+              </div>
+              <div class="f" style="grid-column:span 12;">
+                <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Debits</div>
+              </div>
+              <div class="f sm"><label>Debit Board Charges (&#8377;) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
+              <div class="f sm"><label>Debit Electricity Duty (&#8377;) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
+              <div class="f sm"><label>Debit Wheeling Charges (&#8377;) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
+              <div class="f" style="grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
+                <details class="extras-panel" id="debitsExtrasPanel">
+                  <summary>Debits Extras (optional)</summary>
+                  <div class="extras-body">
+                    <div class="extras-empty" id="debitsExtrasEmpty">No extras added.</div>
+                    <div class="extras-list" id="debitsExtrasList"></div>
+                  </div>
+                  <button type="button" class="ghost extras-add" id="debitsExtrasAdd">Add item</button>
+                </details>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="hr"></div>
-        <div class="kpi">
-          <div class="box"><h3>Total Credit (&#8377;) <span class="mono">A26 = A24+B24</span></h3><div class="v" id="A26v">&#8377;0</div></div>
-          <div class="box"><h3>Total Debit (&#8377;) <span class="mono">B26 = D24+E24+F24</span></h3><div class="v" id="B26v">&#8377;0</div></div>
-          <div class="box"><h3>Net Wind Credit (&#8377;) <span class="mono">C26 = A26&minus;B26</span></h3><div class="v" id="C26v">&#8377;0</div></div>
-        </div>
-        <div class="kpi">
-          <div class="box"><h3>Wind Rate (&#8377; / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">&#8377;0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as &#8377;0.00/kWh</small></div>
-          <div class="box"><h3>Share of 4.5 MW WEG (&#8377;) <span class="mono">F16 = B19&times;A18</span></h3><div class="v" id="F16v">&#8377;0</div></div>
-          <div class="box"><h3>Share of 14.7 MW WEG (&#8377;) <span class="mono">G16 = B19&times;C18</span></h3><div class="v" id="G16v">&#8377;0</div></div>
+          <div class="card-out">
+            <div class="kpi kpi-stack">
+              <div class="box"><h3>Total Credit (&#8377;) <span class="mono">A26 = A24+B24</span></h3><div class="v" id="A26v">&#8377;0</div></div>
+              <div class="box"><h3>Total Debit (&#8377;) <span class="mono">B26 = D24+E24+F24</span></h3><div class="v" id="B26v">&#8377;0</div></div>
+              <div class="box"><h3>Net Wind Credit (&#8377;) <span class="mono">C26 = A26&minus;B26</span></h3><div class="v" id="C26v">&#8377;0</div></div>
+              <div class="box"><h3>Wind Rate (&#8377; / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">&#8377;0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as &#8377;0.00/kWh</small></div>
+              <div class="box"><h3>Share of 4.5 MW WEG (&#8377;) <span class="mono">F16 = B19&times;A18</span></h3><div class="v" id="F16v">&#8377;0</div></div>
+              <div class="box"><h3>Share of 14.7 MW WEG (&#8377;) <span class="mono">G16 = B19&times;C18</span></h3><div class="v" id="G16v">&#8377;0</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
