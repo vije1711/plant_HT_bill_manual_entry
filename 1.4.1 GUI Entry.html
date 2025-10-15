@@ -1024,7 +1024,7 @@
           </div>
           <div class="card-out">
             <div class="kpi kpi-stack">
-              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4 + C4 &minus; D4 + E4 &minus; F4 &minus; G4 + H4 + I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
+              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
               <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
               <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
             </div>
@@ -2579,7 +2579,7 @@
       const ok = validate();
       // HT Bill
       const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4');
-      const A9 = B4 + C4 - D4 + E4 - F4 - G4 + H4 + I4;
+      const A9 = B4 + C4 + D4 + E4 - F4 - G4 + H4 + I4;
       const B9 = A9 * 0.2;
       const C9 = A9 + B9;
       $('A9v').textContent = toInr(A9);
@@ -4080,9 +4080,9 @@
       $('resetSample').addEventListener('click', ()=>{
         fillSampleData();
         const m = compute(true);
-        console.assert(m.A9 === 13950, `A9 expected 13950, got ${m.A9}`);
-        console.assert(m.C9 === 16740, `C9 expected 16740, got ${m.C9}`);
-        console.assert(Math.round(m.FINAL) === 16220, `FINAL expected 16220, got ${m.FINAL}`);
+        console.assert(m.A9 === 14350, `A9 expected 14350, got ${m.A9}`);
+        console.assert(m.C9 === 17220, `C9 expected 17220, got ${m.C9}`);
+        console.assert(Math.round(m.FINAL) === 16700, `FINAL expected 16700, got ${m.FINAL}`);
       });
 
 (function(){

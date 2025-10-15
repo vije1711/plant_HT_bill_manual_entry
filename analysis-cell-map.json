@@ -11,7 +11,7 @@
     "C26_NetWindCredit_INR": "C26"
   },
   "derived": {
-    "A9_TotConsumptionCharge": "A9 = B4+C4−D4+E4−F4−G4+H4+I4",
+    "A9_TotConsumptionCharge": "A9 = B4+C4+D4+E4−F4−G4+H4+I4",
     "B9_ED_20pct": "B9 = A9×0.2",
     "C9_CurrentMonthBill": "C9 = A9+B9",
     "A19_TotalAllocated": "A19 = A18+C18",
