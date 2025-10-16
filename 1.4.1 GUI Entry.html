@@ -1024,7 +1024,7 @@
           </div>
           <div class="card-out">
             <div class="kpi kpi-stack">
-              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4+D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
+              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4&minus;D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
               <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
               <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
             </div>
@@ -2410,7 +2410,7 @@
             const dVal = parseFloat(String(dTxt).replace(/[^0-9.\-]/g,'')) || 0;
             B = dVal; break; }
           case 'ARREAR_ED':{
-            const tot=num('B4')+num('C4')+num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4');
+            const tot=num('B4')+num('C4')-num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4');
             B=round2(tot); break; }
           case 'FCA':
             B=parseFloat($('qty_EC_SLAB1')?.value)||0; break;
@@ -2579,7 +2579,7 @@
       const ok = validate();
       // HT Bill
       const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4');
-      const A9 = B4 + C4 + D4 + E4 - F4 - G4 + H4 + I4;
+      const A9 = B4 + C4 - D4 + E4 - F4 - G4 + H4 + I4;
       const B9 = A9 * 0.2;
       const C9 = A9 + B9;
       $('A9v').textContent = toInr(A9);
