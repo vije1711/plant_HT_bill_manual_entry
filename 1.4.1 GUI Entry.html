@@ -454,12 +454,10 @@
       color:rgba(226,232,240,.75);
     }
     #finalCheckBadge .metric-value{
-      font-size:clamp(17px, 2.6vw, 21px);
+      font-size:21px;
       font-weight:700;
       color:var(--ink);
-      line-height:1.2;
-      word-break:break-word;
-      overflow-wrap:anywhere;
+      white-space:nowrap;
     }
     #finalCheckBadge.good .status-wrap{
       background:linear-gradient(160deg, rgba(34,197,94,.22), rgba(16,185,129,.18));
@@ -1197,7 +1195,7 @@
         <!-- Rates Manager -->
         <section class="card span-5 final-check-card">
           <h2>Final Bill Check</h2>
-          <p class="muted" style="margin-top:-4px;margin-bottom:12px;">Reconcile FINAL with adjustments before approval.</p>
+          <p class="muted" style="margin-top:-4px;margin-bottom:12px;">Reconcile FINAL against I9 before approval.</p>
           <div id="finalCheckBadge" class="pill pill-check" role="status" aria-live="polite">
             <div class="status-wrap" aria-hidden="true">
               <span id="FINALstatusv" class="status">✓</span>
@@ -1209,15 +1207,11 @@
                 <span class="metric-value" id="I9checkv">&#8377;0</span>
               </div>
               <div class="metric">
-                <span class="metric-label">Less adj (C26 + C24 + G9)</span>
-                <span class="metric-value" id="FINALadjv">&#8377;0</span>
-              </div>
-              <div class="metric">
-                <span class="metric-label">Expected FINAL</span>
+                <span class="metric-label">Final Bill for IOM</span>
                 <span class="metric-value" id="FINALexpectedv">&#8377;0</span>
               </div>
               <div class="metric">
-                <span class="metric-label">&Delta; vs FINAL</span>
+                <span class="metric-label">&Delta;</span>
                 <span class="metric-value" id="FINALdeltav">&#8377;0</span>
               </div>
             </div>
@@ -2657,17 +2651,14 @@
 
       // Cross-check: I9 (= H9 &minus; E9) should reconcile with FINAL
       const I9_check = (Number(H9) || 0) - (Number(E9) || 0);
-      const adjustments = C26 + C24 + G9 + finalExtrasTotal;
-      const expectedFinal = I9_check - adjustments;
-      const deltaFinal = FINAL - expectedFinal;
+      const deltaFinal = I9_check - FINAL;
       const badge = $('finalCheckBadge');
       if (badge) {
-        const i9Span = $('I9checkv'), adjSpan = $('FINALadjv'), expSpan = $('FINALexpectedv'), dSpan = $('FINALdeltav');
+        const i9Span = $('I9checkv'), finalSpan = $('FINALexpectedv'), dSpan = $('FINALdeltav');
         const statusSpan = $('FINALstatusv'), statusLabelSpan = $('FINALstatusLabel');
         const withinTol = Math.abs(deltaFinal) <= FINAL_CHECK_TOL;
         if (i9Span) i9Span.textContent = toInr(I9_check);
-        if (adjSpan) adjSpan.textContent = toInr(adjustments);
-        if (expSpan) expSpan.textContent = toInr(expectedFinal);
+        if (finalSpan) finalSpan.textContent = toInr(FINAL);
         if (dSpan) {
           dSpan.textContent = toInr(deltaFinal);
           dSpan.classList.toggle('good', withinTol);
@@ -2680,7 +2671,7 @@
         if (statusLabelSpan) statusLabelSpan.textContent = withinTol ? 'Check' : 'Review';
         // Accessibility: narrate current status & values
         const a11y =
-          `Final check: I9 ${toInr(I9_check)}, adjustments ${toInr(adjustments)}, expected FINAL ${toInr(expectedFinal)}, delta vs FINAL ${toInr(deltaFinal)}, `
+          `Final check: I9 ${toInr(I9_check)}, Final Bill for IOM ${toInr(FINAL)}, delta ${toInr(deltaFinal)}, `
           + (withinTol ? 'status OK' : 'status NOT OK');
         badge.setAttribute('aria-label', a11y);
         badge.title = a11y;
