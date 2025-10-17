@@ -520,6 +520,72 @@
       border-radius:12px; box-shadow:var(--shadow);
       padding:6px; display:flex; flex-direction:column; gap:4px;
     }
+    .config-panel{
+      width:min(460px, 92vw);
+      max-height:70vh;
+      overflow:auto;
+      padding:12px;
+      gap:12px;
+    }
+    .config-group{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding:10px;
+      border-radius:10px;
+      background:rgba(15,23,42,.35);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .config-group h3{
+      margin:0;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .config-field{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .config-field label{
+      font-size:13px;
+      color:var(--ink);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+    }
+    .config-field input{
+      width:100%;
+      min-height:32px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(17,24,39,.6);
+      color:var(--ink);
+      padding:6px 8px;
+      font-size:13px;
+    }
+    .config-field input:focus{
+      outline:var(--ring);
+      outline-offset:2px;
+    }
+    .config-hint{
+      font-size:11px;
+      color:var(--muted);
+      min-height:13px;
+    }
+    .config-hint.error{color:#f87171;}
+    .config-hint.warn{color:#fbbf24;}
+    .config-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+    }
+    .config-actions button{
+      flex:0 0 auto;
+    }
     .menu-panel.drop-up{ top:auto; bottom:calc(100% + 4px); }
     .menu-panel [role="menuitem"]{display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; border-radius:8px}
     .menu-panel [role="menuitem"]:hover,.menu-panel [role="menuitem"]:focus{background:rgba(255,255,255,.06); outline:none}
@@ -985,6 +1051,110 @@
             </div>
           </details>
         </div>
+        <!-- Configuration menu -->
+        <div class="menu" aria-label="Configuration">
+          <details id="configMenu">
+            <summary id="configMenuSummary" aria-haspopup="dialog">Configuration &#9662;</summary>
+            <div class="menu-panel config-panel" role="group" aria-label="Configuration panel">
+              <div class="config-group" data-config-group="A">
+                <h3>A. WEG &mdash; Inputs</h3>
+                <div class="config-field">
+                  <label for="config_share_bitlavadia_pct">Share Bitlavadia (%)</label>
+                  <input type="number" step="0.01" min="0" max="100" id="config_share_bitlavadia_pct" aria-label="Share Bitlavadia percentage" inputmode="decimal">
+                  <div class="config-hint" id="config_share_bitlavadia_pct_hint" data-default="0–100 (max two decimals)"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_share_nanisindhodi_pct">Share Nanisindhodi (%)</label>
+                  <input type="number" step="0.01" min="0" max="100" id="config_share_nanisindhodi_pct" aria-label="Share Nanisindhodi percentage" inputmode="decimal">
+                  <div class="config-hint" id="config_share_nanisindhodi_pct_hint" data-default="0–100 (max two decimals)"></div>
+                </div>
+              </div>
+              <div class="config-group" data-config-group="B">
+                <h3>B. Central Dak Receipt &mdash; Inputs</h3>
+                <div class="config-field">
+                  <label for="config_vendor_code">Vendor Code</label>
+                  <input type="text" id="config_vendor_code" aria-label="Vendor Code" autocomplete="off">
+                  <div class="config-hint" id="config_vendor_code_hint"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_vendor_name">Vendor Name</label>
+                  <input type="text" id="config_vendor_name" aria-label="Vendor Name" autocomplete="off">
+                  <div class="config-hint" id="config_vendor_name_hint"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_eic_name">EIC Name</label>
+                  <input type="text" id="config_eic_name" aria-label="EIC Name" autocomplete="off">
+                  <div class="config-hint" id="config_eic_name_hint"></div>
+                </div>
+              </div>
+              <div class="config-group" data-config-group="C">
+                <h3>C. Central Dak Receipt &mdash; Rendered sheet</h3>
+                <div class="config-field">
+                  <label for="config_ips_samakhiali">Unit Name</label>
+                  <input type="text" id="config_ips_samakhiali" aria-label="IPS unit name placeholder">
+                  <div class="config-hint" id="config_ips_samakhiali_hint"></div>
+                </div>
+              </div>
+              <div class="config-group" data-config-group="D">
+                <h3>D. IOM Sheet &mdash; Rendered</h3>
+                <div class="config-field">
+                  <label for="config_iom_location">Location</label>
+                  <input type="text" id="config_iom_location" aria-label="IOM location placeholder">
+                  <div class="config-hint" id="config_iom_location_hint" data-default="Auto-fills from Unit Name; adjust if needed."></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_iom_company_name">Vendor Name</label>
+                  <input type="text" id="config_iom_company_name" aria-label="IOM vendor name">
+                  <div class="config-hint" id="config_iom_company_name_hint" data-default="Auto-fills from Central Dak vendor name."></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_iom_vendor_code">Vendor Code</label>
+                  <input type="text" id="config_iom_vendor_code" aria-label="IOM vendor code">
+                  <div class="config-hint" id="config_iom_vendor_code_hint" data-default="Auto-fills from Central Dak vendor code."></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_bank_ac_no">Bank A/C No.</label>
+                  <input type="text" id="config_bank_ac_no" aria-label="Bank account number" autocomplete="off">
+                  <div class="config-hint" id="config_bank_ac_no_hint"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_ifsc">RTGS/NEFT IFSC</label>
+                  <input type="text" id="config_ifsc" aria-label="IFSC code" autocapitalize="characters" autocomplete="off" maxlength="11">
+                  <div class="config-hint" id="config_ifsc_hint" data-default="Uppercase, 11 characters"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_branch">Branch</label>
+                  <input type="text" id="config_branch" aria-label="Bank branch">
+                  <div class="config-hint" id="config_branch_hint"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_approver_dgm_wic">Approver &mdash; DGM (O&amp;M)/WIC</label>
+                  <input type="text" id="config_approver_dgm_wic" aria-label="Approver DGM O and M WIC">
+                  <div class="config-hint" id="config_approver_dgm_wic_hint"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_approver_sm_ele">Approver &mdash; Senior Manager (ELE)</label>
+                  <input type="text" id="config_approver_sm_ele" aria-label="Approver Senior Manager ELE">
+                  <div class="config-hint" id="config_approver_sm_ele_hint"></div>
+                </div>
+                <div class="config-field">
+                  <label for="config_approver_dgm_fa">Approver &mdash; DGM (F&amp;A)</label>
+                  <input type="text" id="config_approver_dgm_fa" aria-label="Approver DGM F and A">
+                  <div class="config-hint" id="config_approver_dgm_fa_hint"></div>
+                </div>
+              </div>
+              <div class="config-actions">
+                <button type="button" id="configApply">Apply</button>
+                <button type="button" id="configDefaults" class="ghost">Defaults</button>
+                <button type="button" id="configSave" class="ghost">Save</button>
+                <button type="button" id="configDownload" class="ghost">Download</button>
+                <button type="button" id="configLoad" class="ghost">Load/Import</button>
+                <button type="button" id="configClose" class="ghost">Close</button>
+              </div>
+            </div>
+          </details>
+        </div>
+        <input type="file" id="configFileInput" accept="application/json" hidden>
       </div>
       </header>
       <script>
@@ -1677,6 +1847,405 @@
         A17:1,B17:1,C17:2,D17:1,E17:1,
         A24:500,B24:200,C24:100,D24:50,E24:25,F24:25
       };
+
+    const CONFIG_META = {
+      share_bitlavadia_pct: { inputId:'config_share_bitlavadia_pct', hintId:'config_share_bitlavadia_pct_hint', percent:true },
+      share_nanisindhodi_pct: { inputId:'config_share_nanisindhodi_pct', hintId:'config_share_nanisindhodi_pct_hint', percent:true },
+      vendor_code: { inputId:'config_vendor_code', hintId:'config_vendor_code_hint', trim:true },
+      vendor_name: { inputId:'config_vendor_name', hintId:'config_vendor_name_hint', trim:true },
+      eic_name: { inputId:'config_eic_name', hintId:'config_eic_name_hint', trim:true },
+      ips_samakhiali: { inputId:'config_ips_samakhiali', hintId:'config_ips_samakhiali_hint', trim:true },
+      iom_location: { inputId:'config_iom_location', hintId:'config_iom_location_hint', trim:true },
+      iom_company_name: { inputId:'config_iom_company_name', hintId:'config_iom_company_name_hint', trim:true },
+      iom_vendor_code: { inputId:'config_iom_vendor_code', hintId:'config_iom_vendor_code_hint', trim:true },
+      bank_ac_no: { inputId:'config_bank_ac_no', hintId:'config_bank_ac_no_hint', trim:true },
+      ifsc: { inputId:'config_ifsc', hintId:'config_ifsc_hint', trim:true, uppercase:true },
+      branch: { inputId:'config_branch', hintId:'config_branch_hint', trim:true },
+      approver_dgm_wic: { inputId:'config_approver_dgm_wic', hintId:'config_approver_dgm_wic_hint', trim:true },
+      approver_sm_ele: { inputId:'config_approver_sm_ele', hintId:'config_approver_sm_ele_hint', trim:true },
+      approver_dgm_fa: { inputId:'config_approver_dgm_fa', hintId:'config_approver_dgm_fa_hint', trim:true }
+    };
+    const CONFIG_KEYS = Object.keys(CONFIG_META);
+    const CONFIG_INPUT_TARGETS = [
+      ['share_bitlavadia_pct','B15'],
+      ['share_nanisindhodi_pct','D15'],
+      ['vendor_code','rc_vendorCode'],
+      ['vendor_name','rc_vendorName'],
+      ['eic_name','rc_eic']
+    ];
+    const CONFIG_LS_KEY = 'app_config_v1';
+    const isConfigInput = (el) => {
+      if(!el) return false;
+      if(el.id === 'configFileInput') return true;
+      return !!el.closest('#configMenu');
+    };
+    const CONFIG_DEFAULTS = {
+      share_bitlavadia_pct:'',
+      share_nanisindhodi_pct:'',
+      vendor_code:'ZG0435',
+      vendor_name:'Paschim Gujarat Vij Company Ltd',
+      eic_name:'Vijendra Singh',
+      ips_samakhiali:'IPS Samakhiali',
+      iom_location:'Samakhiali, Gujarat',
+      iom_company_name:'Paschim Gujarat Vij Company Ltd',
+      iom_vendor_code:'ZG0435',
+      bank_ac_no:'31729314272',
+      ifsc:'SBIN0000554',
+      branch:'SBI – Bhachau',
+      approver_dgm_wic:'DGM (O&M)/WIC, Samakhiali',
+      approver_sm_ele:'Senior Manager (ELE)',
+      approver_dgm_fa:'DGM (F&A), Jaipur'
+    };
+
+    function coerceConfigValue(key, value){
+      const meta = CONFIG_META[key] || {};
+      let out = value;
+      if(out == null){
+        out = '';
+      }else if(typeof out === 'number'){
+        out = Number.isFinite(out) ? String(out) : '';
+      }else if(typeof out === 'boolean'){
+        out = out ? 'true' : 'false';
+      }else{
+        out = String(out);
+      }
+      if(meta.trim !== false){
+        out = out.trim();
+      }
+      if(meta.uppercase){
+        out = out.toUpperCase();
+      }
+      return out;
+    }
+
+    function normalizeConfigValues(src){
+      const out = {};
+      if(!src || typeof src !== 'object') return out;
+      CONFIG_KEYS.forEach(key=>{
+        if(Object.prototype.hasOwnProperty.call(src, key)){
+          out[key] = coerceConfigValue(key, src[key]);
+        }
+      });
+      return out;
+    }
+
+    function buildConfigPayload(cfg){
+      const payload = {};
+      CONFIG_KEYS.forEach(key=>{
+        payload[key] = coerceConfigValue(key, cfg ? cfg[key] : '');
+      });
+      return payload;
+    }
+
+    function persistAppConfig(cfg){
+      try{
+        localStorage.setItem(CONFIG_LS_KEY, JSON.stringify(buildConfigPayload(cfg)));
+      }catch(err){
+        console.warn('Could not save configuration:', err);
+      }
+    }
+
+    function setAppConfig(patch, opts={}){
+      const normalized = normalizeConfigValues(patch);
+      const current = (window.appConfig && typeof window.appConfig === 'object') ? window.appConfig : {};
+      window.appConfig = { ...CONFIG_DEFAULTS, ...current, ...normalized };
+      window.appConfig.iom_vendor_code = window.appConfig.iom_vendor_code || window.appConfig.vendor_code;
+      window.appConfig.iom_company_name = window.appConfig.iom_company_name || window.appConfig.vendor_name;
+      window.appConfig.iom_location = window.appConfig.iom_location || window.appConfig.ips_samakhiali;
+      if(opts.persist){
+        persistAppConfig(window.appConfig);
+      }
+      return window.appConfig;
+    }
+
+    function getConfigInputEl(key){
+      const meta = CONFIG_META[key];
+      return meta ? document.getElementById(meta.inputId) : null;
+    }
+
+    function getConfigHintEl(key){
+      const meta = CONFIG_META[key];
+      return meta ? document.getElementById(meta.hintId) : null;
+    }
+
+    function setConfigHint(key, message='', type=''){
+      const hintEl = getConfigHintEl(key);
+      if(!hintEl) return;
+      const defaultMsg = hintEl.getAttribute('data-default') || '';
+      hintEl.textContent = message || defaultMsg;
+      hintEl.classList.remove('error','warn');
+      if(type){
+        hintEl.classList.add(type);
+      }
+    }
+
+    function hydrateConfigForm(cfg, opts={}){
+      CONFIG_KEYS.forEach(key=>{
+        const el = getConfigInputEl(key);
+        if(el){
+          el.value = coerceConfigValue(key, cfg ? cfg[key] : '');
+          if(opts.resetManual) el.dataset.configManual = '';
+        }
+        setConfigHint(key, '', '');
+      });
+    }
+
+    function readConfigForm(){
+      const values = {};
+      CONFIG_KEYS.forEach(key=>{
+        const el = getConfigInputEl(key);
+        if(!el) return;
+        const coerced = coerceConfigValue(key, el.value);
+        if(CONFIG_META[key]?.uppercase && el.value !== coerced){
+          el.value = coerced;
+        }
+        values[key] = coerced;
+      });
+      return values;
+    }
+
+    function validateConfigValues(values){
+      let blocked = false;
+      ['share_bitlavadia_pct','share_nanisindhodi_pct'].forEach(key=>{
+        const raw = values[key];
+        if(!raw){
+          setConfigHint(key, '', '');
+          return;
+        }
+        const numVal = Number(raw);
+        if(!Number.isFinite(numVal)){
+          setConfigHint(key, 'Enter a valid number.', 'error');
+          blocked = true;
+          return;
+        }
+        if(numVal < 0 || numVal > 100){
+          setConfigHint(key, 'Enter a value between 0 and 100.', 'error');
+          blocked = true;
+          return;
+        }
+        if(!hasAtMostTwoDecimals(numVal)){
+          setConfigHint(key, 'Max two decimals recommended.', 'warn');
+        }else{
+          setConfigHint(key, '', '');
+        }
+      });
+      const ifscVal = values.ifsc;
+      if(ifscVal){
+        let msg = '';
+        let type = '';
+        if(!/^[A-Z0-9]+$/.test(ifscVal)){
+          msg = 'Use A–Z and digits only.';
+          type = 'warn';
+        }
+        if(ifscVal.length !== 11){
+          msg = msg ? `${msg} 11 characters expected.` : '11 characters expected.';
+          type = 'warn';
+        }
+        setConfigHint('ifsc', msg, type);
+      }else{
+        setConfigHint('ifsc', '', '');
+      }
+      return { blocked };
+    }
+
+    function applyConfigToInputs(values, options={}){
+      const onlyBlank = options.onlyBlank === true;
+      CONFIG_INPUT_TARGETS.forEach(([key, inputId])=>{
+        const el = $(inputId);
+        if(!el) return;
+        const next = coerceConfigValue(key, values[key]);
+        if(onlyBlank){
+          const current = typeof el.value === 'string' ? el.value.trim() : el.value;
+          if(current) return;
+        }
+        if(el.type === 'number' || el.type === 'range'){
+          el.value = next;
+          if(next === '') delete el.dataset.value;
+          else el.dataset.value = next;
+        }else{
+          el.value = next;
+        }
+      });
+    }
+
+    function initConfigurationPanel(){
+      const details = document.getElementById('configMenu');
+      if(!details || details.dataset.bound === '1') return;
+      details.dataset.bound = '1';
+      hydrateConfigForm(window.appConfig);
+      validateConfigValues(window.appConfig);
+      applyConfigToInputs(window.appConfig, { onlyBlank:true });
+      const summary = document.getElementById('configMenuSummary');
+
+      const focusFirstField = () => {
+        const firstEl = getConfigInputEl(CONFIG_KEYS[0]);
+        if(firstEl) firstEl.focus();
+      };
+
+      details.addEventListener('toggle', ()=>{
+        if(details.open){
+          requestAnimationFrame(focusFirstField);
+        }
+      });
+      details.addEventListener('keydown', (e)=>{
+        if(e.key === 'Escape'){
+          e.preventDefault();
+          details.removeAttribute('open');
+          summary?.focus();
+        }
+      });
+
+      CONFIG_KEYS.forEach(key=>{
+        const el = getConfigInputEl(key);
+        if(!el || el.dataset.configBound === '1') return;
+        el.dataset.configBound = '1';
+        el.addEventListener('input', ()=>{
+          const current = readConfigForm();
+          validateConfigValues(current);
+        });
+      });
+
+      function autoSyncConfigField(sourceKey, targetKey){
+        if(sourceKey === targetKey) return;
+        const srcEl = getConfigInputEl(sourceKey);
+        const destEl = getConfigInputEl(targetKey);
+        if(!srcEl || !destEl) return;
+        const sync = () => {
+          if(destEl.dataset.configManual === '1') return;
+          destEl.value = srcEl.value;
+        };
+        srcEl.addEventListener('input', () => {
+          if(destEl.dataset.configManual !== '1'){
+            destEl.value = srcEl.value;
+          }
+        });
+        destEl.addEventListener('input', () => {
+          destEl.dataset.configManual = destEl.value && destEl.value !== srcEl.value ? '1' : '';
+        });
+        sync();
+      }
+
+      autoSyncConfigField('vendor_code','iom_vendor_code');
+      autoSyncConfigField('vendor_name','iom_company_name');
+      autoSyncConfigField('ips_samakhiali','iom_location');
+
+      const defaultsBtn = $('configDefaults');
+      defaultsBtn?.addEventListener('click', ()=>{
+        hydrateConfigForm(CONFIG_DEFAULTS, { resetManual:true });
+        ['vendor_code','vendor_name','ips_samakhiali'].forEach(key=>{
+          const el = getConfigInputEl(key);
+          if(el){
+            el.dataset.configManual = '';
+            el.dispatchEvent(new Event('input', { bubbles:true }));
+          }
+        });
+        const currentValues = readConfigForm();
+        validateConfigValues(currentValues);
+        toast('Configuration restored to defaults. Click Apply to update inputs.', 'info');
+      });
+
+      const applyBtn = $('configApply');
+      applyBtn?.addEventListener('click', ()=>{
+        const values = readConfigForm();
+        const result = validateConfigValues(values);
+        if(result.blocked){
+          toast('Fix configuration inputs before applying.', 'bad');
+          return;
+        }
+        setAppConfig(values);
+        applyConfigToInputs(window.appConfig);
+        compute();
+        toast('Configuration applied.', 'good');
+      });
+
+      const saveBtn = $('configSave');
+      saveBtn?.addEventListener('click', ()=>{
+        const values = readConfigForm();
+        const result = validateConfigValues(values);
+        if(result.blocked){
+          toast('Fix configuration inputs before saving.', 'bad');
+          return;
+        }
+        setAppConfig(values, { persist:true });
+        toast('Configuration saved.', 'good');
+      });
+
+      const downloadBtn = $('configDownload');
+      downloadBtn?.addEventListener('click', ()=>{
+        const values = readConfigForm();
+        const result = validateConfigValues(values);
+        if(result.blocked){
+          toast('Fix configuration inputs before downloading.', 'bad');
+          return;
+        }
+        setAppConfig(values);
+        const payload = buildConfigPayload(window.appConfig);
+        try{
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'config.json';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(()=>URL.revokeObjectURL(url), 1000);
+          toast('Configuration downloaded.', 'good');
+        }catch(err){
+          console.error(err);
+          toast('Download failed.', 'bad');
+        }
+      });
+
+      const fileInput = $('configFileInput');
+      const loadBtn = $('configLoad');
+      loadBtn?.addEventListener('click', ()=>{
+        fileInput?.click();
+      });
+      fileInput?.addEventListener('change', (event)=>{
+        const file = event.target.files && event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          try{
+            const text = reader.result;
+            const parsed = JSON.parse(text);
+            if(!parsed || typeof parsed !== 'object'){
+              throw new Error('Invalid configuration file.');
+            }
+            const normalized = normalizeConfigValues(parsed);
+            const merged = { ...window.appConfig };
+            Object.keys(normalized).forEach(key=>{
+              merged[key] = normalized[key];
+            });
+            setAppConfig(merged, { persist:true });
+            hydrateConfigForm(window.appConfig);
+            validateConfigValues(window.appConfig);
+            toast('Configuration loaded. Click Apply to update inputs.', 'good');
+          }catch(err){
+            console.error(err);
+            toast('Could not load configuration.', 'bad');
+          }finally{
+            event.target.value = '';
+          }
+        };
+        reader.onerror = ()=>{
+          toast('Could not load configuration.', 'bad');
+          event.target.value = '';
+        };
+        reader.readAsText(file);
+      });
+
+      const closeBtn = $('configClose');
+      closeBtn?.addEventListener('click', ()=>{
+        details.removeAttribute('open');
+        summary?.focus();
+      });
+    }
+
+    const storedConfigRaw = (()=>{ try{ return JSON.parse(localStorage.getItem(CONFIG_LS_KEY) || 'null'); }catch{ return null; } })();
+    const initialConfig = normalizeConfigValues(storedConfigRaw);
+    window.appConfig = { ...CONFIG_DEFAULTS, ...(window.appConfig && typeof window.appConfig === 'object' ? window.appConfig : {}), ...initialConfig };
 
     const EXTRA_BUCKET_KEYS = ['credits','final','debits'];
     const CDR_EXTRAS_KEY = 'cdr_extras_v1';
@@ -2801,9 +3370,25 @@
       el.className = 'sheet';
       const meta = generatedAt || new Date().toLocaleString();
       const metaISO = (() => { try { const d = generatedAt ? new Date(generatedAt) : new Date(); return isNaN(d) ? new Date().toISOString() : d.toISOString(); } catch { return new Date().toISOString(); } })();
-      // Do not read from model: hard-coded by policy (see Stability Guard above).
-      const vendorCode = SAP_VENDOR_CODE;
       const bankT = SAP_BANKT;
+      const cfg = window.appConfig || {};
+      const asTrimmed = val => typeof val === 'string' ? val.trim() : '';
+      const domVal = id => {
+        const el = document.getElementById(id);
+        return el && typeof el.value === 'string' ? el.value.trim() : '';
+      };
+      const vendorCode = asTrimmed(cfg.iom_vendor_code) || asTrimmed(cfg.vendor_code) || domVal('rc_vendorCode') || SAP_VENDOR_CODE;
+      const companyName = asTrimmed(cfg.iom_company_name) || asTrimmed(cfg.vendor_name) || domVal('rc_vendorName') || 'Paschim Gujarat Vij Company Ltd';
+      const locationText = asTrimmed(cfg.iom_location) || 'Samakhiali, Gujarat';
+      const bankAccount = asTrimmed(cfg.bank_ac_no) || '31729314272';
+      const ifsc = (asTrimmed(cfg.ifsc) || 'SBIN0000554').toUpperCase();
+      const branch = asTrimmed(cfg.branch) || 'SBI – Bhachau';
+      const approverDgmWic = asTrimmed(cfg.approver_dgm_wic) || 'DGM (O&M)/WIC, Samakhiali';
+      const approverSmEle = asTrimmed(cfg.approver_sm_ele) || 'Senior Manager (ELE)';
+      const approverDgmFa = asTrimmed(cfg.approver_dgm_fa) || 'DGM (F&A), Jaipur';
+      const infoBarPlain = `Please pay to ${companyName} (Vendor Code: ${vendorCode}). Bank A/C No.: ${bankAccount}; RTGS/NEFT IFSC: ${ifsc}; Branch: ${branch}`;
+      const companyNbsp = esc(companyName).replace(/ /g,'&nbsp;');
+      const infoBarAttr = esc(infoBarPlain);
       const finalExtras = (model.finalExtras || []).filter(e=>e && e.include);
       const mappingRows = [
         ['Current Month Bill',           'C9',    model.C9,  'none'],
@@ -2824,7 +3409,7 @@
       el.innerHTML = `
         <div class="doc-header">
           <div>
-            <div class="company">GAIL (India) Limited &ndash; Samakhiali, Gujarat</div>
+            <div class="company">GAIL (India) Limited &ndash; ${esc(locationText)}</div>
             <div class="dept">Electrical Department</div>
             <h2 role="heading" aria-level="1">IOM - HT Bill</h2>
             <div class="mini">Billing Month: <b>${monthLabel}</b></div>
@@ -2835,9 +3420,9 @@
         </div>
         <div
           class="info-bar"
-          title="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI &ndash; Bhachau"
-          aria-label="Please pay to Paschim Gujarat Vij Company Ltd (Vendor Code: ${vendorCode}). Bank A/C No.: 31729314272; RTGS/NEFT IFSC: SBIN0000554; Branch: SBI &ndash; Bhachau"
-        >Please pay to <b>Paschim&nbsp;Gujarat&nbsp;Vij&nbsp;Company&nbsp;Ltd</b> (Vendor Code: <b>${vendorCode}</b>). Bank A/C No.: <b>31729314272</b>; RTGS/NEFT IFSC: <b>SBIN0000554</b>; Branch: <b>SBI &ndash; Bhachau</b></div>
+          title="${infoBarAttr}"
+          aria-label="${infoBarAttr}"
+        >Please pay to <b>${companyNbsp}</b> (Vendor Code: <b>${esc(vendorCode)}</b>). Bank A/C No.: <b>${esc(bankAccount)}</b>; RTGS/NEFT IFSC: <b>${esc(ifsc)}</b>; Branch: <b>${esc(branch)}</b></div>
         <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
           <h3>Amount Mapping (per formula)</h3>
           <div class="footer-note" style="margin:0 0 6px 0;">
@@ -2889,15 +3474,15 @@
           <div class="sigs">
             <div class="sig">
               <div class="line" aria-hidden="true"></div>
-              <div class="role" data-testid="sig-dgm-om">DGM (O&amp;M)/WIC, Samakhiali</div>
+              <div class="role" data-testid="sig-dgm-om">${esc(approverDgmWic)}</div>
             </div>
             <div class="sig right">
               <div class="line" aria-hidden="true"></div>
-              <div class="role" data-testid="sig-sm-ele">Senior Manager (ELE)</div>
+              <div class="role" data-testid="sig-sm-ele">${esc(approverSmEle)}</div>
             </div>
             <div class="sig">
               <div class="line" aria-hidden="true"></div>
-              <div class="role" data-testid="sig-dgm-fa">DGM (F&amp;A), Jaipur</div>
+              <div class="role" data-testid="sig-dgm-fa">${esc(approverDgmFa)}</div>
             </div>
           </div>
         </section>
@@ -2990,10 +3575,16 @@
       wrap.className = 'sheet rcpt';
       wrap.setAttribute('role','document');
       const amtNum = cleanAmount(d.amount);
+      const cfg = window.appConfig || {};
+      const unitName = (() => {
+        const raw = cfg.ips_samakhiali;
+        if (typeof raw === 'string' && raw.trim()) return raw.trim();
+        return 'IPS Samakhiali';
+      })();
       wrap.innerHTML = `
         <div class="hdr" aria-label="Receipt header">
           <div class="title">GAIL (India) LIMITED</div>
-          <div class="unit">IPS Samakhiali</div>
+          <div class="unit">${esc(unitName)}</div>
           <div class="subtitle">Central Dak Receipt</div>
         </div>
         <div class="meta">
@@ -3043,13 +3634,14 @@
       const billDate = v(billDateEl?.value);
       if (billDateEl) billDateEl.classList.toggle('warn', !!billDate && !validDDMMYYYY(billDate));
 
+      const cfg = window.appConfig || {};
       const data = {
-        vendorCode: v(document.getElementById('rc_vendorCode')?.value),
-        vendorName: v(document.getElementById('rc_vendorName')?.value),
+        vendorCode: v(document.getElementById('rc_vendorCode')?.value) || (cfg.vendor_code || ''),
+        vendorName: v(document.getElementById('rc_vendorName')?.value) || (cfg.vendor_name || ''),
         billNo,
         billDate,
         amount: v(document.getElementById('rc_amount')?.value),
-        eic: v(document.getElementById('rc_eic')?.value)
+        eic: v(document.getElementById('rc_eic')?.value) || (cfg.eic_name || '')
       };
 
       const btnSave = document.getElementById('saveHtmlPdf');
@@ -3128,7 +3720,7 @@
     function persist(){
       const inputs = {};
       document.querySelectorAll('input').forEach(el=>{
-        if(!el.id) return;
+        if(!el.id || isConfigInput(el)) return;
         inputs[el.id] = el.value;
       });
       const _wb = getWB();
@@ -3149,7 +3741,7 @@
             const el = $(id);
             if(el){
               el.value = val;
-              if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+              if(!isConfigInput(el) && el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
             }
           });
         }
@@ -3765,6 +4357,7 @@
       initRatesManager();
       // Apply INR masking and numeric guards
       document.querySelectorAll('input').forEach(el=>{
+        if(isConfigInput(el)) return;
         if(el.type==='text' && !el.closest('#receiptCard')){
           el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
           el.addEventListener('blur', ()=>parseInrInput(el));
@@ -4060,6 +4653,7 @@
 
       $('resetAll').addEventListener('click', ()=>{
         document.querySelectorAll('input').forEach(el=>{
+          if(isConfigInput(el)) return;
           if(el.type!=="month"){
             el.value='';
             el.dataset.value='';
@@ -4109,6 +4703,7 @@
 
       loadExtras();
       const restored = restore();
+      initConfigurationPanel();
       compute();
       refreshSheetList();
       if(restored) toast('Previous data restored.');
@@ -4226,9 +4821,10 @@
         const vc = document.getElementById('rc_vendorCode');
         const vn = document.getElementById('rc_vendorName');
         const eic = document.getElementById('rc_eic');
-        defaultText(vc, 'ZG0435');
-        defaultText(vn, 'Paschim Gujarat Vij Company Ltd');
-        defaultText(eic, 'Vijendra Singh');
+        const cfg = window.appConfig || {};
+        defaultText(vc, cfg.vendor_code || 'ZG0435');
+        defaultText(vn, cfg.vendor_name || 'Paschim Gujarat Vij Company Ltd');
+        defaultText(eic, cfg.eic_name || 'Vijendra Singh');
         defaultBillNo(); // will mark dataset.autogen='1' on first generation
         defaultDate();
         setAmount();
