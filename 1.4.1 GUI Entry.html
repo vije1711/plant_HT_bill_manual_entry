@@ -1187,13 +1187,13 @@
               <div class="f"><label>Night Rebate (&#8377;) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
               <div class="f"><label>EHV Rebate (&#8377;) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
               <div class="f"><label>TOU (&#8377;) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
-              <div class="f"><label>GT Charges (&#8377;) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
               <div class="f"><label>Time DISC Charges (&#8377;) <span class="mono">J4</span></label><input type="text" id="J4" placeholder="Include sign as on bill, e.g. -410.50 (credit) or 210.75 (charge)" title="Include sign as on bill, e.g. -410.50 (credit) or 210.75 (charge)"/><span class="hint"></span></div>
+              <div class="f"><label>GT Charges (&#8377;) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
             </div>
           </div>
           <div class="card-out">
             <div class="kpi kpi-stack">
-              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4&minus;D4+E4&minus;F4&minus;G4+H4+I4+J4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
+              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4&minus;D4+E4&minus;F4&minus;G4+H4+J4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
               <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
               <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
             </div>
@@ -2553,7 +2553,7 @@
       { code:'TOD_PEAK', name:'TOD Peak' },
       { code:'TOD_NIGHT_REBATE', name:'TOD Night Rebate' },
       { code:'PF_CHARGE_SLAB1', name:'PF Charge Slab 1' },
-      { code:'ARREAR_FCA', name:'Arrear FCA' },
+      { code:'TOU_DISC', name:'TOU Disc' },
       { code:'ARREAR_ED', name:'Arrear ED' },
       { code:'ARREAR_CESS', name:'Arrear Cess' },
       { code:'ARREAR_PF', name:'Arrear PF' },
@@ -2564,6 +2564,7 @@
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'Hint: from &ldquo;TOU&rdquo; (HT Bill &rarr; H4)',
       TOD_NIGHT_REBATE: 'Qty auto = EC_SLAB1 Amt (D)',
+      TOU_DISC: 'Qty auto = Time DISC Charges ÷ tariff',
       PF_CHARGE_SLAB1: 'Qty auto = EC_SLAB1 Amt (D); PF rate acts as a multiplier (credit)',
       ARREAR_ED: 'Hint: Enter Consumption Charges (base for ED)'
     };
@@ -2572,6 +2573,7 @@
       EC_SLAB1: 'KWh billed.',
       TOD_PEAK: 'kWh @ TOU (peak)',
       TOD_NIGHT_REBATE: 'Auto: EC_SLAB1 Amt (D)',
+      TOU_DISC: 'Auto: Time DISC ÷ tariff',
       ARREAR_ED: 'Consumption Charges (&#8377;)'
     };
     const SERVICE_CODES = SERVICE_LIST.map(s=>s.code);
@@ -2589,7 +2591,7 @@
       TOD_PEAK:0.85,
       TOD_NIGHT_REBATE:1.5,
       PF_CHARGE_SLAB1:2.35,
-      ARREAR_FCA:1,
+      TOU_DISC:0.6,
       ARREAR_ED:0.2,
       ARREAR_CESS:1,
       ARREAR_PF:1,
@@ -2608,7 +2610,7 @@
       TOD_PEAK:0.85,
       TOD_NIGHT_REBATE:0.43,
       PF_CHARGE_SLAB1:0.02,
-      ARREAR_FCA:1,
+      TOU_DISC:0,
       ARREAR_ED:1,
       ARREAR_CESS:1,
       ARREAR_PF:1,
@@ -2973,8 +2975,13 @@
             const dTxt = $('d_EC_SLAB1')?.textContent || '';
             const dVal = parseFloat(String(dTxt).replace(/[^0-9.\-]/g,'')) || 0;
             B = dVal; break; }
+          case 'TOU_DISC':{
+            const disc = num('J4');
+            B = C ? round2(disc / C) : 0;
+            break;
+          }
           case 'ARREAR_ED':{
-            const tot=num('B4')+num('C4')-num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4')+num('J4');
+            const tot=num('B4')+num('C4')-num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('J4')+num('I4');
             B=round2(tot); break; }
           case 'FCA':
             B=parseFloat($('qty_EC_SLAB1')?.value)||0; break;
@@ -3143,7 +3150,7 @@
       const ok = validate();
       // HT Bill
       const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4'), J4=num('J4');
-      const A9 = B4 + C4 - D4 + E4 - F4 - G4 + H4 + I4 + J4;
+      const A9 = B4 + C4 - D4 + E4 - F4 - G4 + H4 + J4 + I4;
       const B9 = A9 * 0.2;
       const C9 = A9 + B9;
       $('A9v').textContent = toInr(A9);
@@ -3302,8 +3309,8 @@
       add('HT Bill','Night Rebate','D4', model.D4,'&#8377;');
       add('HT Bill','EHV Rebate','G4', model.G4,'&#8377;');
       add('HT Bill','TOU','H4', model.H4,'&#8377;');
-      add('HT Bill','GT Charges','I4', model.I4,'&#8377;');
       add('HT Bill','Time DISC Charges','J4', model.J4,'&#8377;');
+      add('HT Bill','GT Charges','I4', model.I4,'&#8377;');
 
       add('HT Bill (calc)','Total Consumption Charge','A9', model.A9,'&#8377;');
       add('HT Bill (calc)','ED @ 20%','B9', model.B9,'&#8377;');
@@ -3889,8 +3896,8 @@
       r(['HT Bill','Night Rebate','D4', model.D4, '&#8377;']);
       r(['HT Bill','EHV Rebate','G4', model.G4, '&#8377;']);
       r(['HT Bill','TOU','H4', model.H4, '&#8377;']);
-      r(['HT Bill','GT Charges','I4', model.I4, '&#8377;']);
       r(['HT Bill','Time DISC Charges','J4', model.J4, '&#8377;']);
+      r(['HT Bill','GT Charges','I4', model.I4, '&#8377;']);
       // mark calculated rows as currency so Excel formats them
       r(['HT Bill (calc)','Total Consumption Charge','A9', model.A9, '&#8377;']);
       r(['HT Bill (calc)','ED @ 20%','B9', model.B9, '&#8377;']);
