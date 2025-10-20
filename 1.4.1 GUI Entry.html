@@ -3880,9 +3880,23 @@
         const DANGEROUS_FORMULA = /^[=+@]/;
         const isPlainNegativeNumber = s => /^-\d+(\.\d+)?$/.test(s);
         const looksLikeYYYYMM = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+        const INR_SYMBOL = '\u20B9';
+        const decodeHtmlEntities = (() => {
+          const textarea = document.createElement('textarea');
+          return (value) => {
+            if (typeof value !== 'string' || value.indexOf('&') === -1) return value;
+            textarea.innerHTML = value;
+            return textarea.value;
+          };
+        })();
         function forceText(v){
           if (v == null) return '';
-          const s = String(v);
+          if (typeof v === 'object') return v;
+          let s = String(v);
+          if (s.indexOf('&') !== -1) {
+            const decoded = decodeHtmlEntities(s);
+            if (typeof decoded === 'string') s = decoded;
+          }
           if (DANGEROUS_FORMULA.test(s)) return { t:'s', v:s, z:'@' };
           if (s.startsWith('-') && !isPlainNegativeNumber(s)) return { t:'s', v:s, z:'@' };
           return looksLikeYYYYMM(s) ? { t:'s', v:s, z:'@' } : s;
@@ -4005,8 +4019,8 @@
         if (!cell || cell.t !== 'n') continue;
         const unit = unitAt(r);
         if (unit === '%') { cell.v = cell.v / 100; cell.z = '0.00%'; }
-        else if (unit === '&#8377;') { cell.z = '&#8377;#,##0.00'; }
-        else if (unit === '&#8377;/kWh') { cell.z = '&#8377;#,##0.000000'; }
+        else if (unit === INR_SYMBOL || unit === '&#8377;') { cell.z = `${INR_SYMBOL}#,##0.00`; }
+        else if (unit === `${INR_SYMBOL}/kWh` || unit === '&#8377;/kWh') { cell.z = `${INR_SYMBOL}#,##0.000000`; }
         else if (unit === 'MWh') { cell.z = '0.000'; }
         else if (unit === 'kWh') { cell.z = '#,##0'; }
         else { cell.z = '#,##0.00'; }
