@@ -1182,17 +1182,18 @@
               <div class="f"><label>Monthly Consumption (kWh) <span class="mono">A4</span></label><input type="number" id="A4" step="0.001" min="0"/><span class="hint"></span></div>
               <div class="f"><label>Demand Charges (&#8377;) <span class="mono">B4</span></label><input type="text" id="B4"/><span class="hint"></span></div>
               <div class="f"><label>Energy Charges (&#8377;) <span class="mono">C4</span></label><input type="text" id="C4"/><span class="hint"></span></div>
-              <div class="f"><label>Night Rebate (&#8377;) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
               <div class="f"><label>Fuel Charge (&#8377;) <span class="mono">E4</span></label><input type="text" id="E4"/><span class="hint"></span></div>
               <div class="f"><label>PF Rebate (&#8377;) <span class="mono">F4</span></label><input type="text" id="F4"/><span class="hint"></span></div>
+              <div class="f"><label>Night Rebate (&#8377;) <span class="mono">D4</span></label><input type="text" id="D4"/><span class="hint"></span></div>
               <div class="f"><label>EHV Rebate (&#8377;) <span class="mono">G4</span></label><input type="text" id="G4"/><span class="hint"></span></div>
               <div class="f"><label>TOU (&#8377;) <span class="mono">H4</span></label><input type="text" id="H4"/><span class="hint"></span></div>
               <div class="f"><label>GT Charges (&#8377;) <span class="mono">I4</span></label><input type="text" id="I4"/><span class="hint"></span></div>
+              <div class="f"><label>Time DISC Charges (&#8377;) <span class="mono">J4</span></label><input type="text" id="J4" placeholder="Include sign as on bill, e.g. -410.50 (credit) or 210.75 (charge)" title="Include sign as on bill, e.g. -410.50 (credit) or 210.75 (charge)"/><span class="hint"></span></div>
             </div>
           </div>
           <div class="card-out">
             <div class="kpi kpi-stack">
-              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4&minus;D4+E4&minus;F4&minus;G4+H4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
+              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4&minus;D4+E4&minus;F4&minus;G4+H4+I4+J4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
               <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
               <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
             </div>
@@ -1841,7 +1842,7 @@
       const KWH = new Intl.NumberFormat('en-IN', { maximumFractionDigits:0 });
       const RATE = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:6 });
       const SAMPLE = {
-        A4:1000,B4:5000,C4:8000,D4:200,E4:300,F4:100,G4:50,H4:400,I4:600,
+        A4:1000,B4:5000,C4:8000,D4:200,E4:300,F4:100,G4:50,H4:400,I4:600,J4:0,
         D9:200,E9:50,F9:30,G9:0,
         B15:30,D15:70,C16:2,
         A17:1,B17:1,C17:2,D17:1,E17:1,
@@ -2973,7 +2974,7 @@
             const dVal = parseFloat(String(dTxt).replace(/[^0-9.\-]/g,'')) || 0;
             B = dVal; break; }
           case 'ARREAR_ED':{
-            const tot=num('B4')+num('C4')-num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4');
+            const tot=num('B4')+num('C4')-num('D4')+num('E4')-num('F4')-num('G4')+num('H4')+num('I4')+num('J4');
             B=round2(tot); break; }
           case 'FCA':
             B=parseFloat($('qty_EC_SLAB1')?.value)||0; break;
@@ -3114,7 +3115,7 @@
     function validate(){
       let ok = true;
       const percentIds = ['B15','D15','C16'];
-      const negativeOkIds = ['G9'];
+      const negativeOkIds = ['G9','J4'];
       document.querySelectorAll('input').forEach(el=>{
         if(el.type==='month' || el.type==='file') return;
         const hint = el.nextElementSibling;
@@ -3141,8 +3142,8 @@
     function compute(strict=false){
       const ok = validate();
       // HT Bill
-      const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4');
-      const A9 = B4 + C4 - D4 + E4 - F4 - G4 + H4 + I4;
+      const A4=num('A4'), B4=num('B4'), C4=num('C4'), D4=num('D4'), E4=num('E4'), F4=num('F4'), G4=num('G4'), H4=num('H4'), I4=num('I4'), J4=num('J4');
+      const A9 = B4 + C4 - D4 + E4 - F4 - G4 + H4 + I4 + J4;
       const B9 = A9 * 0.2;
       const C9 = A9 + B9;
       $('A9v').textContent = toInr(A9);
@@ -3250,7 +3251,7 @@
       persistDebounced();
       try { window.dispatchEvent(new CustomEvent('receipt:refresh')); } catch(_){ }
       return strict && !ok ? null : {
-        A4,B4,C4,D4,E4,F4,G4,H4,I4,
+        A4,B4,C4,D4,E4,F4,G4,H4,I4,J4,
         A9,B9,C9,
         D9,E9,F9,G9,H9,I9,
         B15,D15,C16,
@@ -3296,12 +3297,13 @@
       add('HT Bill','Monthly Consumption','A4', model.A4,'kWh');
       add('HT Bill','Demand Charges','B4', model.B4,'&#8377;');
       add('HT Bill','Energy Charges','C4', model.C4,'&#8377;');
-      add('HT Bill','Night Rebate','D4', model.D4,'&#8377;');
       add('HT Bill','Fuel Charge','E4', model.E4,'&#8377;');
       add('HT Bill','PF Rebate','F4', model.F4,'&#8377;');
+      add('HT Bill','Night Rebate','D4', model.D4,'&#8377;');
       add('HT Bill','EHV Rebate','G4', model.G4,'&#8377;');
       add('HT Bill','TOU','H4', model.H4,'&#8377;');
       add('HT Bill','GT Charges','I4', model.I4,'&#8377;');
+      add('HT Bill','Time DISC Charges','J4', model.J4,'&#8377;');
 
       add('HT Bill (calc)','Total Consumption Charge','A9', model.A9,'&#8377;');
       add('HT Bill (calc)','ED @ 20%','B9', model.B9,'&#8377;');
@@ -3882,12 +3884,13 @@
       r(['HT Bill','Monthly Consumption','A4', model.A4, 'kWh']);
       r(['HT Bill','Demand Charges','B4', model.B4, '&#8377;']);
       r(['HT Bill','Energy Charges','C4', model.C4, '&#8377;']);
-      r(['HT Bill','Night Rebate','D4', model.D4, '&#8377;']);
       r(['HT Bill','Fuel Charge','E4', model.E4, '&#8377;']);
       r(['HT Bill','PF Rebate','F4', model.F4, '&#8377;']);
+      r(['HT Bill','Night Rebate','D4', model.D4, '&#8377;']);
       r(['HT Bill','EHV Rebate','G4', model.G4, '&#8377;']);
       r(['HT Bill','TOU','H4', model.H4, '&#8377;']);
       r(['HT Bill','GT Charges','I4', model.I4, '&#8377;']);
+      r(['HT Bill','Time DISC Charges','J4', model.J4, '&#8377;']);
       // mark calculated rows as currency so Excel formats them
       r(['HT Bill (calc)','Total Consumption Charge','A9', model.A9, '&#8377;']);
       r(['HT Bill (calc)','ED @ 20%','B9', model.B9, '&#8377;']);
