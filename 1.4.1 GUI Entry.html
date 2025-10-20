@@ -2554,6 +2554,7 @@
       { code:'TOD_NIGHT_REBATE', name:'TOD Night Rebate' },
       { code:'PF_CHARGE_SLAB1', name:'PF Charge Slab 1' },
       { code:'TOU_DISC', name:'TOU Disc' },
+      { code:'ARREAR_FCA', name:'Arrear FCA (legacy)', hidden:true },
       { code:'ARREAR_ED', name:'Arrear ED' },
       { code:'ARREAR_CESS', name:'Arrear Cess' },
       { code:'ARREAR_PF', name:'Arrear PF' },
@@ -2592,6 +2593,7 @@
       TOD_NIGHT_REBATE:1.5,
       PF_CHARGE_SLAB1:2.35,
       TOU_DISC:0.6,
+      ARREAR_FCA:1,
       ARREAR_ED:0.2,
       ARREAR_CESS:1,
       ARREAR_PF:1,
@@ -2611,6 +2613,7 @@
       TOD_NIGHT_REBATE:0.43,
       PF_CHARGE_SLAB1:0.02,
       TOU_DISC:0,
+      ARREAR_FCA:1,
       ARREAR_ED:1,
       ARREAR_CESS:1,
       ARREAR_PF:1,
@@ -2781,11 +2784,11 @@
       rateErrors.clear();
       body.innerHTML='';
       SERVICE_LIST.forEach(s=>{
-        const tr=document.createElement('tr');
-        const qtyAttrs = 'step="0.01"';
-        const qtyDis = s.code==='FCA' ? 'disabled' : '';
-        const hint = SERVICE_HINTS[s.code];
-        const hintHtml = hint ? `<div class="muted" style="font-size:11px">${hint}</div>` : '';
+      const tr=document.createElement('tr');
+      const qtyAttrs = 'step="0.01"';
+      const qtyDis = s.code==='FCA' ? 'disabled' : '';
+      const hint = SERVICE_HINTS[s.code];
+      const hintHtml = hint ? `<div class="muted" style="font-size:11px">${hint}</div>` : '';
         const ph = QTY_PLACEHOLDERS[s.code] ? `placeholder="${QTY_PLACEHOLDERS[s.code]}"` : '';
         const percent = PERCENT_FIELDS.has(s.code);
         const infoTip = percent ? `<span class="info-tip" role="img" tabindex="0" aria-label="Enter percent (0–100). Example: 2.35" title="Enter percent (0–100). Example: 2.35">&#9432;</span>` : '';
@@ -2800,6 +2803,10 @@
           <td class="num"><input type="number" step="0.000001" id="po_${s.code}" disabled/></td>
           <td class="num"><span id="f_${s.code}" class="muted">${EM_DASH}</span></td>
           <td class="num"><span id="g_${s.code}" class="muted">${EM_DASH}</span></td>`;
+        if(s.hidden){
+          tr.hidden = true;
+          tr.dataset.legacy = '1';
+        }
         body.appendChild(tr);
       });
       SERVICE_LIST.forEach(s=>{
