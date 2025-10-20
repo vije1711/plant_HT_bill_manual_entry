@@ -1223,37 +1223,6 @@
         </div>
       </section>
 
-      <!-- WEG Inputs -->
-      <section class="card span-12">
-        <h2>WEG &mdash; Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
-        <div class="card-split">
-          <div class="card-in">
-            <div class="fields">
-              <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-              <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-              <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-            </div>
-            <details>
-              <summary class="muted">Monthly Generation (MWh) &mdash; expand</summary>
-              <div class="fields" style="margin-top:10px">
-                <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
-              </div>
-            </details>
-          </div>
-          <div class="card-out">
-            <div class="kpi">
-              <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1&minus;C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
-              <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1&minus;C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
-              <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- WEG Credits -->
       <section class="card span-12">
         <h2>Wind Credits & Debits <span class="help">Prior&#8208;month adjustments</span></h2>
@@ -1321,6 +1290,37 @@
               <div class="box"><h3>Wind Rate (&#8377; / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">&#8377;0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as &#8377;0.00/kWh</small></div>
               <div class="box"><h3>Share of 4.5 MW WEG (&#8377;) <span class="mono">F16 = B19&times;A18</span></h3><div class="v" id="F16v">&#8377;0</div></div>
               <div class="box"><h3>Share of 14.7 MW WEG (&#8377;) <span class="mono">G16 = B19&times;C18</span></h3><div class="v" id="G16v">&#8377;0</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WEG Inputs -->
+      <section class="card span-12">
+        <h2>WEG &mdash; Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
+        <div class="card-split">
+          <div class="card-in">
+            <div class="fields">
+              <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+              <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+              <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+            </div>
+            <details>
+              <summary class="muted">Monthly Generation (MWh) &mdash; expand</summary>
+              <div class="fields" style="margin-top:10px">
+                <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
+              </div>
+            </details>
+          </div>
+          <div class="card-out">
+            <div class="kpi">
+              <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1&minus;C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
+              <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1&minus;C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
+              <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
             </div>
           </div>
         </div>
