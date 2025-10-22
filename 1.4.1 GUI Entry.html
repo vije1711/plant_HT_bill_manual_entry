@@ -317,15 +317,37 @@
     }
 
     .kpi{
-      display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-top:6px
+      display:grid;grid-template-columns:repeat(12,1fr);gap:10px;margin-top:6px;
+      overflow:visible;
     }
     .kpi .box{grid-column:span 12;min-height:104px}
     @media(min-width:980px){.kpi .box{grid-column:span 4}}
     .box{
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px
+      border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;
+      position:relative;
     }
-    .box h3{margin:0;color:var(--muted);font-size:12.5px;font-weight:600;white-space:normal;line-height:1.25;word-break:break-word;overflow-wrap:anywhere}
+    .box .field-label-row{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      margin:0 0 4px 0;
+      color:var(--muted);
+      font-size:12.5px;
+      font-weight:600;
+      line-height:1.3;
+      white-space:normal;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+    }
+    .box .field-label{display:inline-flex;align-items:center;gap:4px;}
+    .box .field-ref{
+      font-size:11.5px;
+      font-weight:600;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
     .box .v{
       margin-top:8px;
       font-size:clamp(18px, 2.4vw, 22px);
@@ -333,6 +355,68 @@
       line-height:1.2;
       word-break:break-word;
       overflow-wrap:anywhere;
+    }
+    .output-field{
+      cursor:help;
+      border-radius:14px;
+      transition:box-shadow .16s ease, transform .16s ease;
+    }
+    .output-field:focus-visible{
+      outline:2px solid rgba(148, 163, 184, 0.45);
+      outline-offset:4px;
+    }
+    .output-field:hover{
+      box-shadow:0 8px 22px rgba(15,23,42,0.24);
+      transform:translateY(-1px);
+    }
+    .formula-tooltip{
+      position:fixed;
+      z-index:1200;
+      pointer-events:none;
+      background:rgba(15, 23, 42, 0.94);
+      color:#f8fafc;
+      padding:8px 12px;
+      border-radius:8px;
+      box-shadow:0 10px 28px rgba(15,23,42,0.4);
+      font-size:12.5px;
+      line-height:1.4;
+      max-width:40ch;
+      opacity:0;
+      transform:translateY(6px) scale(.98);
+      transition:opacity 0.14s ease, transform 0.14s ease;
+      display:flex;
+      align-items:flex-start;
+      gap:6px;
+    }
+    .formula-tooltip.visible{
+      opacity:1;
+      transform:translateY(0) scale(1);
+    }
+    .formula-tooltip[data-placement="below"]{
+      transform:translateY(-6px) scale(.98);
+    }
+    .formula-tooltip.visible[data-placement="below"]{
+      transform:translateY(0) scale(1);
+    }
+    .formula-tooltip::after{
+      content:'';
+      position:absolute;
+      width:10px;
+      height:10px;
+      background:inherit;
+      transform:rotate(45deg);
+      z-index:-1;
+      box-shadow:0 4px 10px rgba(15,23,42,0.3);
+    }
+    .formula-tooltip[data-placement="above"]::after{
+      bottom:-5px;
+      left:50%;
+      transform:translateX(-50%) rotate(45deg);
+    }
+    .formula-tooltip[data-placement="below"]::after{
+      top:-5px;
+      left:50%;
+      transform:translateX(-50%) rotate(45deg);
     }
     .unit{font-size:12px;color:var(--muted);margin-left:6px;font-weight:600}
 
@@ -387,6 +471,7 @@
       display:flex;
       flex-direction:column;
       gap:12px;
+      overflow:visible;
     }
     .kpi-stack .box{
       grid-column:auto;
@@ -1193,9 +1278,27 @@
           </div>
           <div class="card-out">
             <div class="kpi kpi-stack">
-              <div class="box"><h3>Tot Consumption Charge <span class="mono">A9 = B4+C4&minus;D4+E4&minus;F4&minus;G4+H4+J4+I4</span></h3><div class="v" id="A9v">&#8377;0</div></div>
-              <div class="box"><h3>ED @ 20% <span class="mono">B9 = A9&times;0.2</span></h3><div class="v" id="B9v">&#8377;0</div></div>
-              <div class="box"><h3>Current Month Bill <span class="mono">C9 = A9+B9</span></h3><div class="v" id="C9v">&#8377;0</div></div>
+              <div class="box output-field" data-formula="A9 = B4+C4−D4+E4−F4−G4+H4+J4+I4" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Tot Consumption Charge</span>
+                  <span class="field-ref mono">A9</span>
+                </div>
+                <div class="v" id="A9v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="B9 = A9×0.2" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">ED @ 20%</span>
+                  <span class="field-ref mono">B9</span>
+                </div>
+                <div class="v" id="B9v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="C9 = A9+B9" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Current Month Bill</span>
+                  <span class="field-ref mono">C9</span>
+                </div>
+                <div class="v" id="C9v">&#8377;0</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1215,9 +1318,27 @@
           </div>
           <div class="card-out">
             <div class="kpi">
-              <div class="box"><h3>Net Payable <span class="mono">H9 = C9+D9+F9+G9</span></h3><div class="v" id="H9v">&#8377;0</div></div>
-              <div class="box"><h3>Actual Amount to be Paid <span class="mono">I9 = H9&minus;E9</span></h3><div class="v" id="I9v">&#8377;0</div></div>
-              <div class="box"><h3>Balance Pending from Previous Month <span class="mono">A31 = D9&minus;E9</span></h3><div class="v" id="A31v">&#8377;0</div></div>
+              <div class="box output-field" data-formula="H9 = C9+D9+F9+G9" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Net Payable</span>
+                  <span class="field-ref mono">H9</span>
+                </div>
+                <div class="v" id="H9v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="I9 = H9−E9" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Actual Amount to be Paid</span>
+                  <span class="field-ref mono">I9</span>
+                </div>
+                <div class="v" id="I9v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="A31 = D9−E9" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Balance Pending from Previous Month</span>
+                  <span class="field-ref mono">A31</span>
+                </div>
+                <div class="v" id="A31v">&#8377;0</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1284,12 +1405,49 @@
           </div>
           <div class="card-out">
             <div class="kpi kpi-stack">
-              <div class="box"><h3>Total Credit (&#8377;) <span class="mono">A26 = A24+B24</span></h3><div class="v" id="A26v">&#8377;0</div></div>
-              <div class="box"><h3>Total Debit (&#8377;) <span class="mono">B26 = D24+E24+F24</span></h3><div class="v" id="B26v">&#8377;0</div></div>
-              <div class="box"><h3>Net Wind Credit (&#8377;) <span class="mono">C26 = A26&minus;B26</span></h3><div class="v" id="C26v">&#8377;0</div></div>
-              <div class="box"><h3>Wind Rate (&#8377; / kWh) <span class="mono">B19 = IF(A19=0,0,C26/A19)</span></h3><div class="v" id="B19v">&#8377;0</div><small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as &#8377;0.00/kWh</small></div>
-              <div class="box"><h3>Share of 4.5 MW WEG (&#8377;) <span class="mono">F16 = B19&times;A18</span></h3><div class="v" id="F16v">&#8377;0</div></div>
-              <div class="box"><h3>Share of 14.7 MW WEG (&#8377;) <span class="mono">G16 = B19&times;C18</span></h3><div class="v" id="G16v">&#8377;0</div></div>
+              <div class="box output-field" data-formula="A26 = A24+B24" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Total Credit (₹)</span>
+                  <span class="field-ref mono">A26</span>
+                </div>
+                <div class="v" id="A26v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="B26 = D24+E24+F24" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Total Debit (₹)</span>
+                  <span class="field-ref mono">B26</span>
+                </div>
+                <div class="v" id="B26v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="C26 = A26−B26" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Net Wind Credit (₹)</span>
+                  <span class="field-ref mono">C26</span>
+                </div>
+                <div class="v" id="C26v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="B19 = IF(A19=0,0,C26/A19)" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Wind Rate (₹ / kWh)</span>
+                  <span class="field-ref mono">B19</span>
+                </div>
+                <div class="v" id="B19v">&#8377;0</div>
+                <small class="warn-text" id="windRateWarn">kWh allocated is zero; rate shown as &#8377;0.00/kWh</small>
+              </div>
+              <div class="box output-field" data-formula="F16 = B19×A18" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Share of 4.5 MW WEG (₹)</span>
+                  <span class="field-ref mono">F16</span>
+                </div>
+                <div class="v" id="F16v">&#8377;0</div>
+              </div>
+              <div class="box output-field" data-formula="G16 = B19×C18" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Share of 14.7 MW WEG (₹)</span>
+                  <span class="field-ref mono">G16</span>
+                </div>
+                <div class="v" id="G16v">&#8377;0</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1318,9 +1476,27 @@
           </div>
           <div class="card-out">
             <div class="kpi">
-              <div class="box"><h3>Bitlavadia Share (kWh) <span class="mono">A18 = ROUNDUP((A17+B17)*1000*B15%*(1&minus;C16%),0)</span></h3><div class="v" id="A18v">0 kWh</div></div>
-              <div class="box"><h3>Nanisindhodi Share (kWh) <span class="mono">C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1&minus;C16%),0)</span></h3><div class="v" id="C18v">0 kWh</div></div>
-              <div class="box"><h3>Total Allocated (kWh) <span class="mono">A19 = A18+C18</span></h3><div class="v" id="A19v">0 kWh</div></div>
+              <div class="box output-field" data-formula="A18 = ROUNDUP((A17+B17)*1000*B15%*(1−C16%),0)" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Bitlavadia Share (kWh)</span>
+                  <span class="field-ref mono">A18</span>
+                </div>
+                <div class="v" id="A18v">0 kWh</div>
+              </div>
+              <div class="box output-field" data-formula="C18 = ROUNDUP((C17+D17+E17)*1000*D15%*(1−C16%),0)" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Nanisindhodi Share (kWh)</span>
+                  <span class="field-ref mono">C18</span>
+                </div>
+                <div class="v" id="C18v">0 kWh</div>
+              </div>
+              <div class="box output-field" data-formula="A19 = A18+C18" tabindex="0">
+                <div class="field-label-row">
+                  <span class="field-label">Total Allocated (kWh)</span>
+                  <span class="field-ref mono">A19</span>
+                </div>
+                <div class="v" id="A19v">0 kWh</div>
+              </div>
             </div>
           </div>
         </div>
@@ -3284,6 +3460,207 @@
         debitsExtras: snapshotExtras('debits'),
         finalExtras: snapshotExtras('final')
       };
+    }
+
+    let formulaTooltipEl = null;
+    let tooltipActiveField = null;
+    let tooltipHideTimer = null;
+    let tooltipMutationObserver = null;
+    let tooltipRebindScheduled = false;
+    const TOOLTIP_SELECTOR = '.output-field[data-formula]';
+
+    function scheduleTooltipRebind(){
+      if (tooltipRebindScheduled) return;
+      const run = ()=>{
+        tooltipRebindScheduled = false;
+        bindOutputFieldTooltips();
+      };
+      tooltipRebindScheduled = true;
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(run);
+      } else {
+        setTimeout(run, 16);
+      }
+    }
+
+    function ensureTooltipObserver(){
+      if (tooltipMutationObserver || typeof MutationObserver !== 'function' || !document.body) return;
+      tooltipMutationObserver = new MutationObserver(mutations=>{
+        for (const mutation of mutations) {
+          if (!mutation.addedNodes || mutation.addedNodes.length === 0) continue;
+          for (const node of mutation.addedNodes) {
+            if (!node || node.nodeType !== 1) continue;
+            const el = node;
+            if (el.matches && el.matches(TOOLTIP_SELECTOR)) {
+              scheduleTooltipRebind();
+              return;
+            }
+            if (el.querySelector && el.querySelector(TOOLTIP_SELECTOR)) {
+              scheduleTooltipRebind();
+              return;
+            }
+          }
+        }
+      });
+      tooltipMutationObserver.observe(document.body, { childList:true, subtree:true });
+    }
+
+    function ensureFormulaTooltip(){
+      if (formulaTooltipEl) return formulaTooltipEl;
+      const tip = document.createElement('div');
+      tip.className = 'formula-tooltip';
+      tip.id = 'formulaTooltip';
+      tip.setAttribute('role','tooltip');
+      tip.style.visibility = 'hidden';
+      tip.style.left = '-1000px';
+      tip.style.top = '-1000px';
+      document.body.appendChild(tip);
+      formulaTooltipEl = tip;
+      return tip;
+    }
+
+    function isTooltipVisible(){
+      return !!(formulaTooltipEl && formulaTooltipEl.classList.contains('visible'));
+    }
+
+    function positionFormulaTooltip(field){
+      if (!formulaTooltipEl || !field) return;
+      const rect = field.getBoundingClientRect();
+      const gap = 10;
+      const tip = formulaTooltipEl;
+      const placementDefault = 'above';
+      tip.dataset.placement = placementDefault;
+      tip.style.visibility = 'hidden';
+      const tipRect = tip.getBoundingClientRect();
+      const viewportPadding = 8;
+      let left = rect.left + rect.width / 2 - tipRect.width / 2;
+      const maxLeft = window.innerWidth - tipRect.width - viewportPadding;
+      if (maxLeft < viewportPadding) {
+        left = viewportPadding;
+      } else {
+        left = Math.max(viewportPadding, Math.min(left, maxLeft));
+      }
+      let top = rect.top - tipRect.height - gap;
+      let placement = placementDefault;
+      if (top < 4) {
+        placement = 'below';
+        top = rect.bottom + gap;
+      }
+      tip.dataset.placement = placement;
+      tip.style.left = `${left}px`;
+      tip.style.top = `${top}px`;
+      tip.style.visibility = 'visible';
+    }
+
+    function hideFormulaTooltip(immediate=false){
+      if (!formulaTooltipEl) return;
+      if (tooltipHideTimer) {
+        clearTimeout(tooltipHideTimer);
+        tooltipHideTimer = null;
+      }
+      const tip = formulaTooltipEl;
+      const cleanup = () => {
+        tip.classList.remove('visible');
+        tip.style.visibility = 'hidden';
+        tip.style.left = '-1000px';
+        tip.style.top = '-1000px';
+        tooltipHideTimer = null;
+      };
+      if (immediate) {
+        cleanup();
+      } else {
+        tip.classList.remove('visible');
+        tooltipHideTimer = setTimeout(cleanup, 110);
+      }
+      if (tooltipActiveField) {
+        tooltipActiveField.removeAttribute('aria-describedby');
+        tooltipActiveField = null;
+      }
+    }
+
+    function showFormulaTooltip(field){
+      if (!field || !field.dataset || !field.dataset.formula) return;
+      const tip = ensureFormulaTooltip();
+      if (tooltipHideTimer) {
+        clearTimeout(tooltipHideTimer);
+        tooltipHideTimer = null;
+      }
+      const formula = field.dataset.formula;
+      tooltipActiveField = field;
+      field.setAttribute('aria-describedby', tip.id);
+      tip.textContent = formula;
+      tip.classList.remove('visible');
+      tip.style.visibility = 'hidden';
+      positionFormulaTooltip(field);
+      requestAnimationFrame(()=>{
+        if (!formulaTooltipEl) return;
+        tip.style.visibility = 'visible';
+        tip.classList.add('visible');
+        positionFormulaTooltip(field);
+      });
+    }
+
+    function bindOutputFieldTooltips(){
+      const fields = document.querySelectorAll('.output-field[data-formula]');
+      fields.forEach(field=>{
+        if (field.dataset.tooltipBound === '1') return;
+        field.dataset.tooltipBound = '1';
+        const onEnter = (ev)=>{
+          if(ev.pointerType === 'touch') return;
+          if(ev.target && ev.target !== field && !field.contains(ev.target)) return;
+          const rel = ev.relatedTarget;
+          if(rel && field.contains(rel)) return;
+          showFormulaTooltip(field);
+        };
+        const onLeave = (ev)=>{
+          if(ev.pointerType === 'touch') return;
+          const rel = ev.relatedTarget;
+          if(rel && field.contains(rel)) return;
+          hideFormulaTooltip();
+        };
+        field.addEventListener('pointerover', onEnter);
+        field.addEventListener('pointerout', onLeave);
+        field.addEventListener('focus', ()=>showFormulaTooltip(field));
+        field.addEventListener('blur', ()=>hideFormulaTooltip());
+        field.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape'){ hideFormulaTooltip(true); }});
+        field.addEventListener('pointerup', (ev)=>{
+          if(ev.pointerType !== 'touch') return;
+          if(tooltipActiveField === field && isTooltipVisible()){
+            hideFormulaTooltip(true);
+          }else{
+            showFormulaTooltip(field);
+          }
+        });
+      });
+    }
+
+    window.addEventListener('scroll', ()=>{
+      if(tooltipActiveField && isTooltipVisible()){
+        positionFormulaTooltip(tooltipActiveField);
+      }
+    }, { passive:true });
+
+    window.addEventListener('resize', ()=>{
+      if(tooltipActiveField && isTooltipVisible()){
+        positionFormulaTooltip(tooltipActiveField);
+      }
+    });
+
+    document.addEventListener('pointerdown', (ev)=>{
+      if(!tooltipActiveField || !isTooltipVisible()) return;
+      if(tooltipActiveField.contains(ev.target)) return;
+      hideFormulaTooltip();
+    }, true);
+
+    function initFormulaTooltips(){
+      bindOutputFieldTooltips();
+      ensureTooltipObserver();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initFormulaTooltips, { once:true });
+    } else {
+      initFormulaTooltips();
     }
 
     // Reuse formatters from existing code:
