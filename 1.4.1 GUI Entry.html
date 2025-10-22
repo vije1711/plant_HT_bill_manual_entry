@@ -477,6 +477,104 @@
       grid-column:auto;
       width:100%;
     }
+    .adjustments-card .card-split{
+      align-items:stretch;
+    }
+    .adjustments-card .card-in,
+    .adjustments-card .card-out{
+      height:100%;
+    }
+    .adjustments-fields .f{
+      grid-column:span 12;
+    }
+    .adjustments-kpis{
+      flex:1;
+      justify-content:space-between;
+    }
+    .adjustments-kpis .box{
+      flex:0 0 auto;
+    }
+    @media(max-width:899px){
+      .adjustments-card .card-in,
+      .adjustments-card .card-out{
+        height:auto;
+      }
+      .adjustments-kpis{
+        justify-content:flex-start;
+        flex:0 0 auto;
+      }
+    }
+
+    .weg-card .card-split{
+      align-items:stretch;
+    }
+    .weg-card .card-in,
+    .weg-card .card-out{
+      height:100%;
+    }
+    .weg-fields{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      align-content:flex-start;
+    }
+    .weg-fields .f{
+      grid-column:auto;
+    }
+    .weg-generation{
+      margin-top:auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .weg-generation-fields{
+      display:grid;
+      grid-template-columns:repeat(12, minmax(0,1fr));
+      grid-auto-rows:auto;
+      gap:10px;
+    }
+    .weg-generation-fields .weg-gen-field{
+      min-width:0;
+    }
+    .weg-generation-fields .weg-gen-bit-1,
+    .weg-generation-fields .weg-gen-bit-2{
+      grid-column:span 6;
+    }
+    .weg-generation-fields .weg-gen-nan-1,
+    .weg-generation-fields .weg-gen-nan-2,
+    .weg-generation-fields .weg-gen-nan-3{
+      grid-column:span 4;
+    }
+    .weg-kpis{
+      flex:1;
+      justify-content:space-between;
+    }
+    .weg-kpis .box{
+      flex:0 0 auto;
+    }
+    @media(max-width:899px){
+      .weg-card .card-in,
+      .weg-card .card-out{
+        height:auto;
+      }
+      .weg-fields{
+        grid-template-columns:repeat(1, minmax(0,1fr));
+      }
+      .weg-generation{
+        margin-top:0;
+      }
+      .weg-generation-fields{
+        grid-template-columns:repeat(1, minmax(0,1fr));
+      }
+      .weg-generation-fields .weg-gen-field{
+        grid-column:auto;
+        grid-row:auto;
+      }
+      .weg-kpis{
+        justify-content:flex-start;
+        flex:0 0 auto;
+      }
+    }
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:2px 6px;border-radius:999px;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;
@@ -1305,19 +1403,19 @@
       </section>
 
       <!-- Adjustments -->
-      <section class="card span-12">
+      <section class="card span-12 adjustments-card">
         <h2>Adjustments & Carry&#8209;forward <span class="help">Manual entries</span></h2>
         <div class="card-split">
           <div class="card-in">
-            <div class="fields">
-              <div class="f sm"><label>Outstanding Arrears (&#8377;) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
-              <div class="f sm"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
-              <div class="f sm"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
-              <div class="f sm"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
+            <div class="fields adjustments-fields">
+              <div class="f adjustments-field"><label>Outstanding Arrears (&#8377;) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
+              <div class="f adjustments-field"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
+              <div class="f adjustments-field"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
+              <div class="f adjustments-field"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
             </div>
           </div>
           <div class="card-out">
-            <div class="kpi">
+            <div class="kpi kpi-stack adjustments-kpis">
               <div class="box output-field" data-formula="H9 = C9+D9+F9+G9" tabindex="0">
                 <div class="field-label-row">
                   <span class="field-label">Net Payable</span>
@@ -1454,28 +1552,28 @@
       </section>
 
       <!-- WEG Inputs -->
-      <section class="card span-12">
+      <section class="card span-12 weg-card">
         <h2>WEG &mdash; Inputs <span class="help">Bitlavadia (4.5 MW) & Nanisindhodi (14.7 MW)</span></h2>
         <div class="card-split">
           <div class="card-in">
-            <div class="fields">
-              <div class="f sm"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-              <div class="f sm"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
-              <div class="f sm"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+            <div class="fields weg-fields">
+              <div class="f"><label>Share Bitlavadia (%) <span class="mono">B15</span></label><input type="number" id="B15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+              <div class="f"><label>Share Nanisindhodi (%) <span class="mono">D15</span></label><input type="number" id="D15" step="0.01" min="0" max="100"/><span class="hint"></span></div>
+              <div class="f"><label>Transmission Loss (%) <span class="mono">C16</span></label><input type="number" id="C16" step="0.01" min="0" max="100"/><span class="hint"></span></div>
             </div>
-            <details>
-              <summary class="muted">Monthly Generation (MWh) &mdash; expand</summary>
-              <div class="fields" style="margin-top:10px">
-                <div class="f sm"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
-                <div class="f sm"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
+            <div class="weg-generation">
+              <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Monthly Generation (MWh)</div>
+              <div class="fields weg-generation-fields">
+                <div class="f weg-gen-field weg-gen-bit-1"><label>Bitlavadia MWh #1 <span class="mono">A17</span></label><input type="number" id="A17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f weg-gen-field weg-gen-bit-2"><label>Bitlavadia MWh #2 <span class="mono">B17</span></label><input type="number" id="B17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f weg-gen-field weg-gen-nan-1"><label>Nanisindhodi MWh #1 <span class="mono">C17</span></label><input type="number" id="C17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f weg-gen-field weg-gen-nan-2"><label>Nanisindhodi MWh #2 <span class="mono">D17</span></label><input type="number" id="D17" step="0.001" min="0"/><span class="hint"></span></div>
+                <div class="f weg-gen-field weg-gen-nan-3"><label>Nanisindhodi MWh #3 <span class="mono">E17</span></label><input type="number" id="E17" step="0.001" min="0"/><span class="hint"></span></div>
               </div>
-            </details>
+            </div>
           </div>
           <div class="card-out">
-            <div class="kpi">
+            <div class="kpi kpi-stack weg-kpis">
               <div class="box output-field" data-formula="A18 = ROUNDUP((A17+B17)*1000*B15%*(1−C16%),0)" tabindex="0">
                 <div class="field-label-row">
                   <span class="field-label">Bitlavadia Share (kWh)</span>
