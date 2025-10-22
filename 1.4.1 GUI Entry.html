@@ -576,6 +576,55 @@
       }
     }
 
+    .wind-card .card-in{
+      gap:18px;
+    }
+    .wind-card .wind-groups{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .wind-card .wind-group{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .wind-card .wind-divider{
+      margin:12px 0;
+    }
+    .wind-card .wind-heading{
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .wind-card .wind-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+      gap:12px;
+    }
+    .wind-card .wind-grid .f,
+    .wind-card .wind-grid .f.sm{
+      grid-column:auto;
+    }
+    .wind-card .wind-extras{
+      margin-top:4px;
+    }
+    .wind-card .wind-grid.wind-grid-debits{
+      grid-template-columns:repeat(12, minmax(0,1fr));
+    }
+    .wind-card .wind-grid.wind-grid-debits .f{
+      grid-column:span 4;
+    }
+    @media(max-width:720px){
+      .wind-card .wind-grid{
+        grid-template-columns:minmax(0,1fr);
+      }
+      .wind-card .wind-grid.wind-grid-debits .f{
+        grid-column:auto;
+      }
+    }
+
     .pill{display:inline-flex;align-items:center;gap:8px;padding:2px 6px;border-radius:999px;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;
       min-height:34px;flex:0 0 auto;scroll-snap-align:start}
@@ -1443,61 +1492,63 @@
       </section>
 
       <!-- WEG Credits -->
-      <section class="card span-12">
+      <section class="card span-12 wind-card">
         <h2>Wind Credits & Debits <span class="help">Prior&#8208;month adjustments</span></h2>
         <div class="card-split">
           <div class="card-in">
-            <div class="fields">
-              <div class="f" style="grid-column:span 12;">
-                <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Credit Adjustments</div>
+            <div class="wind-groups">
+              <div class="wind-group">
+                <div class="wind-heading">Credit Adjustments</div>
+                <div class="fields wind-grid">
+                  <div class="f"><label>Credit Board Charges (&#8377;) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
+                  <div class="f"><label>Credit ED Charges (&#8377;) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
+                </div>
+                <div class="extras-group wind-extras">
+                  <details class="extras-panel" id="creditsExtrasPanel">
+                    <summary>Credits Extras (optional)</summary>
+                    <div class="extras-body">
+                      <div class="extras-empty" id="creditsExtrasEmpty">No extras added.</div>
+                      <div class="extras-list" id="creditsExtrasList"></div>
+                    </div>
+                    <button type="button" class="ghost extras-add" id="creditsExtrasAdd">Add item</button>
+                  </details>
+                </div>
               </div>
-              <div class="f sm"><label>Credit Board Charges (&#8377;) <span class="mono">A24</span></label><input type="text" id="A24"/><span class="hint"></span></div>
-              <div class="f sm"><label>Credit ED Charges (&#8377;) <span class="mono">B24</span></label><input type="text" id="B24"/><span class="hint"></span></div>
-              <div class="f sm" style="grid-column:span 12;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-                <details class="extras-panel" id="creditsExtrasPanel">
-                  <summary>Credits Extras (optional)</summary>
-                  <div class="extras-body">
-                    <div class="extras-empty" id="creditsExtrasEmpty">No extras added.</div>
-                    <div class="extras-list" id="creditsExtrasList"></div>
-                  </div>
-                  <button type="button" class="ghost extras-add" id="creditsExtrasAdd">Add item</button>
-                </details>
+              <div class="hr wind-divider"></div>
+              <div class="wind-group">
+                <div class="wind-heading">Final Adjustments</div>
+                <div class="fields wind-grid">
+                  <div class="f"><label>Credit TDS (&#8377;) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
+                </div>
+                <div class="extras-group wind-extras">
+                  <details class="extras-panel" id="finalExtrasPanel">
+                    <summary>Final Adjustments Extras (optional)</summary>
+                    <div class="extras-body">
+                      <div class="extras-empty" id="finalExtrasEmpty">No extras added.</div>
+                      <div class="extras-list" id="finalExtrasList"></div>
+                    </div>
+                    <button type="button" class="ghost extras-add" id="finalExtrasAdd">Add item</button>
+                  </details>
+                </div>
               </div>
-              <div class="f" style="grid-column:1 / -1;">
-                <div style="height:1px;background:rgba(148,163,184,.25);margin:6px 0;"></div>
-              </div>
-              <div class="f" style="grid-column:span 12;">
-                <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Final Adjustments</div>
-              </div>
-              <div class="f sm"><label>Credit TDS (&#8377;) <span class="mono">C24</span></label><input type="text" id="C24"/><span class="hint"></span></div>
-              <div class="f sm" style="grid-column:span 12;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-                <details class="extras-panel" id="finalExtrasPanel">
-                  <summary>Final Adjustments Extras (optional)</summary>
-                  <div class="extras-body">
-                    <div class="extras-empty" id="finalExtrasEmpty">No extras added.</div>
-                    <div class="extras-list" id="finalExtrasList"></div>
-                  </div>
-                  <button type="button" class="ghost extras-add" id="finalExtrasAdd">Add item</button>
-                </details>
-              </div>
-              <div class="f" style="grid-column:1 / -1;">
-                <div style="height:1px;background:rgba(148,163,184,.25);margin:6px 0;"></div>
-              </div>
-              <div class="f" style="grid-column:span 12;">
-                <div class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Debits</div>
-              </div>
-              <div class="f sm"><label>Debit Board Charges (&#8377;) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
-              <div class="f sm"><label>Debit Electricity Duty (&#8377;) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
-              <div class="f sm"><label>Debit Wheeling Charges (&#8377;) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
-              <div class="f" style="grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;padding-top:4px;">
-                <details class="extras-panel" id="debitsExtrasPanel">
-                  <summary>Debits Extras (optional)</summary>
-                  <div class="extras-body">
-                    <div class="extras-empty" id="debitsExtrasEmpty">No extras added.</div>
-                    <div class="extras-list" id="debitsExtrasList"></div>
-                  </div>
-                  <button type="button" class="ghost extras-add" id="debitsExtrasAdd">Add item</button>
-                </details>
+              <div class="hr wind-divider"></div>
+              <div class="wind-group">
+                <div class="wind-heading">Debits</div>
+                <div class="fields wind-grid wind-grid-debits">
+                  <div class="f"><label>Debit Board Charges (&#8377;) <span class="mono">D24</span></label><input type="text" id="D24"/><span class="hint"></span></div>
+                  <div class="f"><label>Debit Electricity Duty (&#8377;) <span class="mono">E24</span></label><input type="text" id="E24"/><span class="hint"></span></div>
+                  <div class="f"><label>Debit Wheeling Charges (&#8377;) <span class="mono">F24</span></label><input type="text" id="F24"/><span class="hint"></span></div>
+                </div>
+                <div class="extras-group wind-extras">
+                  <details class="extras-panel" id="debitsExtrasPanel">
+                    <summary>Debits Extras (optional)</summary>
+                    <div class="extras-body">
+                      <div class="extras-empty" id="debitsExtrasEmpty">No extras added.</div>
+                      <div class="extras-list" id="debitsExtrasList"></div>
+                    </div>
+                    <button type="button" class="ghost extras-add" id="debitsExtrasAdd">Add item</button>
+                  </details>
+                </div>
               </div>
             </div>
           </div>
