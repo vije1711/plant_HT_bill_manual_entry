@@ -251,6 +251,46 @@
       outline:var(--ring);
       outline-offset:2px;
     }
+    .analysis-stats{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px;
+      margin:14px 0 0;
+    }
+    .analysis-stat{
+      padding:12px 14px;
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid rgba(148,163,184,.14);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-height:92px;
+    }
+    .analysis-stat-label{
+      font-size:11px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .analysis-stat-value{
+      font-size:18px;
+      font-weight:700;
+      color:var(--ink);
+    }
+    .analysis-stat-sub{
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+    }
+    .analysis-stat-delta{
+      font-weight:600;
+    }
+    .analysis-stat-delta.plus{color:var(--good);}
+    .analysis-stat-delta.minus{color:var(--bad);}
     #analysisChartHost{
       position:relative;
       overflow:hidden;
@@ -1812,6 +1852,7 @@
               <option value="&Delta;%C9">&Delta;%C9</option>
             </select>
           </div>
+          <div id="analysisStats" class="analysis-stats" role="list" hidden></div>
           <div id="analysisChartHost">
             <canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>
           </div>
@@ -5766,16 +5807,16 @@
       let __analysisChart;
       // Metric catalog: key -> label, unit, formatter
       const METRICS = {
-        A4:      {label:'Monthly Consumption (A4)',      unit:'kWh',   fmt:'int'},
-        C9:      {label:'Current Month Bill (C9)',       unit:'&#8377;',     fmt:'inr'},
-        I9:      {label:'Actual Paid (I9)',              unit:'&#8377;',     fmt:'inr'},
-        B19:     {label:'Wind Rate &#8377;/kWh (B19)',         unit:'&#8377;/kWh', fmt:'rate'},
-        A18:     {label:'Bitlavadia Share (A18)',        unit:'kWh',   fmt:'int'},
-        C18:     {label:'Nanisindhodi Share (C18)',      unit:'kWh',   fmt:'int'},
-        C26:     {label:'Net Wind Credit (C26)',         unit:'&#8377;',     fmt:'inr'},
-        eff:     {label:'Effective Rate (&#8377;/kWh)',        unit:'&#8377;/kWh', fmt:'rate'},
-        deltaC9: {label:'MoM Change in Bill (&Delta;C9)',      unit:'&#8377;',     fmt:'inr'},
-        deltaPct:{label:'% Change in Bill (&Delta;C9)',        unit:'%',     fmt:'pct'}
+        A4:      {label:'Monthly Consumption (A4)',      unit:'kWh',       fmt:'int',  trend:'neutral'},
+        C9:      {label:'Current Month Bill (C9)',       unit:'&#8377;',   fmt:'inr',  trend:'down'},
+        I9:      {label:'Actual Paid (I9)',              unit:'&#8377;',   fmt:'inr',  trend:'down'},
+        B19:     {label:'Wind Rate &#8377;/kWh (B19)',   unit:'&#8377;/kWh',fmt:'rate', trend:'up'},
+        A18:     {label:'Bitlavadia Share (A18)',        unit:'kWh',       fmt:'int',  trend:'up'},
+        C18:     {label:'Nanisindhodi Share (C18)',      unit:'kWh',       fmt:'int',  trend:'up'},
+        C26:     {label:'Net Wind Credit (C26)',         unit:'&#8377;',   fmt:'inr',  trend:'up'},
+        eff:     {label:'Effective Rate (&#8377;/kWh)',  unit:'&#8377;/kWh',fmt:'rate', trend:'down'},
+        deltaC9: {label:'MoM Change in Bill (&Delta;C9)',unit:'&#8377;',   fmt:'inr',  trend:'down'},
+        deltaPct:{label:'% Change in Bill (&Delta;C9)',  unit:'%',         fmt:'pct',  trend:'down'}
       };
       function fmtValue(k,v){
         const t = METRICS[k]?.fmt;
@@ -5783,6 +5824,84 @@
         if(t==='pct') return `${fmt2.format(v)}%`;
         if(t==='rate') return fmt2.format(v);
         return fmt0.format(v);
+      }
+      function formatDeltaValue(metric, value){
+        if(value===null || value===undefined) return '—';
+        if(value===0) return fmtValue(metric, 0);
+        const arrow = value>0 ? '↑' : '↓';
+        const base = fmtValue(metric, Math.abs(value));
+        return `${arrow} ${base}`;
+      }
+      function deltaSentiment(metric, value){
+        if(value===null || value===undefined) return '';
+        const trend = METRICS[metric]?.trend || 'neutral';
+        if(value === 0 || trend === 'neutral') return '';
+        if(trend === 'down') return value < 0 ? 'plus' : 'minus';
+        if(trend === 'up') return value > 0 ? 'plus' : 'minus';
+        return value > 0 ? 'plus' : value < 0 ? 'minus' : '';
+      }
+      function renderAnalysisStats(metric, cfg, rows){
+        const host = document.getElementById('analysisStats');
+        if(!host) return;
+        if(!rows.length){
+          host.innerHTML = '';
+          host.hidden = true;
+          return;
+        }
+        const labels = rows.map(r=>r.month || '—');
+        const values = rows.map(r=>{
+          const raw = Number(r?.[metric]);
+          return Number.isFinite(raw) ? raw : 0;
+        });
+        const latestIndex = values.length - 1;
+        const latestVal = values[latestIndex];
+        const latestLabel = labels[latestIndex] || 'Latest month';
+        const prevVal = values.length > 1 ? values[values.length - 2] : null;
+        const delta = prevVal===null ? null : latestVal - prevVal;
+        const deltaPct = prevVal===null || prevVal===0 ? null : (delta / Math.abs(prevVal)) * 100;
+        const avgWindow = Math.min(3, values.length);
+        const avgVal = avgWindow ? values.slice(-avgWindow).reduce((acc,v)=>acc+v,0) / avgWindow : null;
+        let peak = {value:-Infinity, label:'—'};
+        values.forEach((v, idx)=>{
+          if(v>=peak.value){
+            peak = {value:v, label:labels[idx] || '—'};
+          }
+        });
+        const deltaPieces = [];
+        if(delta!==null){
+          const deltaClass = deltaSentiment(metric, delta);
+          deltaPieces.push(`<span class="analysis-stat-delta ${deltaClass}">${formatDeltaValue(metric, delta)}</span>`);
+        }
+        if(deltaPct!==null){
+          const pctClass = deltaSentiment(metric, deltaPct);
+          const pctArrow = deltaPct>0 ? '↑' : deltaPct<0 ? '↓' : '';
+          const pctMag = fmt2.format(Math.abs(deltaPct));
+          const pctText = deltaPct===0 ? '0.00%' : `${pctArrow} ${pctMag}%`;
+          deltaPieces.push(`<span class="analysis-stat-delta ${pctClass}">${pctText}</span>`);
+        }
+        const latestSub = `<div class="analysis-stat-sub"><span>${latestLabel}</span>${deltaPieces.join('')}</div>`;
+        const avgLabel = avgWindow ? `Last ${avgWindow} month${avgWindow>1?'s':''}` : 'Need more history';
+        const avgValue = avgWindow ? fmtValue(metric, avgVal) : '—';
+        const peakValue = Number.isFinite(peak.value) ? fmtValue(metric, peak.value) : '—';
+        const peakSub = `<div class="analysis-stat-sub"><span>${peak.label}</span></div>`;
+        host.innerHTML = [
+          `<div class="analysis-stat" role="listitem">
+             <div class="analysis-stat-label">${cfg.label}</div>
+             <div class="analysis-stat-value">${fmtValue(metric, latestVal)}</div>
+             ${latestSub}
+           </div>`,
+          `<div class="analysis-stat" role="listitem">
+             <div class="analysis-stat-label">Rolling average</div>
+             <div class="analysis-stat-value">${avgValue}</div>
+             <div class="analysis-stat-sub"><span>${avgLabel}</span></div>
+           </div>`,
+          `<div class="analysis-stat" role="listitem">
+             <div class="analysis-stat-label">Peak month</div>
+             <div class="analysis-stat-value">${peakValue}</div>
+             ${peakSub}
+           </div>`
+        ].join('');
+        host.hidden = false;
       }
       function metricKey(val){
         switch(String(val||'C9')){
@@ -5797,10 +5916,15 @@
       function renderAnalysisChart(metric='C9'){
         const rows = window.__analysisRows || [];
         const host = document.getElementById('analysisChartHost');
-        if(!rows.length){ host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>'; return; }
+        const cfg = METRICS[metric] || {label:metric, unit:''};
+        if(!rows.length){
+          host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>';
+          renderAnalysisStats(metric, cfg, rows);
+          return;
+        }
+        renderAnalysisStats(metric, cfg, rows);
         const labels = rows.map(r=>r.month);
         const data = rows.map(r=>Number(r[metric]||0));
-        const cfg = METRICS[metric] || {label:metric, unit:''};
         const canvas = document.getElementById('analysisChart');
         if(canvas){ canvas.setAttribute('aria-label', `Trend: ${cfg.label} over months`); }
         if(!(window.Chart && canvas)){
@@ -5922,7 +6046,7 @@
           }
 
           const meta = document.getElementById('analysisMeta');
-          if(meta) meta.textContent = `Sheets analyzed: ${rows.length} &bull; Range: ${rows[0].month} &rarr; ${rows[rows.length-1].month}`;
+          if(meta) meta.textContent = `Sheets analyzed: ${rows.length} • Range: ${rows[0].month} → ${rows[rows.length-1].month}`;
           const metricSel = document.getElementById('analysisMetric');
           if(metricSel && !metricSel.dataset.bound){
             metricSel.dataset.bound = '1';
