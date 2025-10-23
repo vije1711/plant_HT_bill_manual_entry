@@ -251,6 +251,19 @@
       outline:var(--ring);
       outline-offset:2px;
     }
+    .analysis-controls label.analysis-toggle{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11.5px;
+      letter-spacing:normal;
+      text-transform:none;
+    }
+    .analysis-controls label.analysis-toggle input{
+      accent-color:var(--accent);
+      width:16px;
+      height:16px;
+    }
     .analysis-stats{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
@@ -291,6 +304,25 @@
     }
     .analysis-stat-delta.plus{color:var(--good);}
     .analysis-stat-delta.minus{color:var(--bad);}
+    .analysis-spark-legend{
+      display:flex;
+      gap:10px;
+      font-size:11.5px;
+      margin-top:6px;
+      color:var(--muted);
+      flex-wrap:wrap;
+    }
+    .analysis-spark-legend span{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .analysis-spark-legend .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      display:inline-block;
+    }
     #analysisChartHost{
       position:relative;
       overflow:hidden;
@@ -1855,6 +1887,23 @@
               <option value="&Delta;C9">&Delta;C9</option>
               <option value="&Delta;%C9">&Delta;%C9</option>
             </select>
+            <label for="analysisMetricCompare">Compare</label>
+            <select id="analysisMetricCompare">
+              <option value="">None</option>
+              <option value="A4">A4</option>
+              <option value="C9">C9</option>
+              <option value="I9">I9</option>
+              <option value="B19">B19</option>
+              <option value="A18">A18</option>
+              <option value="C18">C18</option>
+              <option value="C26">C26</option>
+              <option value="EffRate">EffRate</option>
+              <option value="&Delta;C9">&Delta;C9</option>
+              <option value="&Delta;%C9">&Delta;%C9</option>
+            </select>
+            <label class="analysis-toggle" for="analysisNormalize">
+              <input type="checkbox" id="analysisNormalize"/> Normalize (index 100)
+            </label>
           </div>
           <div id="analysisStats" class="analysis-stats" role="list" hidden></div>
           <div id="analysisChartHost">
@@ -6065,27 +6114,65 @@
         }
         out.eff = out.A4 ? out.C9 / out.A4 : 0;
         return out;
-      }
+    }
 
-      function computeMoM(arr,key){
-        const deltas=[0];
-        for(let i=1;i<arr.length;i++) deltas[i] = arr[i][key] - arr[i-1][key];
-        return deltas;
-      }
+    function computeMoM(arr,key){
+      const deltas=[0];
+      for(let i=1;i<arr.length;i++) deltas[i] = arr[i][key] - arr[i-1][key];
+      return deltas;
+    }
 
-      function drawSparkline(host, series, w=900, h=180, pad=24){
-        const min = Math.min(...series);
-        const max = Math.max(...series);
+    function normalizeSeriesToIndex(series){
+      if(!Array.isArray(series) || !series.length) return [];
+      const baseline = series.find(v => Math.abs(v) > 1e-9);
+      if(!baseline) return series.map(()=>0);
+      return series.map(v => (v / baseline) * 100);
+    }
+
+      function drawSparkline(host, series, opts={}){
+        const {
+          compareSeries=null,
+          primaryLabel='Primary',
+          compareLabel='Compare',
+          labels=[],
+          width=900,
+          height=180,
+          pad=24,
+          primaryColor='var(--accent)',
+          compareColor='var(--accent-2)'
+        } = opts;
+        const combined = Array.isArray(compareSeries) && compareSeries.length === series.length
+          ? series.concat(compareSeries)
+          : series.slice();
+        const min = Math.min(...combined);
+        const max = Math.max(...combined);
         const span = max - min || 1;
-        const step = series.length>1 ? (w-2*pad)/(series.length-1) : 0;
-        const pts = series.map((v,i)=>{
+        const step = series.length>1 ? (width-2*pad)/(series.length-1) : 0;
+        const buildPoints = arr => arr.map((v,i)=>{
           const x = pad + i*step;
-          const y = h - pad - ((v-min)/span)*(h-2*pad);
+          const y = height - pad - ((v-min)/span)*(height-2*pad);
           return `${x},${y}`;
         }).join(' ');
-        host.innerHTML = `<svg role="img" aria-label="Current Month Bill (C9, INR) trend over months" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`
-          +`<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts}"/>`
-          +`<line x1="0" x2="${w}" y1="${h-pad}" y2="${h-pad}" stroke="var(--muted)" stroke-width="1"/></svg>`;
+        const primaryPoints = buildPoints(series);
+        const comparePoints = (Array.isArray(compareSeries) && compareSeries.length === series.length)
+          ? buildPoints(compareSeries)
+          : null;
+        const ariaLabel = comparePoints
+          ? `${primaryLabel} versus ${compareLabel} trend over months`
+          : `${primaryLabel} trend over months`;
+        let legend = '';
+        if(comparePoints){
+          legend = `<div class="analysis-spark-legend">
+              <span><span class="dot" style="background:${primaryColor};"></span>${primaryLabel}</span>
+              <span><span class="dot" style="background:${compareColor};"></span>${compareLabel}</span>
+            </div>`;
+        }
+        host.innerHTML =
+          `<svg role="img" aria-label="${ariaLabel}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+            <line x1="0" x2="${width}" y1="${height-pad}" y2="${height-pad}" stroke="var(--muted)" stroke-width="1"/>
+            ${comparePoints ? `<polyline fill="none" stroke="${compareColor}" stroke-width="2" stroke-dasharray="6 3" points="${comparePoints}"/>` : ''}
+            <polyline fill="none" stroke="${primaryColor}" stroke-width="2" points="${primaryPoints}"/>
+          </svg>${legend}`;
       }
 
       // Chart.js powered chart (fallback to SVG sparkline if Chart is absent)
@@ -6198,93 +6285,169 @@
           default: return 'C9';
         }
       }
-      function renderAnalysisChart(metric='C9'){
-        const rows = window.__analysisRows || [];
-        const host = document.getElementById('analysisChartHost');
-        const cfg = METRICS[metric] || {label:metric, unit:''};
-        if(!rows.length){
-          host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>';
-          renderAnalysisStats(metric, cfg, rows);
-          return;
-        }
+function renderAnalysisChart(metric='C9', compareMetric=null){
+  const rows = window.__analysisRows || [];
+  const host = document.getElementById('analysisChartHost');
+  const cfg = METRICS[metric] || {label:metric, unit:''};
+  if(!rows.length){
+    host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>';
         renderAnalysisStats(metric, cfg, rows);
-        const labels = rows.map(r=>r.month);
-        const data = rows.map(r=>Number(r[metric]||0));
-        const canvas = document.getElementById('analysisChart');
-        if(canvas){ canvas.setAttribute('aria-label', `Trend: ${cfg.label} over months`); }
-        if(!(window.Chart && canvas)){
-          drawSparkline(host, data);
-          return;
-        }
-        if(__analysisChart){ __analysisChart.destroy(); }
-        const styles = getComputedStyle(document.documentElement);
-        const lineColor = (styles.getPropertyValue('--accent') || '#38bdf8').trim() || '#38bdf8';
-        const lineAccent = (styles.getPropertyValue('--accent-2') || '#a78bfa').trim() || '#a78bfa';
-        const gridColor = 'rgba(148,163,184,0.22)';
-        const tickColor = (styles.getPropertyValue('--muted') || 'rgba(226,232,240,0.72)').trim() || 'rgba(226,232,240,0.72)';
-        const tooltipBg = 'rgba(15,23,42,0.92)';
-        const tooltipBorder = lineColor || '#38bdf8';
-        host.classList.add('has-data');
-        __analysisChart = new Chart(canvas.getContext('2d'),{
-          type:'line',
-          data:{ labels, datasets:[{
-            label: cfg.label,
-            data,
-            tension:0.32,
-            borderColor: lineColor,
-            borderWidth:2.6,
-            fill:true,
-            pointRadius:4,
-            pointBackgroundColor: lineColor,
-            pointBorderColor:'rgba(15,23,42,0.9)',
-            pointBorderWidth:2,
-            pointHoverRadius:6,
-            pointHoverBackgroundColor: lineAccent || lineColor,
-            pointHoverBorderColor:'#ffffff',
-            pointHoverBorderWidth:2,
-            backgroundColor:(ctx)=>{
-              const {chart}=ctx;
-              const g=chart.ctx.createLinearGradient(0,0,0,chart.height);
-              g.addColorStop(0,(lineColor || '#38bdf8')+'2a');
-              g.addColorStop(1,'rgba(56,189,248,0)');
-              return g;
-            }
-          }]},
-          options:{
-            responsive:true,
-            maintainAspectRatio:false,
-            interaction:{mode:'index', intersect:false},
-            animation:{duration:650, easing:'easeOutQuart'},
-            plugins:{
-              legend:{display:false},
-              tooltip:{
-                backgroundColor:tooltipBg,
-                titleColor:'#e2e8f0',
-                bodyColor:'#e2e8f0',
-                borderColor:tooltipBorder,
-                borderWidth:1,
-                padding:12,
-                displayColors:false,
-                callbacks:{
-                  title:(ctx)=>ctx[0]?.label,
-                  label:(ctx)=>`${cfg.label}: ${fmtValue(metric, ctx.parsed.y)}`
+        return;
+      }
+  renderAnalysisStats(metric, cfg, rows);
+  const labels = rows.map(r=>r.month);
+  const dataRaw = rows.map(r=>Number(r[metric]||0));
+  const compareKey = compareMetric && compareMetric !== metric ? compareMetric : null;
+  const compareCfg = compareKey ? (METRICS[compareKey] || {label:compareKey, unit:''}) : null;
+  const compareDataRaw = compareKey ? rows.map(r=>Number(r[compareKey]||0)) : null;
+  const canvas = document.getElementById('analysisChart');
+  if(canvas){
+    const comparisonLabel = compareCfg ? ` vs ${compareCfg.label}` : '';
+    canvas.setAttribute('aria-label', `Trend: ${cfg.label}${comparisonLabel} over months`);
+  }
+  const normalizeEl = document.getElementById('analysisNormalize');
+  const normalize = !!normalizeEl?.checked;
+  const styles = getComputedStyle(document.documentElement);
+  const lineColor = (styles.getPropertyValue('--accent') || '#38bdf8').trim() || '#38bdf8';
+  const lineAccent = (styles.getPropertyValue('--accent-2') || '#a78bfa').trim() || '#a78bfa';
+  const compareColor = lineAccent || '#a78bfa';
+
+  const primaryChartData = normalize ? normalizeSeriesToIndex(dataRaw) : dataRaw.slice();
+  const compareChartData = compareKey && compareDataRaw
+    ? (normalize ? normalizeSeriesToIndex(compareDataRaw) : compareDataRaw.slice())
+    : null;
+  const primaryLabel = normalize ? `${cfg.label} (index)` : cfg.label;
+  const compareLabel = normalize && compareCfg ? `${compareCfg.label} (index)` : compareCfg?.label;
+  const primaryUnit = normalize ? 'Index (100=start)' : cfg.unit;
+  const compareUnit = normalize ? 'Index (100=start)' : compareCfg?.unit;
+
+  if(!(window.Chart && canvas)){
+    drawSparkline(host, primaryChartData, {
+      compareSeries: compareChartData,
+      primaryLabel,
+      compareLabel: compareLabel || '',
+      labels,
+      primaryColor: lineColor,
+      compareColor
+    });
+    return;
+  }
+  if(__analysisChart){ __analysisChart.destroy(); }
+  const gridColor = 'rgba(148,163,184,0.22)';
+  const tickColor = (styles.getPropertyValue('--muted') || 'rgba(226,232,240,0.72)').trim() || 'rgba(226,232,240,0.72)';
+  const tooltipBg = 'rgba(15,23,42,0.92)';
+  const tooltipBorder = lineColor || '#38bdf8';
+  const datasets = [{
+    label: primaryLabel,
+    data: primaryChartData,
+    tension:0.32,
+    borderColor: lineColor,
+    borderWidth:2.6,
+    fill:true,
+    pointRadius:4,
+        pointBackgroundColor: lineColor,
+        pointBorderColor:'rgba(15,23,42,0.9)',
+        pointBorderWidth:2,
+        pointHoverRadius:6,
+        pointHoverBackgroundColor: lineAccent || lineColor,
+        pointHoverBorderColor:'#ffffff',
+        pointHoverBorderWidth:2,
+        backgroundColor:(ctx)=>{
+          const {chart}=ctx;
+          const g=chart.ctx.createLinearGradient(0,0,0,chart.height);
+          g.addColorStop(0,(lineColor || '#38bdf8')+'2a');
+          g.addColorStop(1,'rgba(56,189,248,0)');
+          return g;
+    },
+    metaKey: metric,
+    yAxisID:'y',
+    normalized: normalize,
+    originalUnit: cfg.unit,
+    displayUnit: primaryUnit,
+    originalLabel: cfg.label
+  }];
+  if(compareKey && compareChartData){
+    datasets.push({
+      label: compareLabel || compareCfg.label,
+      data: compareChartData,
+      tension:0.18,
+      borderColor: compareColor,
+      borderWidth:2,
+      fill:false,
+      pointRadius:3,
+          pointBackgroundColor: compareColor,
+          pointBorderColor:'rgba(15,23,42,0.9)',
+          pointBorderWidth:1.5,
+          pointHoverRadius:6,
+          pointHoverBackgroundColor:'#ffffff',
+      pointHoverBorderColor:compareColor,
+      pointHoverBorderWidth:2,
+      borderDash:[6,3],
+      metaKey: compareKey,
+      yAxisID:'y1',
+      normalized: normalize,
+      originalUnit: compareCfg?.unit,
+      displayUnit: compareUnit,
+      originalLabel: compareCfg?.label || compareKey
+    });
+  }
+  host.classList.add('has-data');
+  __analysisChart = new Chart(canvas.getContext('2d'),{
+        type:'line',
+        data:{ labels, datasets},
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          interaction:{mode:'index', intersect:false},
+          animation:{duration:650, easing:'easeOutQuart'},
+          plugins:{
+            legend:{display:!!compareKey, position:'top', align:'start', labels:{color:tickColor}},
+            tooltip:{
+              backgroundColor:tooltipBg,
+              titleColor:'#e2e8f0',
+              bodyColor:'#e2e8f0',
+              borderColor:tooltipBorder,
+              borderWidth:1,
+              padding:12,
+              displayColors:true,
+              callbacks:{
+                title:(ctx)=>ctx[0]?.label,
+                label:(ctx)=>{
+                  const ds = ctx.dataset || {};
+                  if(ds.normalized){
+                    return `${ds.label || ds.originalLabel}: ${fmt2.format(ctx.parsed.y)} (index)`;
+                  }
+                  const metaKey = ds.metaKey || metric;
+                  return `${ds.label || ds.originalLabel || cfg.label}: ${fmtValue(metaKey, ctx.parsed.y)}`;
                 }
               }
-            },
-            scales:{
+            }
+          },
+          scales:(()=>{
+            const scales = {
               x:{
                 grid:{color:gridColor, borderDash:[6,6], drawTicks:false, drawBorder:false},
                 ticks:{maxRotation:0,autoSkip:true,color:tickColor}
               },
               y:{
                 grid:{color:gridColor, borderDash:[4,6], drawTicks:false, drawBorder:false},
-                ticks:{color:tickColor, callback:(v)=>fmtValue(metric,v)},
-                title:{display:!!cfg.unit,text:cfg.unit, color:tickColor, padding:{bottom:6}}
+                ticks:{color:tickColor, callback:(v)=> normalize ? fmt2.format(v) : fmtValue(metric,v)},
+                title:{display:!!primaryUnit,text:primaryUnit || '', color:tickColor, padding:{bottom:6}}
               }
+            };
+            if(compareKey){
+              scales.y1 = {
+                position:'right',
+                grid:{drawOnChartArea:false, drawTicks:false, drawBorder:false},
+                ticks:{color:compareColor, callback:(v)=> normalize ? fmt2.format(v) : fmtValue(compareKey,v)},
+                title:{display:!!compareUnit,text:compareUnit || '', color:compareColor, padding:{bottom:6}}
+              };
             }
-          }
-        });
-      }
+            return scales;
+          })()
+        }
+      });
+    }
 
       async function analyzeAllSheets(){
         return withBusy('analyzeWorkbook', async ()=>{
@@ -6333,11 +6496,31 @@
           const meta = document.getElementById('analysisMeta');
           if(meta) meta.textContent = `Sheets analyzed: ${rows.length} • Range: ${rows[0].month} → ${rows[rows.length-1].month}`;
           const metricSel = document.getElementById('analysisMetric');
+          const compareSel = document.getElementById('analysisMetricCompare');
+          const normalizeSel = document.getElementById('analysisNormalize');
+          const resolveCompareKey = () => {
+            if(!compareSel || !compareSel.value) return null;
+            return metricKey(compareSel.value);
+          };
+          const rerender = () => {
+            const primary = metricKey(metricSel?.value || 'C9');
+            let compare = resolveCompareKey();
+            if(compare === primary) compare = null;
+            renderAnalysisChart(primary, compare);
+          };
           if(metricSel && !metricSel.dataset.bound){
             metricSel.dataset.bound = '1';
-            metricSel.addEventListener('change', ()=> renderAnalysisChart(metricKey(metricSel.value)));
+            metricSel.addEventListener('change', rerender);
           }
-          renderAnalysisChart(metricKey(metricSel?.value || 'C9'));
+          if(compareSel && !compareSel.dataset.bound){
+            compareSel.dataset.bound = '1';
+            compareSel.addEventListener('change', rerender);
+          }
+          if(normalizeSel && !normalizeSel.dataset.bound){
+            normalizeSel.dataset.bound = '1';
+            normalizeSel.addEventListener('change', rerender);
+          }
+          rerender();
           const card = document.getElementById('analysisCard');
           if(card) card.hidden = false;
         });
