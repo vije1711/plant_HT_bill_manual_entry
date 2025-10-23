@@ -3534,11 +3534,12 @@
       return negative ? -num : num;
     }
 
-    function adjustWorkbookValueForUnit(value, unit){
+    function adjustWorkbookValueForUnit(value, unit, rawSource){
       if(value == null) return null;
       const u = String(unit || '').trim().toUpperCase();
       if(u === '%'){
-        if(Math.abs(value) <= 1) return value * 100;
+        const hasPercentSymbol = typeof rawSource === 'string' && rawSource.includes('%');
+        if(!hasPercentSymbol && Math.abs(value) <= 1) return value * 100;
         return value;
       }
       return value;
@@ -3557,7 +3558,7 @@
     function extractWorksheetContext(ws){
       if(!ws) return null;
       try{
-        const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+        const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
         if(!Array.isArray(rows) || !rows.length) return null;
         const meta = {
           monthLabel: sanitizeWorkbookMonth(rows[0] && rows[0][1]),
@@ -3590,9 +3591,10 @@
             continue;
           }
           if(!Object.prototype.hasOwnProperty.call(cells, cellId)){
-            const numeric = parseWorkbookNumber(row[3]);
+            const rawValue = row[3];
+            const numeric = parseWorkbookNumber(rawValue);
             cells[cellId] = {
-              value: adjustWorkbookValueForUnit(numeric, unit),
+              value: adjustWorkbookValueForUnit(numeric, unit, rawValue),
               unit,
               section,
               field
