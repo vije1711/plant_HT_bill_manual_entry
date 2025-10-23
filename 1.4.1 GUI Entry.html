@@ -323,6 +323,33 @@
       border-radius:999px;
       display:inline-block;
     }
+    .analysis-spark-tooltip{
+      position:absolute;
+      min-width:160px;
+      max-width:250px;
+      pointer-events:none;
+      background:rgba(15,23,42,0.94);
+      color:var(--ink);
+      border:1px solid rgba(148,163,184,.32);
+      border-radius:10px;
+      padding:8px 10px;
+      box-shadow:0 14px 32px rgba(15,23,42,.45);
+      font-size:12px;
+      z-index:5;
+      opacity:0.97;
+    }
+    .analysis-spark-tooltip hr{
+      border:0;
+      border-top:1px solid rgba(148,163,184,.25);
+      margin:6px 0;
+    }
+    .analysis-spark-tooltip .spark-tip-title{
+      font-weight:600;
+      margin-bottom:4px;
+      font-size:12.5px;
+      color:var(--ink);
+    }
+    .analysis-spark-tooltip .spark-tip-section div{margin-bottom:2px;}
     #analysisChartHost{
       position:relative;
       overflow:hidden;
@@ -6125,8 +6152,28 @@
     function normalizeSeriesToIndex(series){
       if(!Array.isArray(series) || !series.length) return [];
       const baseline = series.find(v => Math.abs(v) > 1e-9);
-      if(!baseline) return series.map(()=>0);
-      return series.map(v => (v / baseline) * 100);
+    if(!baseline) return series.map(()=>0);
+    return series.map(v => (v / baseline) * 100);
+  }
+
+    function detectAnomalies(primaryValues, primaryLabels, compareValues=null, compareLabels=null, threshold=2){
+      const analyze = (values, labels)=>{
+        if(!Array.isArray(values) || values.length < 4) return [];
+        const finite = values.map((v,i)=>({v, i})).filter(({v})=>Number.isFinite(v));
+        if(finite.length < 4) return [];
+        const mean = finite.reduce((acc,{v})=>acc+v,0) / finite.length;
+        const variance = finite.reduce((acc,{v})=>acc + Math.pow(v-mean,2),0) / finite.length;
+        const std = Math.sqrt(variance);
+        if(!std || std < 1e-6) return [];
+        return finite
+          .map(({v,i})=>({value:v, index:i, label:labels?.[i] || `#${i+1}`, zscore:(v-mean)/std}))
+          .filter(item=>Math.abs(item.zscore) >= threshold)
+          .sort((a,b)=>Math.abs(b.zscore) - Math.abs(a.zscore));
+      };
+      return {
+        primary: analyze(primaryValues, primaryLabels),
+        compare: compareValues ? analyze(compareValues, compareLabels || primaryLabels) : []
+      };
     }
 
       function drawSparkline(host, series, opts={}){
@@ -6139,7 +6186,19 @@
           height=180,
           pad=24,
           primaryColor='var(--accent)',
-          compareColor='var(--accent-2)'
+          compareColor='var(--accent-2)',
+          anomalyColor='rgba(250,204,21,0.95)',
+          primaryAnomalies=null,
+          compareAnomalies=null,
+          normalize=false,
+          primaryRaw=null,
+          compareRaw=null,
+          primaryMetaKey=null,
+          compareMetaKey=null,
+          primaryUnit='',
+          compareUnit='',
+          primaryAnomalyDetails=null,
+          compareAnomalyDetails=null
         } = opts;
         const combined = Array.isArray(compareSeries) && compareSeries.length === series.length
           ? series.concat(compareSeries)
@@ -6160,6 +6219,19 @@
         const ariaLabel = comparePoints
           ? `${primaryLabel} versus ${compareLabel} trend over months`
           : `${primaryLabel} trend over months`;
+        const renderCircles = (points, sourceSeries)=>{
+          if(!points) return '';
+          const arr = Array.from(points);
+          if(!arr.length) return '';
+          return arr.map(idx=>{
+            const v = sourceSeries[idx];
+            const x = pad + idx*step;
+            const y = height - pad - ((v-min)/span)*(height-2*pad);
+            return `<circle cx="${x}" cy="${y}" r="4" fill="${anomalyColor}" stroke="rgba(15,23,42,0.85)" stroke-width="1.5"/>`;
+          }).join('');
+        };
+        const primaryAnomSvg = primaryAnomalies ? renderCircles(primaryAnomalies, series) : '';
+        const compareAnomSvg = compareAnomalies && comparePoints ? renderCircles(compareAnomalies, compareSeries) : '';
         let legend = '';
         if(comparePoints){
           legend = `<div class="analysis-spark-legend">
@@ -6172,7 +6244,175 @@
             <line x1="0" x2="${width}" y1="${height-pad}" y2="${height-pad}" stroke="var(--muted)" stroke-width="1"/>
             ${comparePoints ? `<polyline fill="none" stroke="${compareColor}" stroke-width="2" stroke-dasharray="6 3" points="${comparePoints}"/>` : ''}
             <polyline fill="none" stroke="${primaryColor}" stroke-width="2" points="${primaryPoints}"/>
+            ${compareAnomSvg}
+            ${primaryAnomSvg}
           </svg>${legend}`;
+        initSparklineTooltip(host, {
+          svgWidth:width,
+          svgHeight:height,
+          pad,
+          min,
+          span,
+          step,
+          series,
+          compareSeries,
+          labels,
+          primaryLabel,
+          compareLabel,
+          anomalyColor,
+          primaryAnomalies,
+          compareAnomalies,
+          normalize,
+          primaryRaw,
+          compareRaw,
+          primaryMetaKey,
+          compareMetaKey,
+          primaryUnit,
+          compareUnit,
+          primaryAnomalyDetails,
+          compareAnomalyDetails,
+          primaryColor,
+          compareColor
+        });
+      }
+
+      function initSparklineTooltip(host, cfg){
+        const svg = host.querySelector('svg');
+        if(!svg){ host.__sparkConfig = null; return; }
+        host.style.position = host.style.position || 'relative';
+        host.querySelectorAll('.analysis-spark-tooltip').forEach(node=>node.remove());
+        const tip = document.createElement('div');
+        tip.className = 'analysis-spark-tooltip';
+        tip.hidden = true;
+        host.appendChild(tip);
+        const primaryColor = cfg.primaryColor || 'rgba(56,189,248,1)';
+        const compareColor = cfg.compareColor || 'rgba(167,139,250,1)';
+        const createCircle = (attr)=>{
+          const el = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          el.setAttribute('r', attr.r);
+          el.setAttribute('fill', attr.fill);
+          el.setAttribute('stroke', attr.stroke);
+          el.setAttribute('stroke-width', attr.strokeWidth);
+          el.setAttribute('visibility','hidden');
+          svg.appendChild(el);
+          return el;
+        };
+        const guideline = document.createElementNS('http://www.w3.org/2000/svg','line');
+        guideline.setAttribute('stroke','rgba(148,163,184,0.5)');
+        guideline.setAttribute('stroke-width','1');
+        guideline.setAttribute('stroke-dasharray','4 4');
+        guideline.setAttribute('visibility','hidden');
+        svg.appendChild(guideline);
+        const primaryDot = createCircle({r:4, fill:primaryColor, stroke:'#0f172a', strokeWidth:1.5});
+        const compareDot = createCircle({r:4, fill:compareColor, stroke:'#0f172a', strokeWidth:1.5});
+        compareDot.setAttribute('visibility','hidden');
+        host.__sparkElements = {tip, guideline, primaryDot, compareDot, svg};
+        host.__sparkConfig = {...cfg, primaryColor, compareColor};
+        if(!host.dataset.sparkTooltipBound){
+          host.addEventListener('mousemove', evt=>handleSparklineMove(host, evt));
+          host.addEventListener('mouseleave', ()=>handleSparklineLeave(host));
+          host.dataset.sparkTooltipBound = '1';
+        }
+      }
+
+      function handleSparklineMove(host, evt){
+        const cfg = host.__sparkConfig;
+        const els = host.__sparkElements;
+        if(!cfg || !els) return;
+        const {series, compareSeries, labels, svgWidth, svgHeight, pad, min, span, step, normalize, primaryMetaKey, compareMetaKey, primaryLabel, compareLabel, primaryRaw, compareRaw, primaryUnit, compareUnit, primaryAnomalies, compareAnomalies, primaryAnomalyDetails, compareAnomalyDetails, anomalyColor, primaryColor, compareColor} = cfg;
+        const {tip, guideline, primaryDot, compareDot, svg} = els;
+        if(!series || !series.length || !svg) return;
+        const rect = svg.getBoundingClientRect();
+        if(rect.width === 0 || rect.height === 0) return;
+        let ratio = (evt.clientX - rect.left) / rect.width;
+        ratio = Math.max(0, Math.min(1, ratio));
+        const innerWidth = svgWidth - 2*pad;
+        const posX = pad + innerWidth * ratio;
+        let idx = series.length>1 ? Math.round((posX - pad) / (step || 1)) : 0;
+        idx = Math.max(0, Math.min(series.length-1, idx));
+        const x = pad + (series.length>1 ? idx*step : 0);
+        const yPrimary = svgHeight - pad - ((series[idx]-min)/span)*(svgHeight-2*pad);
+        guideline.setAttribute('x1', x);
+        guideline.setAttribute('x2', x);
+        guideline.setAttribute('y1', pad);
+        guideline.setAttribute('y2', svgHeight - pad);
+        guideline.setAttribute('visibility','visible');
+        primaryDot.setAttribute('cx', x);
+        primaryDot.setAttribute('cy', yPrimary);
+        primaryDot.setAttribute('fill', primaryAnomalies && primaryAnomalies.has(idx) ? anomalyColor : primaryColor);
+        primaryDot.setAttribute('visibility','visible');
+        if(compareSeries && compareSeries.length){
+          const yCompare = svgHeight - pad - ((compareSeries[idx]-min)/span)*(svgHeight-2*pad);
+          compareDot.setAttribute('cx', x);
+          compareDot.setAttribute('cy', yCompare);
+          compareDot.setAttribute('fill', compareAnomalies && compareAnomalies.has(idx) ? anomalyColor : compareColor);
+          compareDot.setAttribute('visibility','visible');
+        }else{
+          compareDot.setAttribute('visibility','hidden');
+        }
+        const label = labels[idx] || `#${idx+1}`;
+        const buildLines = (seriesVal, rawArr, labelText, metaKey, unitText, anomalySet, anomalyDetails)=>{
+          const lines = [];
+          if(normalize){
+            lines.push(`${labelText}: ${fmt2.format(seriesVal)} (index)`);
+          }else{
+            lines.push(`${labelText}: ${fmtValue(metaKey || primaryMetaKey, seriesVal)}`);
+          }
+          if(Array.isArray(rawArr) && rawArr.length){
+            const rawVal = rawArr[idx];
+            if(normalize){
+              lines.push(`Actual: ${fmtValue(metaKey || primaryMetaKey, rawVal)}`);
+            }
+            const prev = rawArr[idx-1];
+            if(idx>0 && Number.isFinite(prev)){
+              const deltaRaw = rawVal - prev;
+              const deltaPct = prev ? (deltaRaw/Math.abs(prev))*100 : null;
+              lines.push(`Δ vs prev: ${fmtValue(metaKey || primaryMetaKey, deltaRaw)}${Number.isFinite(deltaPct)?` (${fmt2.format(deltaPct)}%)`:''}`);
+            }
+            const window = rawArr.slice(Math.max(0, idx-2), idx+1);
+            if(window.length){
+              const avg = window.reduce((acc,v)=>acc+v,0)/window.length;
+              lines.push(`3-mo avg: ${fmtValue(metaKey || primaryMetaKey, avg)}`);
+            }
+          }
+          if(anomalySet && anomalySet.has(idx)){
+            const detail = anomalyDetails?.find?.(d=>d.index === idx);
+            lines.push(`Anomaly: ${detail ? detail.zscore.toFixed(2)+'σ' : 'σ'}`);
+          }
+          const cellRef = METRIC_CELL_MAP[metaKey || primaryMetaKey || ''];
+          if(cellRef){
+            lines.push(`Workbook ref: ${cellRef}`);
+          }
+          return lines;
+        };
+        const htmlParts = [`<div class="spark-tip-title">${label}</div>`];
+        const primaryLines = buildLines(series[idx], primaryRaw, primaryLabel, primaryMetaKey, primaryUnit, primaryAnomalies, primaryAnomalyDetails);
+        htmlParts.push(`<div class="spark-tip-section">${primaryLines.map(l=>`<div>${l}</div>`).join('')}</div>`);
+        if(compareSeries && compareSeries.length){
+          const compareLines = buildLines(compareSeries[idx], compareRaw, compareLabel || 'Compare', compareMetaKey, compareUnit, compareAnomalies, compareAnomalyDetails);
+          htmlParts.push('<hr>');
+          htmlParts.push(`<div class="spark-tip-section">${compareLines.map(l=>`<div>${l}</div>`).join('')}</div>`);
+        }
+        tip.innerHTML = htmlParts.join('');
+        tip.hidden = false;
+        const svgRect = svg.getBoundingClientRect();
+        const hostRect = host.getBoundingClientRect();
+        const pixelX = svgRect.left + (x/svgWidth) * svgRect.width;
+        const tipWidth = tip.offsetWidth;
+        let left = pixelX - hostRect.left - tipWidth/2;
+        left = Math.max(0, Math.min(left, host.clientWidth - tipWidth));
+        tip.style.left = `${left}px`;
+        tip.style.top = `${Math.max(8, pad)}px`;
+      }
+
+      function handleSparklineLeave(host){
+        const els = host.__sparkElements;
+        if(!els) return;
+        const {tip, guideline, primaryDot, compareDot} = els;
+        if(tip) tip.hidden = true;
+        if(guideline) guideline.setAttribute('visibility','hidden');
+        if(primaryDot) primaryDot.setAttribute('visibility','hidden');
+        if(compareDot) compareDot.setAttribute('visibility','hidden');
       }
 
       // Chart.js powered chart (fallback to SVG sparkline if Chart is absent)
@@ -6189,6 +6429,18 @@
         eff:     {label:'Effective Rate (&#8377;/kWh)',  unit:'&#8377;/kWh',fmt:'rate', trend:'down'},
         deltaC9: {label:'MoM Change in Bill (&Delta;C9)',unit:'&#8377;',   fmt:'inr',  trend:'down'},
         deltaPct:{label:'% Change in Bill (&Delta;C9)',  unit:'%',         fmt:'pct',  trend:'down'}
+      };
+      const METRIC_CELL_MAP = {
+        A4:'A4',
+        C9:'C9',
+        I9:'I9',
+        B19:'B19',
+        A18:'A18',
+        C18:'C18',
+        C26:'C26',
+        eff:'C9/A4',
+        deltaC9:'ΔC9',
+        deltaPct:'Δ% C9'
       };
       function fmtValue(k,v){
         const t = METRICS[k]?.fmt;
@@ -6212,19 +6464,20 @@
         if(trend === 'up') return value > 0 ? 'plus' : 'minus';
         return value > 0 ? 'plus' : value < 0 ? 'minus' : '';
       }
-      function renderAnalysisStats(metric, cfg, rows){
-        const host = document.getElementById('analysisStats');
-        if(!host) return;
-        if(!rows.length){
-          host.innerHTML = '';
-          host.hidden = true;
-          return;
-        }
-        const labels = rows.map(r=>r.month || '—');
-        const values = rows.map(r=>{
-          const raw = Number(r?.[metric]);
-          return Number.isFinite(raw) ? raw : 0;
-        });
+    function renderAnalysisStats(metric, cfg, rows){
+      const host = document.getElementById('analysisStats');
+      if(!host) return;
+      if(!rows.length){
+        host.innerHTML = '';
+        host.hidden = true;
+        return;
+      }
+      const labels = rows.map(r=>r.month || '—');
+      const values = rows.map(r=>{
+        const raw = Number(r?.[metric]);
+        return Number.isFinite(raw) ? raw : 0;
+      });
+      const anomalies = detectAnomalies(values, labels);
         const latestIndex = values.length - 1;
         const latestVal = values[latestIndex];
         const latestLabel = labels[latestIndex] || 'Latest month';
@@ -6239,6 +6492,11 @@
             peak = {value:v, label:labels[idx] || '—'};
           }
         });
+      let anomalyMarkup = '';
+      if(anomalies && anomalies.primary.length){
+        const head = anomalies.primary.slice(0,3).map(item=>`<span>${item.label} (${fmtValue(metric, item.value)})</span>`).join(' • ');
+        anomalyMarkup = `<div class="analysis-stat-sub" title="Outliers over rolling σ">${head}${anomalies.primary.length>3?' …':''}</div>`;
+      }
         const deltaPieces = [];
         if(delta!==null){
           const deltaClass = deltaSentiment(metric, delta);
@@ -6261,6 +6519,7 @@
              <div class="analysis-stat-label">${cfg.label}</div>
              <div class="analysis-stat-value">${fmtValue(metric, latestVal)}</div>
              ${latestSub}
+             ${anomalyMarkup}
            </div>`,
           `<div class="analysis-stat" role="listitem">
              <div class="analysis-stat-label">Rolling average</div>
@@ -6285,70 +6544,88 @@
           default: return 'C9';
         }
       }
-function renderAnalysisChart(metric='C9', compareMetric=null){
-  const rows = window.__analysisRows || [];
-  const host = document.getElementById('analysisChartHost');
-  const cfg = METRICS[metric] || {label:metric, unit:''};
-  if(!rows.length){
-    host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>';
+    function renderAnalysisChart(metric='C9', compareMetric=null){
+      const rows = window.__analysisRows || [];
+      const host = document.getElementById('analysisChartHost');
+      const cfg = METRICS[metric] || {label:metric, unit:''};
+      if(!rows.length){
+        host.innerHTML = '<canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>';
         renderAnalysisStats(metric, cfg, rows);
         return;
       }
-  renderAnalysisStats(metric, cfg, rows);
-  const labels = rows.map(r=>r.month);
-  const dataRaw = rows.map(r=>Number(r[metric]||0));
-  const compareKey = compareMetric && compareMetric !== metric ? compareMetric : null;
-  const compareCfg = compareKey ? (METRICS[compareKey] || {label:compareKey, unit:''}) : null;
-  const compareDataRaw = compareKey ? rows.map(r=>Number(r[compareKey]||0)) : null;
-  const canvas = document.getElementById('analysisChart');
-  if(canvas){
-    const comparisonLabel = compareCfg ? ` vs ${compareCfg.label}` : '';
-    canvas.setAttribute('aria-label', `Trend: ${cfg.label}${comparisonLabel} over months`);
-  }
-  const normalizeEl = document.getElementById('analysisNormalize');
-  const normalize = !!normalizeEl?.checked;
-  const styles = getComputedStyle(document.documentElement);
-  const lineColor = (styles.getPropertyValue('--accent') || '#38bdf8').trim() || '#38bdf8';
-  const lineAccent = (styles.getPropertyValue('--accent-2') || '#a78bfa').trim() || '#a78bfa';
-  const compareColor = lineAccent || '#a78bfa';
+      renderAnalysisStats(metric, cfg, rows);
+      const labels = rows.map(r=>r.month);
+      const dataRaw = rows.map(r=>Number(r[metric]||0));
+      const compareKey = compareMetric && compareMetric !== metric ? compareMetric : null;
+      const compareCfg = compareKey ? (METRICS[compareKey] || {label:compareKey, unit:''}) : null;
+      const compareDataRaw = compareKey ? rows.map(r=>Number(r[compareKey]||0)) : null;
+      const canvas = document.getElementById('analysisChart');
+      if(canvas){
+        const comparisonLabel = compareCfg ? ` vs ${compareCfg.label}` : '';
+        canvas.setAttribute('aria-label', `Trend: ${cfg.label}${comparisonLabel} over months`);
+      }
+      const normalizeEl = document.getElementById('analysisNormalize');
+      const normalize = !!normalizeEl?.checked;
+      const styles = getComputedStyle(document.documentElement);
+      const lineColor = (styles.getPropertyValue('--accent') || '#38bdf8').trim() || '#38bdf8';
+      const lineAccent = (styles.getPropertyValue('--accent-2') || '#a78bfa').trim() || '#a78bfa';
+      const compareColor = lineAccent || '#a78bfa';
 
-  const primaryChartData = normalize ? normalizeSeriesToIndex(dataRaw) : dataRaw.slice();
-  const compareChartData = compareKey && compareDataRaw
-    ? (normalize ? normalizeSeriesToIndex(compareDataRaw) : compareDataRaw.slice())
-    : null;
-  const primaryLabel = normalize ? `${cfg.label} (index)` : cfg.label;
-  const compareLabel = normalize && compareCfg ? `${compareCfg.label} (index)` : compareCfg?.label;
-  const primaryUnit = normalize ? 'Index (100=start)' : cfg.unit;
-  const compareUnit = normalize ? 'Index (100=start)' : compareCfg?.unit;
+      const primaryChartData = normalize ? normalizeSeriesToIndex(dataRaw) : dataRaw.slice();
+      const compareChartData = compareKey && compareDataRaw
+        ? (normalize ? normalizeSeriesToIndex(compareDataRaw) : compareDataRaw.slice())
+        : null;
+      const primaryLabel = normalize ? `${cfg.label} (index)` : cfg.label;
+      const compareLabel = normalize && compareCfg ? `${compareCfg.label} (index)` : compareCfg?.label;
+      const primaryUnit = normalize ? 'Index (100=start)' : cfg.unit;
+      const compareUnit = normalize ? 'Index (100=start)' : compareCfg?.unit;
+      const anomalyInfo = detectAnomalies(primaryChartData, labels, compareChartData, labels);
+      const primaryAnomalySet = new Set((anomalyInfo.primary || []).map(a=>a.index));
+      const compareAnomalySet = new Set((anomalyInfo.compare || []).map(a=>a.index));
+      const anomalyColor = styles.getPropertyValue('--warn-outline')?.trim() || 'rgba(250,204,21,0.95)';
 
-  if(!(window.Chart && canvas)){
-    drawSparkline(host, primaryChartData, {
-      compareSeries: compareChartData,
-      primaryLabel,
-      compareLabel: compareLabel || '',
-      labels,
-      primaryColor: lineColor,
-      compareColor
-    });
-    return;
-  }
-  if(__analysisChart){ __analysisChart.destroy(); }
-  const gridColor = 'rgba(148,163,184,0.22)';
-  const tickColor = (styles.getPropertyValue('--muted') || 'rgba(226,232,240,0.72)').trim() || 'rgba(226,232,240,0.72)';
-  const tooltipBg = 'rgba(15,23,42,0.92)';
-  const tooltipBorder = lineColor || '#38bdf8';
-  const datasets = [{
-    label: primaryLabel,
-    data: primaryChartData,
-    tension:0.32,
-    borderColor: lineColor,
-    borderWidth:2.6,
-    fill:true,
-    pointRadius:4,
-        pointBackgroundColor: lineColor,
-        pointBorderColor:'rgba(15,23,42,0.9)',
+      const buildRadius = (length, base, highlightRadius, highlightSet)=>{
+        const arr = new Array(length).fill(base);
+        if(highlightSet) highlightSet.forEach(idx=>{ if(idx>=0 && idx<length) arr[idx] = highlightRadius; });
+        return arr;
+      };
+      const buildColor = (length, baseColor, highlightSet, highlight)=>{
+        const arr = new Array(length).fill(baseColor);
+        if(highlightSet) highlightSet.forEach(idx=>{ if(idx>=0 && idx<length) arr[idx] = highlight; });
+        return arr;
+      };
+
+      if(!(window.Chart && canvas && typeof Chart === 'function')){
+        drawSparkline(host, primaryChartData, {
+          compareSeries: compareChartData,
+          primaryLabel,
+          compareLabel: compareLabel || '',
+          labels,
+          primaryColor: lineColor,
+          compareColor,
+          anomalyColor: styles.getPropertyValue('--warn-outline')?.trim() || 'rgba(250,204,21,0.95)',
+          primaryAnomalies: primaryAnomalySet,
+          compareAnomalies: compareAnomalySet
+        });
+        return;
+      }
+      if(__analysisChart){ __analysisChart.destroy(); }
+      const gridColor = 'rgba(148,163,184,0.22)';
+      const tickColor = (styles.getPropertyValue('--muted') || 'rgba(226,232,240,0.72)').trim() || 'rgba(226,232,240,0.72)';
+      const tooltipBg = 'rgba(15,23,42,0.92)';
+      const tooltipBorder = lineColor || '#38bdf8';
+      const datasets = [{
+        label: primaryLabel,
+        data: primaryChartData,
+        tension:0.32,
+        borderColor: lineColor,
+        borderWidth:2.6,
+        fill:true,
+        pointRadius: buildRadius(primaryChartData.length, 4, 7, primaryAnomalySet),
+        pointBackgroundColor: buildColor(primaryChartData.length, lineColor, primaryAnomalySet, anomalyColor),
+        pointBorderColor: buildColor(primaryChartData.length, 'rgba(15,23,42,0.9)', primaryAnomalySet, '#ffffff'),
         pointBorderWidth:2,
-        pointHoverRadius:6,
+        pointHoverRadius:7,
         pointHoverBackgroundColor: lineAccent || lineColor,
         pointHoverBorderColor:'#ffffff',
         pointHoverBorderWidth:2,
@@ -6358,41 +6635,45 @@ function renderAnalysisChart(metric='C9', compareMetric=null){
           g.addColorStop(0,(lineColor || '#38bdf8')+'2a');
           g.addColorStop(1,'rgba(56,189,248,0)');
           return g;
-    },
-    metaKey: metric,
-    yAxisID:'y',
-    normalized: normalize,
-    originalUnit: cfg.unit,
-    displayUnit: primaryUnit,
-    originalLabel: cfg.label
-  }];
-  if(compareKey && compareChartData){
-    datasets.push({
-      label: compareLabel || compareCfg.label,
-      data: compareChartData,
-      tension:0.18,
-      borderColor: compareColor,
-      borderWidth:2,
-      fill:false,
-      pointRadius:3,
-          pointBackgroundColor: compareColor,
-          pointBorderColor:'rgba(15,23,42,0.9)',
+        },
+        metaKey: metric,
+        yAxisID:'y',
+        normalized: normalize,
+        originalUnit: cfg.unit,
+        displayUnit: primaryUnit,
+        originalLabel: cfg.label,
+        anomalies: anomalyInfo.primary,
+        rawData: dataRaw
+      }];
+      if(compareKey && compareChartData){
+        datasets.push({
+          label: compareLabel || compareCfg.label,
+          data: compareChartData,
+          tension:0.18,
+          borderColor: compareColor,
+          borderWidth:2,
+          fill:false,
+          pointRadius: buildRadius(compareChartData.length, 3, 6, compareAnomalySet),
+          pointBackgroundColor: buildColor(compareChartData.length, compareColor, compareAnomalySet, anomalyColor),
+          pointBorderColor: buildColor(compareChartData.length, 'rgba(15,23,42,0.9)', compareAnomalySet, '#ffffff'),
           pointBorderWidth:1.5,
           pointHoverRadius:6,
           pointHoverBackgroundColor:'#ffffff',
-      pointHoverBorderColor:compareColor,
-      pointHoverBorderWidth:2,
-      borderDash:[6,3],
-      metaKey: compareKey,
-      yAxisID:'y1',
-      normalized: normalize,
-      originalUnit: compareCfg?.unit,
-      displayUnit: compareUnit,
-      originalLabel: compareCfg?.label || compareKey
-    });
-  }
-  host.classList.add('has-data');
-  __analysisChart = new Chart(canvas.getContext('2d'),{
+          pointHoverBorderColor:compareColor,
+          pointHoverBorderWidth:2,
+          borderDash:[6,3],
+          metaKey: compareKey,
+          yAxisID:'y1',
+          normalized: normalize,
+          originalUnit: compareCfg?.unit,
+          displayUnit: compareUnit,
+          originalLabel: compareCfg?.label || compareKey,
+          anomalies: anomalyInfo.compare,
+          rawData: compareDataRaw
+        });
+      }
+      host.classList.add('has-data');
+      __analysisChart = new Chart(canvas.getContext('2d'),{
         type:'line',
         data:{ labels, datasets},
         options:{
@@ -6414,11 +6695,41 @@ function renderAnalysisChart(metric='C9', compareMetric=null){
                 title:(ctx)=>ctx[0]?.label,
                 label:(ctx)=>{
                   const ds = ctx.dataset || {};
-                  if(ds.normalized){
-                    return `${ds.label || ds.originalLabel}: ${fmt2.format(ctx.parsed.y)} (index)`;
-                  }
+                  const idx = ctx.dataIndex;
                   const metaKey = ds.metaKey || metric;
-                  return `${ds.label || ds.originalLabel || cfg.label}: ${fmtValue(metaKey, ctx.parsed.y)}`;
+                  const lines = [];
+                  if(ds.normalized){
+                    lines.push(`${ds.label || ds.originalLabel}: ${fmt2.format(ctx.parsed.y)} (index)`);
+                  }else{
+                    lines.push(`${ds.label || ds.originalLabel || cfg.label}: ${fmtValue(metaKey, ctx.parsed.y)}`);
+                  }
+                  const rawData = Array.isArray(ds.rawData) ? ds.rawData : [];
+                  if(rawData.length){
+                    const rawVal = rawData[idx];
+                    if(ds.normalized){
+                      lines.push(`Actual: ${fmtValue(metaKey, rawVal)}`);
+                    }
+                    const prev = rawData[idx-1];
+                    if(idx>0 && Number.isFinite(prev)){
+                      const deltaRaw = rawVal - prev;
+                      const deltaPct = prev ? (deltaRaw/Math.abs(prev))*100 : null;
+                      lines.push(`Δ vs prev: ${fmtValue(metaKey, deltaRaw)}${Number.isFinite(deltaPct) ? ` (${fmt2.format(deltaPct)}%)` : ''}`);
+                    }
+                    const window = rawData.slice(Math.max(0, idx-2), idx+1);
+                    if(window.length){
+                      const avg = window.reduce((acc,v)=>acc+v,0)/window.length;
+                      lines.push(`3-mo avg: ${fmtValue(metaKey, avg)}`);
+                    }
+                  }
+                  const anomalyEntry = (ds.anomalies || []).find(a=>a.index === idx);
+                  if(anomalyEntry){
+                    lines.push(`Anomaly: ${anomalyEntry.zscore.toFixed(2)}σ`);
+                  }
+                  const cellRef = METRIC_CELL_MAP[metaKey];
+                  if(cellRef){
+                    lines.push(`Workbook ref: ${cellRef}`);
+                  }
+                  return lines;
                 }
               }
             }
