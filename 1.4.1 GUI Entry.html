@@ -863,7 +863,11 @@
     .menu-panel [role="menuitem"]:hover,.menu-panel [role="menuitem"]:focus{background:rgba(255,255,255,.06); outline:none}
     /* sheet items inside menu */
     .sheet-menu-item{display:flex;align-items:center;justify-content:space-between;
-      height:32px;padding:0 8px;border-radius:8px}
+      height:32px;padding:0 8px;border-radius:8px;}
+    .sheet-menu-item.active{
+      background:rgba(34,211,238,.14);
+      outline:1px solid rgba(34,211,238,.3);
+    }
     .sheet-menu-item .del{margin-left:8px}
     .menu-sep{height:1px; background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.03)); margin:4px 0}
     @media (max-width: 1200px){ header .toolbar{row-gap:6px} }
@@ -3458,6 +3462,235 @@
       }
     }
 
+    const WORKBOOK_CELL_TO_INPUT = {
+      A4:'A4',
+      B4:'B4',
+      C4:'C4',
+      D4:'D4',
+      E4:'E4',
+      F4:'F4',
+      G4:'G4',
+      H4:'H4',
+      I4:'I4',
+      J4:'J4',
+      D9:'D9',
+      E9:'E9',
+      F9:'F9',
+      G9:'G9',
+      B15:'B15',
+      D15:'D15',
+      C16:'C16',
+      A17:'A17',
+      B17:'B17',
+      C17:'C17',
+      D17:'D17',
+      E17:'E17',
+      A24:'A24',
+      B24:'B24',
+      C24:'C24',
+      D24:'D24',
+      E24:'E24',
+      F24:'F24'
+    };
+
+    const EXTRA_SECTION_MAP = {
+      'WIND CREDITS (EXTRA)': 'credits',
+      'WIND DEBITS (EXTRA)': 'debits',
+      'FINAL (EXTRA)': 'final',
+      'FINAL ADJUSTMENTS (EXTRA)': 'final'
+    };
+
+    function extractWorkbookText(value){
+      if(value == null) return '';
+      if(typeof value === 'string') return value.trim();
+      if(typeof value === 'number') return String(value);
+      if(typeof value === 'object'){
+        if(Object.prototype.hasOwnProperty.call(value,'v')) return extractWorkbookText(value.v);
+        if(Object.prototype.hasOwnProperty.call(value,'w')) return extractWorkbookText(value.w);
+      }
+      return String(value || '').trim();
+    }
+
+    function parseWorkbookNumber(value){
+      if(value == null || value === '') return null;
+      if(typeof value === 'number') return Number.isFinite(value) ? value : null;
+      if(typeof value === 'object'){
+        if(Object.prototype.hasOwnProperty.call(value,'v')) return parseWorkbookNumber(value.v);
+        if(Object.prototype.hasOwnProperty.call(value,'w')) return parseWorkbookNumber(value.w);
+      }
+      let str = String(value || '').trim();
+      if(!str) return null;
+      let negative = false;
+      if(/^\(\s*.*\s*\)$/.test(str)){
+        negative = true;
+        str = str.slice(1, -1);
+      }
+      str = str.replace(/[,₹]/g,'');
+      str = str.replace(/\s+/g,'');
+      str = str.replace(/[^0-9.\-]/g,'');
+      if(!str || str === '.' || str === '-' || str === '-.') return null;
+      const num = Number(str);
+      if(!Number.isFinite(num)) return null;
+      return negative ? -num : num;
+    }
+
+    function adjustWorkbookValueForUnit(value, unit, rawSource){
+      if(value == null) return null;
+      const u = String(unit || '').trim().toUpperCase();
+      if(u === '%'){
+        const hasPercentSymbol = typeof rawSource === 'string' && rawSource.includes('%');
+        if(!hasPercentSymbol && Math.abs(value) <= 1) return value * 100;
+        return value;
+      }
+      return value;
+    }
+
+    function workbookExtrasBucket(section){
+      const key = extractWorkbookText(section).toUpperCase();
+      return EXTRA_SECTION_MAP[key] || null;
+    }
+
+    function sanitizeWorkbookMonth(label){
+      const text = extractWorkbookText(label);
+      return /^\d{4}-(0[1-9]|1[0-2])$/.test(text) ? text : '';
+    }
+
+    function extractWorksheetContext(ws){
+      if(!ws) return null;
+      try{
+        const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+        if(!Array.isArray(rows) || !rows.length) return null;
+        const meta = {
+          monthLabel: sanitizeWorkbookMonth(rows[0] && rows[0][1]),
+          generatedAt: extractWorkbookText(rows[1] && rows[1][1])
+        };
+        const headerIndex = rows.findIndex(row =>
+          extractWorkbookText(row && row[0]).toUpperCase() === 'SECTION' &&
+          extractWorkbookText(row && row[2]).toUpperCase() === 'CELL'
+        );
+        if(headerIndex < 0) return null;
+        const cells = {};
+        const extras = { credits:[], final:[], debits:[] };
+        for(let i = headerIndex + 1; i < rows.length; i++){
+          const row = rows[i];
+          if(!row) continue;
+          const cellIdRaw = extractWorkbookText(row[2]);
+          if(!cellIdRaw) continue;
+          const cellId = cellIdRaw.toUpperCase();
+          const section = extractWorkbookText(row[0]);
+          const field = extractWorkbookText(row[1]);
+          const unit = extractWorkbookText(row[4]);
+          if(cellId === 'EXTRA'){
+            const bucket = workbookExtrasBucket(section);
+            if(!bucket) continue;
+            const amount = parseWorkbookNumber(row[3]);
+            extras[bucket].push({
+              label: field || 'Extra',
+              amount: Number.isFinite(amount) ? amount : 0
+            });
+            continue;
+          }
+          if(!Object.prototype.hasOwnProperty.call(cells, cellId)){
+            const rawValue = row[3];
+            const numeric = parseWorkbookNumber(rawValue);
+            cells[cellId] = {
+              value: adjustWorkbookValueForUnit(numeric, unit, rawValue),
+              unit,
+              section,
+              field
+            };
+          }
+        }
+        return { meta, cells, extras };
+      }catch(err){
+        console.error('Could not parse worksheet for import:', err);
+        return null;
+      }
+    }
+
+    function setInputFromWorkbook(id, info){
+      const el = $(id);
+      if(!el) return;
+      const hasValue = info && Number.isFinite(info.value);
+      if(el.type === 'number' || el.type === 'range'){
+        if(hasValue){
+          el.value = String(info.value);
+        }else{
+          el.value = '';
+        }
+        delete el.dataset.value;
+      }else{
+        if(hasValue){
+          el.value = String(info.value);
+          parseInrInput(el);
+        }else{
+          el.value = '';
+          el.dataset.value = '';
+        }
+      }
+    }
+
+    function applyExtrasFromWorkbook(extras){
+      const data = extras || {};
+      EXTRA_BUCKET_KEYS.forEach(bucket=>{
+        const items = Array.isArray(data[bucket]) ? data[bucket] : [];
+        extrasState[bucket] = items.map(item=>({
+          id: makeExtraId(),
+          label: typeof item.label === 'string' ? item.label : '',
+          amount: Number.isFinite(item.amount) ? item.amount : 0,
+          include: item && item.include === false ? false : true
+        }));
+      });
+      renderExtras();
+      persistExtras();
+    }
+
+    function applyWorksheetContext(ctx){
+      if(!ctx) return false;
+      const cells = ctx.cells || {};
+      Object.entries(WORKBOOK_CELL_TO_INPUT).forEach(([cell, inputId])=>{
+        setInputFromWorkbook(inputId, cells[cell]);
+      });
+      applyExtrasFromWorkbook(ctx.extras);
+      return true;
+    }
+
+    function loadWorkbookSheet(name, opts = {}){
+      const { toast: showToast = true, silentMissing = false } = opts;
+      const wb = getWB();
+      if(!wb){
+        if(!silentMissing) toast('No workbook loaded yet. Upload an Excel workbook first.', 'warn');
+        return false;
+      }
+      const ws = wb.Sheets ? wb.Sheets[name] : null;
+      if(!ws){
+        if(!silentMissing) toast(`Sheet "${name}" not found in workbook.`, 'info');
+        return false;
+      }
+      const ctx = extractWorksheetContext(ws);
+      if(!ctx){
+        if(!silentMissing) toast(`Sheet "${name}" does not contain recognizable WEG billing data.`, 'warn');
+        return false;
+      }
+      applyWorksheetContext(ctx);
+      const monthEl = $('billMonth');
+      const monthLabel = ctx.meta && ctx.meta.monthLabel ? ctx.meta.monthLabel : '';
+      if(monthEl){
+        if(monthLabel){
+          if(monthEl.value !== monthLabel) monthEl.value = monthLabel;
+        }else if(/^\d{4}-(0[1-9]|1[0-2])$/.test(name) && monthEl.value !== name){
+          monthEl.value = name;
+        }
+      }
+      ACTIVE_SHEET = name;
+      if(typeof disablePrintActions === 'function') disablePrintActions();
+      compute();
+      persistDebounced();
+      if(showToast) toast(`Loaded ${name} from workbook.`, 'good');
+      refreshSheetList();
+      return true;
+    }
+
     const debounce = (fn, delay=200) => {
       let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), delay); };
     };
@@ -4314,6 +4547,8 @@
 
     const persistDebounced = debounce(persist, 200);
 
+    let ACTIVE_SHEET = null;
+
     function restore(){
       try{
         const raw = localStorage.getItem(LS_KEY);
@@ -4350,7 +4585,7 @@
       if(!_wb) return;
       const names = _wb.SheetNames || [];
       const renderNames = sortDisplayNames(names);
-      const active = $('billMonth').value;
+      const active = ACTIVE_SHEET || $('billMonth').value;
       let hasFocusable = false;
       renderNames.forEach((name, idx) => {
         const pill = document.createElement('span');
@@ -4364,6 +4599,8 @@
         } else {
           pill.tabIndex = -1;
         }
+        if (isActive) pill.classList.add('active');
+        else pill.classList.remove('active');
 
         const btnGo = document.createElement('button');
         btnGo.className = 'ghost';
@@ -4371,6 +4608,8 @@
         btnGo.textContent = name;
         btnGo.setAttribute('aria-label', `Open ${name}`);
         btnGo.addEventListener('click', () => {
+          const loaded = loadWorkbookSheet(name, { toast:false });
+          if (loaded) return;
           // Only write to <input type="month"> if the sheet name is canonical YYYY-MM.
           const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
           if (mm) {
@@ -4381,9 +4620,10 @@
           }
           // Continue with compute() so the action still proceeds as before.
           compute();
-          list.querySelectorAll('[role="option"]').forEach(o => { o.tabIndex = -1; o.removeAttribute('aria-selected'); });
+          list.querySelectorAll('[role="option"]').forEach(o => { o.tabIndex = -1; o.removeAttribute('aria-selected'); o.classList.remove('active'); });
           pill.setAttribute('aria-selected','true');
           pill.tabIndex = 0;
+          pill.classList.add('active');
           pill.focus();
         });
 
@@ -4401,11 +4641,18 @@
           delete wb.Sheets[name];
           wb.SheetNames = wb.SheetNames.filter(n => n !== name);
           canonicalizeWorkbook();
+          const remaining = sortDisplayNames(wb.SheetNames || []);
+          const removedActive = ACTIVE_SHEET === name;
+          if (removedActive) ACTIVE_SHEET = null;
           toast(`Removed sheet: ${name}`, 'good');
-          refreshSheetList();
-          const next = list.querySelectorAll('[role="option"]')[i] || list.querySelector('[role="option"]:last-child');
-          // Only move focus if the strip is visible
-          if (list && list.offsetParent) next?.focus();
+          if (removedActive && remaining.length){
+            loadWorkbookSheet(remaining[0], { toast:false, silentMissing:true });
+          } else {
+            refreshSheetList();
+            const next = list.querySelectorAll('[role="option"]')[i] || list.querySelector('[role="option"]:last-child');
+            // Only move focus if the strip is visible
+            if (list && list.offsetParent) next?.focus();
+          }
         });
 
         pill.append(btnGo, btnDel);
@@ -4853,6 +5100,7 @@
       row.setAttribute('role','menuitem');
       row.tabIndex = idx===0 ? 0 : -1;
       row.dataset.name = name;
+      if (name === ACTIVE_SHEET) row.classList.add('active');
       const nameSpan = document.createElement('span');
       nameSpan.textContent = name;
       row.appendChild(nameSpan);
@@ -4864,10 +5112,13 @@
       row.appendChild(delBtn);
       row.addEventListener('click', (e) => {
         if (e.target && e.target.classList && e.target.classList.contains('del')) return;
-        const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
-        if (mm) document.getElementById('billMonth').value = mm;
-        else toast('Sheet "'+name+'" isn&rsquo;t a YYYY-MM label. Month picker left unchanged.','info');
-        compute();
+        const loaded = loadWorkbookSheet(name, { toast:false });
+        if (!loaded){
+          const mm = /^\d{4}-(0[1-9]|1[0-2])$/.test(name) ? name : null;
+          if (mm) document.getElementById('billMonth').value = mm;
+          else toast('Sheet "'+name+'" isn&rsquo;t a YYYY-MM label. Month picker left unchanged.','info');
+          compute();
+        }
         const d = document.getElementById('sheetsMenu');
         if (d && d.hasAttribute('open')) d.removeAttribute('open');
         const strip = document.getElementById('sheetList');
@@ -4885,10 +5136,17 @@
         delete w.Sheets[name];
         w.SheetNames = (w.SheetNames || []).filter(n=>n!==name);
         canonicalizeWorkbook();
+        const remaining = sortDisplayNames(w.SheetNames || []);
+        const removedActive = ACTIVE_SHEET === name;
+        if (removedActive) ACTIVE_SHEET = null;
         toast('Removed sheet: '+name, 'good');
-        refreshSheetList();
-        const searchVal = (document.getElementById('sheetSearch')||{}).value || '';
-        renderSheetMenu(searchVal);
+        if (removedActive && remaining.length){
+          loadWorkbookSheet(remaining[0], { toast:false, silentMissing:true });
+        } else {
+          refreshSheetList();
+          const searchVal = (document.getElementById('sheetSearch')||{}).value || '';
+          renderSheetMenu(searchVal);
+        }
         const items = Array.from(document.querySelectorAll('#sheetMenuList [role="menuitem"]'));
         (items[idx] || items[idx-1])?.focus();
       });
@@ -5188,6 +5446,20 @@
         el.addEventListener('change', disablePrintActions, { passive: true });
       });
 
+      const billMonthInput = $('billMonth');
+      if (billMonthInput && !billMonthInput.dataset.sheetBound){
+        billMonthInput.dataset.sheetBound = '1';
+        billMonthInput.addEventListener('change', () => {
+          const value = billMonthInput.value;
+          if(!value) return;
+          const loaded = loadWorkbookSheet(value, { toast:false });
+          if(!loaded){
+            refreshSheetList();
+            compute();
+          }
+        });
+      }
+
       // Also disable on programmatic mutations triggered by toolbar actions
       ['resetSample','resetAll','addSheet','clearSheets'].forEach(id => {
         const el = document.getElementById(id);
@@ -5226,8 +5498,19 @@
             }
             canonicalizeWorkbook();
             toast(`Workbook merged: ${added} added, ${replaced} replaced.`, 'good');
-            refreshSheetList();
-            if (typeof disablePrintActions === 'function') disablePrintActions();
+            let loaded = false;
+            const desiredMonth = $('billMonth')?.value || '';
+            const sortedNames = sortDisplayNames(_wb.SheetNames || []);
+            if(desiredMonth){
+              loaded = loadWorkbookSheet(desiredMonth, { toast:false, silentMissing:true });
+            }
+            if(!loaded && sortedNames.length){
+              loaded = loadWorkbookSheet(sortedNames[0], { toast:false, silentMissing:true });
+            }
+            if(!loaded){
+              refreshSheetList();
+              if (typeof disablePrintActions === 'function') disablePrintActions();
+            }
           }catch(err){
             console.error(err);
             toast('Upload failed','bad');
@@ -5246,7 +5529,9 @@
         wb.SheetNames = [];
         canonicalizeWorkbook();
         toast('All sheets cleared.', 'good');
+        ACTIVE_SHEET = null;
         refreshSheetList();
+        if (typeof disablePrintActions === 'function') disablePrintActions();
       });
 
       $('resetAll').addEventListener('click', ()=>{
