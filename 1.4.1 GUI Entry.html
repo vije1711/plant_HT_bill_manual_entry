@@ -3155,6 +3155,20 @@
       return obj;
     }
 
+    function mergeWorkbookRates(base, updates, defaults, percentAware=true){
+      if(!updates || Object.keys(updates).length === 0) return base;
+      const next = {
+        ...base,
+        meta: { ...(base?.meta || {}) },
+        rates: { ...(base?.rates || {}) }
+      };
+      Object.entries(updates).forEach(([code, value])=>{
+        if(!SERVICE_CODES.includes(code)) return;
+        if(Number.isFinite(value)) next.rates[code] = value;
+      });
+      return sanitizeRates(next, defaults, percentAware);
+    }
+
     function percentValueValid(v){
       return Number.isFinite(v) && v >= 0 && v <= 100 && hasAtMostTwoDecimals(v);
     }
@@ -3729,7 +3743,28 @@
             };
           }
         }
-        return { meta, cells, extras };
+        const rates = { tariffs:{}, poRates:{} };
+        const rateHeaderIndex = rows.findIndex(row =>
+          extractWorkbookText(row && row[0]).toUpperCase() === 'SERVICE CODE'
+        );
+        if(rateHeaderIndex >= 0){
+          for(let i = rateHeaderIndex + 1; i < rows.length; i++){
+            const row = rows[i];
+            if(!row) continue;
+            const codeRaw = extractWorkbookText(row[0]);
+            if(!codeRaw){
+              break;
+            }
+            const code = codeRaw.toUpperCase();
+            if(!SERVICE_CODES.includes(code)) continue;
+            const tariffVal = parseWorkbookNumber(row[3]);
+            if(Number.isFinite(tariffVal)) rates.tariffs[code] = tariffVal;
+            const poVal = parseWorkbookNumber(row[5]);
+            if(Number.isFinite(poVal)) rates.poRates[code] = poVal;
+          }
+        }
+        const hasRates = Object.keys(rates.tariffs).length || Object.keys(rates.poRates).length;
+        return hasRates ? { meta, cells, extras, rates } : { meta, cells, extras };
       }catch(err){
         console.error('Could not parse worksheet for import:', err);
         return null;
@@ -3780,6 +3815,19 @@
         setInputFromWorkbook(inputId, cells[cell]);
       });
       applyExtrasFromWorkbook(ctx.extras);
+      const rateCtx = ctx.rates || {};
+      let ratesTouched = false;
+      if(rateCtx.tariffs && Object.keys(rateCtx.tariffs).length){
+        tariffs = mergeWorkbookRates(tariffs, rateCtx.tariffs, DEFAULT_TARIFFS);
+        ratesTouched = true;
+      }
+      if(rateCtx.poRates && Object.keys(rateCtx.poRates).length){
+        poRates = mergeWorkbookRates(poRates, rateCtx.poRates, DEFAULT_PO_RATES, false);
+        ratesTouched = true;
+      }
+      if(ratesTouched){
+        renderRatesTable();
+      }
       return true;
     }
 
