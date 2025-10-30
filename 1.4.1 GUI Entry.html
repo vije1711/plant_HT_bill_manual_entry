@@ -211,10 +211,56 @@
       display:flex;
       flex-direction:column;
       gap:16px;
-      margin-top:10px;
+      margin-top:0;
     }
     .final-check-card .pill-check{
       margin-top:0;
+    }
+    .tolerance-card{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:18px 20px 20px;
+      border-radius:16px;
+      background:linear-gradient(160deg, rgba(30,41,59,.6), rgba(15,23,42,.4));
+      border:1px solid rgba(148,163,184,.18);
+      box-shadow:0 18px 36px rgba(15,23,42,.32);
+      transition:box-shadow .3s ease, border-color .3s ease;
+    }
+    .tolerance-card.over{
+      border-color:rgba(239,68,68,.5);
+      box-shadow:0 24px 40px rgba(239,68,68,.28);
+    }
+    .tolerance-title{
+      font-size:12px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:rgba(226,232,240,.78);
+    }
+    .tolerance-bar-track{
+      width:100%;
+      height:12px;
+      border-radius:999px;
+      background:rgba(148,163,184,.18);
+      overflow:hidden;
+    }
+    .tolerance-bar-fill{
+      height:100%;
+      width:0%;
+      border-radius:inherit;
+      background:linear-gradient(90deg, rgba(34,211,238,.85), rgba(167,139,250,.9));
+      transition:width .3s ease, background .3s ease;
+    }
+    .tolerance-card.over .tolerance-bar-fill{
+      background:linear-gradient(90deg, rgba(239,68,68,.9), rgba(251,191,36,.9));
+    }
+    .tolerance-value{
+      font-size:26px;
+      font-weight:700;
+      letter-spacing:.04em;
+      display:flex;
+      align-items:center;
+      gap:6px;
     }
     #analysisCard{
       display:flex;
@@ -1794,7 +1840,6 @@
         <!-- Rates Manager -->
         <section class="card span-5 final-check-card">
           <h2>Final Bill Check</h2>
-          <p class="muted" style="margin-top:-4px;margin-bottom:12px;">Reconcile FINAL against I9 before approval.</p>
           <div id="finalCheckBadge" class="pill pill-check" role="status" aria-live="polite">
             <div class="status-wrap" aria-hidden="true">
               <span id="FINALstatusv" class="status">✓</span>
@@ -1814,6 +1859,13 @@
                 <span class="metric-value" id="FINALdeltav">&#8377;0</span>
               </div>
             </div>
+          </div>
+          <div class="tolerance-card" id="finalToleranceCard" aria-live="polite">
+            <span class="tolerance-title">Tolerance Usage</span>
+            <div class="tolerance-bar-track" aria-hidden="true">
+              <div class="tolerance-bar-fill" id="FINALtolFill" style="width:0%;"></div>
+            </div>
+            <div class="tolerance-value" id="FINALtolValue">0%</div>
           </div>
         </section>
         <section class="card span-12" id="ratesCard">
@@ -3916,6 +3968,7 @@
         const i9Span = $('I9checkv'), finalSpan = $('FINALexpectedv'), dSpan = $('FINALdeltav');
         const statusSpan = $('FINALstatusv'), statusLabelSpan = $('FINALstatusLabel');
         const withinTol = Math.abs(deltaFinal) <= FINAL_CHECK_TOL;
+        const tolValueEl = $('FINALtolValue'), tolFillEl = $('FINALtolFill'), tolCardEl = $('finalToleranceCard');
         if (i9Span) i9Span.textContent = toInr(I9_check);
         if (finalSpan) finalSpan.textContent = toInr(FINAL);
         if (dSpan) {
@@ -3934,6 +3987,28 @@
           + (withinTol ? 'status OK' : 'status NOT OK');
         badge.setAttribute('aria-label', a11y);
         badge.title = a11y;
+        if (tolValueEl && tolFillEl) {
+          const rawUsage = FINAL_CHECK_TOL > 0 ? (Math.abs(deltaFinal) / FINAL_CHECK_TOL) * 100 : 0;
+          const clampedUsage = Number.isFinite(rawUsage) ? Math.min(rawUsage, 100) : 0;
+          tolFillEl.style.width = `${clampedUsage}%`;
+          let displayText = '0%';
+          if (Number.isFinite(rawUsage)) {
+            if (rawUsage > 100) displayText = '>100%';
+            else displayText = `${Math.round(rawUsage)}%`;
+          }
+          tolValueEl.textContent = displayText;
+        }
+        if (tolCardEl) {
+          const over = Math.abs(deltaFinal) > FINAL_CHECK_TOL;
+          tolCardEl.classList.toggle('over', over);
+          const tolAmt = FINAL_CHECK_TOL > 0 ? `±${toInr(FINAL_CHECK_TOL)}` : '';
+          const tolText = tolValueEl?.textContent || '0%';
+          const tolA11y = tolAmt
+            ? `Tolerance usage ${tolText} of ${tolAmt}.`
+            : `Tolerance usage ${tolText}.`;
+          tolCardEl.setAttribute('aria-label', tolA11y);
+          tolCardEl.title = tolA11y;
+        }
       }
       refreshExtrasOutputs();
       computeSes();
