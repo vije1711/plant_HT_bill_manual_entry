@@ -2126,6 +2126,40 @@
 
   </script>
   <script>
+    function stripDakPrefix(input){
+      if(!input) return '';
+      const cleaned = String(input).trim();
+      return cleaned.replace(/^DAK-[A-Z0-9]+-/, '');
+    }
+
+    function resolveBillNoInput(){
+      const byId = document.getElementById('rc_billNo');
+      if (byId) return byId;
+      const labels = Array.from(document.querySelectorAll('label'));
+      for (const label of labels){
+        const text = (label.textContent || '').trim().toLowerCase();
+        if (!text.startsWith('bill no')) continue;
+        const forId = label.getAttribute('for');
+        if (forId){
+          const target = document.getElementById(forId);
+          if (target) return target;
+        }
+        const nested = label.querySelector('input');
+        if (nested) return nested;
+        const sib = label.nextElementSibling;
+        if (sib && sib.tagName === 'INPUT') return sib;
+      }
+      return null;
+    }
+
+    function normalizeBillNoInput(){
+      const billNoInput = resolveBillNoInput();
+      if (!billNoInput) return null;
+      const cleaned = stripDakPrefix(billNoInput.value);
+      if (cleaned !== billNoInput.value) billNoInput.value = cleaned;
+      return billNoInput;
+    }
+
     // Receipt card: bind AFTER DOM is ready so targets/handlers exist.
     window.addEventListener('DOMContentLoaded', () => {
       // De-dupe accidental duplicate IDs (keep the first; remove others)
@@ -2151,6 +2185,12 @@
         if(!el.getAttribute('type')) el.setAttribute('type','text'); // ensure plain text behavior
       });
       // defaults handled separately
+
+      const billNoInput = normalizeBillNoInput();
+      if (billNoInput) {
+        ['input','change','blur'].forEach(evt => billNoInput.addEventListener(evt, normalizeBillNoInput));
+      }
+
       // Card-level actions wired like "Make IOM" (proxy to existing flow)
       const host    = document.getElementById('htmlPrintHost');
       const btnSave = document.getElementById('saveHtmlPdf');
@@ -4671,7 +4711,7 @@
       const v = (x)=>String(x||'').trim();
       const billNoEl   = document.getElementById('rc_billNo');
       const billDateEl = document.getElementById('rc_billDate');
-      let billNo = v(billNoEl?.value);
+      let billNo = stripDakPrefix(v(billNoEl?.value));
       if (!billNo){
         const now = new Date();
         const MMM = now.toLocaleString('en-US',{month:'short'}).toUpperCase();
@@ -4679,6 +4719,7 @@
         billNo = `HT-BILL_${MMM}-${YY}`;
         if (billNoEl) billNoEl.value = billNo;
       }
+      billNo = stripDakPrefix(billNo);
       const billDate = v(billDateEl?.value);
       if (billDateEl) billDateEl.classList.toggle('warn', !!billDate && !validDDMMYYYY(billDate));
 
@@ -5901,6 +5942,7 @@
           el.value = next;
           el.dataset.autogen = '1';
         }
+        normalizeBillNoInput();
       }
 
       function defaultDate(){
@@ -5953,6 +5995,7 @@
         defaultBillNo(); // will mark dataset.autogen='1' on first generation
         defaultDate();
         setAmount();
+        normalizeBillNoInput();
       }
 
       window.initReceiptDefaults = initReceiptDefaults;
