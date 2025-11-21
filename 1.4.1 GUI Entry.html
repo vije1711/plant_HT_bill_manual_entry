@@ -5743,7 +5743,8 @@
             let loaded = false;
             let allowAutoLoad = true;
             if(isInputDirty()){
-              allowAutoLoad = await confirmModal('Keep current inputs? Loading the uploaded sheet will replace them.');
+              const keepInputs = await confirmModal('Keep current inputs? Loading the uploaded sheet will replace them.');
+              allowAutoLoad = !keepInputs;
             }
             const desiredMonth = $('billMonth')?.value || '';
             const sortedNames = sortDisplayNames(_wb.SheetNames || []);
