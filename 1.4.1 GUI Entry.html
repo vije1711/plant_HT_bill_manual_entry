@@ -5816,21 +5816,11 @@
         }, {passive:true});
       });
 
-      function computeAmount(){
-        const C9  = readMoneyById('C9v');
-        const F16 = readMoneyById('F16v');
-        const G16 = readMoneyById('G16v');
-        const C24 = readMoneyById('C24v');
-        const A31 = readMoneyById('A31v');
-        const F9  = readMoneyById('F9v');
-        return C9 - F16 - G16 - C24 + A31 + F9;
-      }
-
       function setAmount(){
         const el = document.getElementById('rc_amount');
         if(!el) return;
         if(editing.has('rc_amount') && el.value.trim() !== '') return;
-        const amt = computeAmount();
+        const amt = readMoneyById('C9v');
         el.value = String(amt);
         parseInrInput(el);
       }
