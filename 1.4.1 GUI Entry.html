@@ -3831,6 +3831,38 @@
       return true;
     }
 
+    let inputBaselineSignature = '';
+    let inputDirty = false;
+
+    function snapshotInputSignature(){
+      const entries = [];
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        if(isConfigInput(el) || el.type === 'file') return;
+        const key = el.id || el.name || el.getAttribute('name') || el.dataset.cell || el.dataset.field || '';
+        const raw = el.type === 'checkbox' ? (el.checked ? '1' : '0') : (el.dataset.value ?? el.value ?? '');
+        entries.push([key, raw]);
+      });
+      return JSON.stringify(entries);
+    }
+
+    function resetInputDirtyState(){
+      inputBaselineSignature = snapshotInputSignature();
+      inputDirty = false;
+    }
+
+    function updateInputDirtyState(){
+      if(!inputBaselineSignature){
+        resetInputDirtyState();
+        return;
+      }
+      inputDirty = snapshotInputSignature() !== inputBaselineSignature;
+    }
+
+    function isInputDirty(){
+      updateInputDirtyState();
+      return inputDirty;
+    }
+
     function loadWorkbookSheet(name, opts = {}){
       const { toast: showToast = true, silentMissing = false } = opts;
       const wb = getWB();
@@ -3864,6 +3896,7 @@
       persistDebounced();
       if(showToast) toast(`Loaded ${name} from workbook.`, 'good');
       refreshSheetList();
+      resetInputDirtyState();
       return true;
     }
 
@@ -5456,6 +5489,7 @@
         canonicalizeWorkbook();
         toast(`${exists ? 'Updated' : 'Added'} sheet: ${label}`, 'good');
         refreshSheetList();
+        resetInputDirtyState();
       }));
 
       let __dlInFlight = false;
@@ -5532,6 +5566,15 @@
         setDisabled(btnOpen, true);
       };
       disablePrintActions();
+
+      const trackDirty = (event) => {
+        const target = event?.target;
+        if(!target || !(target.matches?.('input, select, textarea'))) return;
+        if(isConfigInput(target) || target.type === 'file') return;
+        updateInputDirtyState();
+      };
+      document.addEventListener('input', trackDirty, { passive: true });
+      document.addEventListener('change', trackDirty, { passive: true });
 
       function monthLabelStr(){
         const m = document.getElementById('billMonth')?.value;
@@ -5698,13 +5741,20 @@
             canonicalizeWorkbook();
             toast(`Workbook merged: ${added} added, ${replaced} replaced.`, 'good');
             let loaded = false;
+            let allowAutoLoad = true;
+            if(isInputDirty()){
+              const keepInputs = await confirmModal('Keep current inputs? Loading the uploaded sheet will replace them.');
+              allowAutoLoad = !keepInputs;
+            }
             const desiredMonth = $('billMonth')?.value || '';
             const sortedNames = sortDisplayNames(_wb.SheetNames || []);
-            if(desiredMonth){
-              loaded = loadWorkbookSheet(desiredMonth, { toast:false, silentMissing:true });
-            }
-            if(!loaded && sortedNames.length){
-              loaded = loadWorkbookSheet(sortedNames[0], { toast:false, silentMissing:true });
+            if(allowAutoLoad){
+              if(desiredMonth){
+                loaded = loadWorkbookSheet(desiredMonth, { toast:false, silentMissing:true });
+              }
+              if(!loaded && sortedNames.length){
+                loaded = loadWorkbookSheet(sortedNames[0], { toast:false, silentMissing:true });
+              }
             }
             if(!loaded){
               refreshSheetList();
@@ -5742,6 +5792,7 @@
           }
         });
         compute();
+        resetInputDirtyState();
       });
 
       $('resetSample').addEventListener('click', ()=>{
@@ -5750,6 +5801,7 @@
         console.assert(m.A9 === 14350, `A9 expected 14350, got ${m.A9}`);
         console.assert(m.C9 === 17220, `C9 expected 17220, got ${m.C9}`);
         console.assert(Math.round(m.FINAL) === 16700, `FINAL expected 16700, got ${m.FINAL}`);
+        resetInputDirtyState();
       });
 
 (function(){
@@ -5788,6 +5840,7 @@
       initConfigurationPanel();
       compute();
       refreshSheetList();
+      resetInputDirtyState();
       if(restored) toast('Previous data restored.');
     });
   </script>
