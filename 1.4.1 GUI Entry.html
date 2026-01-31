@@ -216,6 +216,71 @@
     .final-check-card .pill-check{
       margin-top:0;
     }
+    .glow{
+      --glow-opacity:0;
+      --glow-border-opacity:0;
+      --glow-blur:18px;
+      position:relative;
+      z-index:0;
+    }
+    .glow::before{
+      content:"";
+      position:absolute;
+      inset:-4px;
+      border-radius:inherit;
+      background:var(--glow-gradient, transparent);
+      opacity:var(--glow-opacity);
+      filter:blur(var(--glow-blur));
+      z-index:-1;
+      pointer-events:none;
+    }
+    .glow::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      padding:1px;
+      background:var(--glow-gradient, transparent);
+      opacity:var(--glow-border-opacity);
+      pointer-events:none;
+      -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+    }
+    .glow--ok{
+      --glow-gradient:linear-gradient(135deg, rgba(34,197,94,.9), rgba(34,211,238,.9));
+      --glow-opacity:.55;
+      --glow-border-opacity:.5;
+      border-color:rgba(34,197,94,.4);
+    }
+    .glow--warn{
+      --glow-gradient:linear-gradient(135deg, rgba(251,191,36,.9), rgba(249,115,22,.9));
+      --glow-opacity:.5;
+      --glow-border-opacity:.4;
+      border-color:rgba(249,115,22,.35);
+    }
+    .glow--danger{
+      --glow-gradient:linear-gradient(135deg, rgba(239,68,68,.95), rgba(251,191,36,.9));
+      --glow-opacity:.6;
+      --glow-border-opacity:.5;
+      border-color:rgba(239,68,68,.45);
+    }
+    .glow--ok::before,
+    .glow--warn::before,
+    .glow--danger::before{
+      animation:glowPulse 5.5s ease-in-out infinite;
+    }
+    @keyframes glowPulse{
+      0%,100%{opacity:var(--glow-opacity);transform:scale(1);}
+      50%{opacity:calc(var(--glow-opacity) * 0.7);transform:scale(1.015);}
+    }
+    @media (prefers-reduced-motion:reduce){
+      .glow--ok::before,
+      .glow--warn::before,
+      .glow--danger::before{
+        animation:none;
+      }
+    }
     .tolerance-card{
       display:flex;
       flex-direction:column;
@@ -226,10 +291,6 @@
       border:1px solid rgba(148,163,184,.18);
       box-shadow:0 18px 36px rgba(15,23,42,.32);
       transition:box-shadow .3s ease, border-color .3s ease;
-    }
-    .tolerance-card.over{
-      border-color:rgba(239,68,68,.5);
-      box-shadow:0 24px 40px rgba(239,68,68,.28);
     }
     .tolerance-title{
       font-size:12px;
@@ -1840,7 +1901,7 @@
         <!-- Rates Manager -->
         <section class="card span-5 final-check-card">
           <h2>Final Bill Check</h2>
-          <div id="finalCheckBadge" class="pill pill-check" role="status" aria-live="polite">
+          <div id="finalCheckBadge" class="pill pill-check glow" role="status" aria-live="polite">
             <div class="status-wrap" aria-hidden="true">
               <span id="FINALstatusv" class="status">✓</span>
               <span id="FINALstatusLabel" class="status-label">Check</span>
@@ -1860,7 +1921,7 @@
               </div>
             </div>
           </div>
-          <div class="tolerance-card" id="finalToleranceCard" aria-live="polite">
+          <div class="tolerance-card glow" id="finalToleranceCard" aria-live="polite">
             <span class="tolerance-title">Tolerance Usage</span>
             <div class="tolerance-bar-track" aria-hidden="true">
               <div class="tolerance-bar-fill" id="FINALtolFill" style="width:0%;"></div>
@@ -4089,6 +4150,7 @@
         const i9Span = $('I9checkv'), finalSpan = $('FINALexpectedv'), dSpan = $('FINALdeltav');
         const statusSpan = $('FINALstatusv'), statusLabelSpan = $('FINALstatusLabel');
         const withinTol = Math.abs(deltaFinal) <= FINAL_CHECK_TOL;
+        const hasFinalData = [C9, F16, G16, C24, A31, F9, H9, E9].some((val)=>Math.abs(val) > 0.004);
         const tolValueEl = $('FINALtolValue'), tolFillEl = $('FINALtolFill'), tolCardEl = $('finalToleranceCard');
         if (i9Span) i9Span.textContent = toInr(I9_check);
         if (finalSpan) finalSpan.textContent = toInr(FINAL);
@@ -4100,6 +4162,8 @@
         // Visual state + symbol
         badge.classList.remove('good','bad');
         badge.classList.add(withinTol ? 'good' : 'bad');
+        badge.classList.toggle('glow--ok', hasFinalData && withinTol);
+        badge.classList.toggle('glow--danger', hasFinalData && !withinTol);
         if (statusSpan) statusSpan.textContent = withinTol ? '✓' : '✕';
         if (statusLabelSpan) statusLabelSpan.textContent = withinTol ? 'Check' : 'Review';
         // Accessibility: narrate current status & values
@@ -4122,6 +4186,7 @@
         if (tolCardEl) {
           const over = Math.abs(deltaFinal) > FINAL_CHECK_TOL;
           tolCardEl.classList.toggle('over', over);
+          tolCardEl.classList.toggle('glow--danger', hasFinalData && over);
           const tolAmt = FINAL_CHECK_TOL > 0 ? `±${toInr(FINAL_CHECK_TOL)}` : '';
           const tolText = tolValueEl?.textContent || '0%';
           const tolA11y = tolAmt
