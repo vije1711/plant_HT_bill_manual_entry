@@ -850,16 +850,39 @@
       width:118px;
       border-radius:20px;
       background:rgba(15,23,42,.6);
+      border:1px solid rgba(148,163,184,.22);
       color:var(--ink);
       text-align:center;
       gap:10px;
       padding:18px 14px;
       backdrop-filter:blur(10px);
+      position:relative;
+      isolation:isolate;
+      box-shadow:0 16px 30px rgba(15,23,42,.35);
+    }
+    #finalCheckBadge .status-wrap::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius:inherit;
+      padding:2px;
+      background:linear-gradient(135deg, rgba(148,163,184,.35), rgba(226,232,240,.15));
+      opacity:.0;
+      pointer-events:none;
+      filter:blur(12px);
+      z-index:-1;
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+      transition:opacity .35s ease;
     }
     #finalCheckBadge .status{
       font-size:34px;
       line-height:1;
       font-weight:700;
+      text-shadow:0 2px 10px rgba(15,23,42,.45);
     }
     #finalCheckBadge .status-label{
       font-size:11px;
@@ -892,12 +915,38 @@
       white-space:nowrap;
     }
     #finalCheckBadge.good .status-wrap{
-      background:linear-gradient(160deg, rgba(34,197,94,.22), rgba(16,185,129,.18));
-      color:#12d17b;
+      background:linear-gradient(150deg, rgba(34,197,94,.35), rgba(20,184,166,.25));
+      border-color:rgba(34,197,94,.5);
+      color:#1fe38e;
+      box-shadow:0 18px 36px rgba(34,197,94,.25), 0 12px 24px rgba(15,23,42,.35);
+    }
+    #finalCheckBadge.good .status-wrap::before{
+      opacity:.55;
+      background:linear-gradient(135deg, rgba(34,197,94,.9), rgba(34,211,238,.85));
+    }
+    #finalCheckBadge.good .status{
+      text-shadow:0 0 10px rgba(34,197,94,.6), 0 0 18px rgba(34,211,238,.4);
     }
     #finalCheckBadge.bad .status-wrap{
-      background:linear-gradient(160deg, rgba(248,113,113,.22), rgba(239,68,68,.18));
-      color:#f87171;
+      background:linear-gradient(160deg, rgba(239,68,68,.3), rgba(251,191,36,.2));
+      border-color:rgba(239,68,68,.55);
+      color:#ff9a6b;
+      box-shadow:0 22px 40px rgba(239,68,68,.3), 0 18px 32px rgba(251,191,36,.2);
+    }
+    #finalCheckBadge.bad .status-wrap::before{
+      opacity:.7;
+      background:linear-gradient(135deg, rgba(239,68,68,.92), rgba(251,191,36,.9));
+      animation:finalCheckPulse 4.6s ease-in-out infinite;
+    }
+    #finalCheckBadge.bad .status{
+      text-shadow:0 0 12px rgba(239,68,68,.65), 0 0 22px rgba(251,191,36,.5);
+    }
+    @keyframes finalCheckPulse{
+      0%, 100%{ opacity:.75; }
+      50%{ opacity:.45; }
+    }
+    @media (prefers-reduced-motion: reduce){
+      #finalCheckBadge.bad .status-wrap::before{ animation:none; }
     }
     @media(max-width:1024px){
       #finalCheckBadge{
