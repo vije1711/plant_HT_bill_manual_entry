@@ -227,10 +227,6 @@
       box-shadow:0 18px 36px rgba(15,23,42,.32);
       transition:box-shadow .3s ease, border-color .3s ease;
     }
-    .tolerance-card.over{
-      border-color:rgba(239,68,68,.5);
-      box-shadow:0 24px 40px rgba(239,68,68,.28);
-    }
     .tolerance-title{
       font-size:12px;
       letter-spacing:.14em;
@@ -251,7 +247,7 @@
       background:linear-gradient(90deg, rgba(34,211,238,.85), rgba(167,139,250,.9));
       transition:width .3s ease, background .3s ease;
     }
-    .tolerance-card.over .tolerance-bar-fill{
+    .tolerance-card[data-glow="danger"] .tolerance-bar-fill{
       background:linear-gradient(90deg, rgba(239,68,68,.9), rgba(251,191,36,.9));
     }
     .tolerance-value{
@@ -261,6 +257,65 @@
       display:flex;
       align-items:center;
       gap:6px;
+    }
+    .glow-shell{
+      position:relative;
+      isolation:isolate;
+      --glow-opacity:0;
+      --glow-gradient:linear-gradient(120deg, rgba(148,163,184,.2), rgba(148,163,184,.2));
+      --glow-border:rgba(148,163,184,.18);
+    }
+    .glow-shell::before{
+      content:'';
+      position:absolute;
+      inset:-2px;
+      border-radius:inherit;
+      background:var(--glow-gradient);
+      opacity:var(--glow-opacity);
+      filter:blur(14px);
+      pointer-events:none;
+      z-index:0;
+      padding:1.5px;
+      -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+      transition:opacity .35s ease, filter .35s ease;
+      animation:glowPulse 5.5s ease-in-out infinite;
+    }
+    .glow-shell > *{
+      position:relative;
+      z-index:1;
+    }
+    .glow-shell[data-glow="ok"]{
+      --glow-opacity:.75;
+      --glow-gradient:linear-gradient(120deg, rgba(34,197,94,.85), rgba(34,211,238,.8));
+      --glow-border:rgba(34,197,94,.45);
+      border-color:var(--glow-border);
+    }
+    .glow-shell[data-glow="warn"]{
+      --glow-opacity:.7;
+      --glow-gradient:linear-gradient(120deg, rgba(245,158,11,.75), rgba(250,204,21,.8));
+      --glow-border:rgba(245,158,11,.45);
+      border-color:var(--glow-border);
+    }
+    .glow-shell[data-glow="danger"]{
+      --glow-opacity:.8;
+      --glow-gradient:linear-gradient(120deg, rgba(239,68,68,.85), rgba(251,191,36,.8));
+      --glow-border:rgba(239,68,68,.5);
+      border-color:var(--glow-border);
+    }
+    .glow-shell[data-glow="none"]::before{
+      opacity:0;
+      animation:none;
+    }
+    @media (prefers-reduced-motion: reduce){
+      .glow-shell::before{
+        animation:none;
+      }
+    }
+    @keyframes glowPulse{
+      0%, 100%{opacity:var(--glow-opacity); filter:blur(14px);}
+      50%{opacity:calc(var(--glow-opacity) * .65); filter:blur(18px);}
     }
     #analysisCard{
       display:flex;
@@ -1840,7 +1895,7 @@
         <!-- Rates Manager -->
         <section class="card span-5 final-check-card">
           <h2>Final Bill Check</h2>
-          <div id="finalCheckBadge" class="pill pill-check" role="status" aria-live="polite">
+          <div id="finalCheckBadge" class="pill pill-check glow-shell" data-glow="none" role="status" aria-live="polite">
             <div class="status-wrap" aria-hidden="true">
               <span id="FINALstatusv" class="status">✓</span>
               <span id="FINALstatusLabel" class="status-label">Check</span>
@@ -1860,7 +1915,7 @@
               </div>
             </div>
           </div>
-          <div class="tolerance-card" id="finalToleranceCard" aria-live="polite">
+          <div class="tolerance-card glow-shell" data-glow="none" id="finalToleranceCard" aria-live="polite">
             <span class="tolerance-title">Tolerance Usage</span>
             <div class="tolerance-bar-track" aria-hidden="true">
               <div class="tolerance-bar-fill" id="FINALtolFill" style="width:0%;"></div>
@@ -4089,6 +4144,7 @@
         const i9Span = $('I9checkv'), finalSpan = $('FINALexpectedv'), dSpan = $('FINALdeltav');
         const statusSpan = $('FINALstatusv'), statusLabelSpan = $('FINALstatusLabel');
         const withinTol = Math.abs(deltaFinal) <= FINAL_CHECK_TOL;
+        const hasFinalData = [C9, F16, G16, C24, A31, F9, H9, E9].some((val) => Math.abs(val) > 0.004);
         const tolValueEl = $('FINALtolValue'), tolFillEl = $('FINALtolFill'), tolCardEl = $('finalToleranceCard');
         if (i9Span) i9Span.textContent = toInr(I9_check);
         if (finalSpan) finalSpan.textContent = toInr(FINAL);
@@ -4100,6 +4156,7 @@
         // Visual state + symbol
         badge.classList.remove('good','bad');
         badge.classList.add(withinTol ? 'good' : 'bad');
+        badge.dataset.glow = hasFinalData ? (withinTol ? 'ok' : 'danger') : 'none';
         if (statusSpan) statusSpan.textContent = withinTol ? '✓' : '✕';
         if (statusLabelSpan) statusLabelSpan.textContent = withinTol ? 'Check' : 'Review';
         // Accessibility: narrate current status & values
@@ -4121,7 +4178,7 @@
         }
         if (tolCardEl) {
           const over = Math.abs(deltaFinal) > FINAL_CHECK_TOL;
-          tolCardEl.classList.toggle('over', over);
+          tolCardEl.dataset.glow = hasFinalData && over ? 'danger' : 'none';
           const tolAmt = FINAL_CHECK_TOL > 0 ? `±${toInr(FINAL_CHECK_TOL)}` : '';
           const tolText = tolValueEl?.textContent || '0%';
           const tolA11y = tolAmt
