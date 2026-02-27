@@ -1180,6 +1180,7 @@
     .doc-header .dept { font-size:11pt; }
     .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
     .info-bar { background:#f3f4f6; border:1px solid #e5e7eb; padding:2mm 4mm; margin-bottom:8mm; font-size:10.5pt; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; word-break:break-word; }
+    .important-note { margin:-2mm 0 6mm; border:1px solid #ef4444; background:#fff4f4; color:#7f1d1d; font-weight:800; padding:2.5mm 4mm; font-size:10.5pt; }
     .sec { break-inside: avoid; margin: 7mm 0 0; }
     .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
     .kv { display:grid; grid-template-columns: 1fr minmax(52mm,auto) 10mm; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
@@ -3617,6 +3618,7 @@
               <div class="f adjustments-field"><label>Outstanding Arrears (&#8377;) <span class="mono">D9</span></label><input type="text" id="D9"/><span class="hint"></span></div>
               <div class="f adjustments-field"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
               <div class="f adjustments-field"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
+              <div class="f adjustments-field"><label>Due Date</label><input type="text" id="rc_dueDate" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off"/><span class="hint"></span></div>
               <div class="f adjustments-field"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
             </div>
           </div>
@@ -4182,7 +4184,7 @@
       const card = document.getElementById('receiptCard');
       if (card?.dataset.bound === '1') return;
       if (card) card.dataset.bound = '1';
-      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_dueDate','rc_eic','rc_amount'];
       // Strip any stale disabling to keep inputs interactive
       ids.forEach(id => {
         const el = document.getElementById(id);
@@ -6506,6 +6508,9 @@
       const infoBarPlain = `Please pay to ${companyName} (Vendor Code: ${vendorCode}). Bank A/C No.: ${bankAccount}; RTGS/NEFT IFSC: ${ifsc}; Branch: ${branch}`;
       const companyNbsp = esc(companyName).replace(/ /g,'&nbsp;');
       const infoBarAttr = esc(infoBarPlain);
+      const dueDate = domVal('rc_dueDate');
+      const dueDateText = validDDMMYYYY(dueDate) ? dueDate : '';
+      const dueDateClause = dueDateText ? ` (${esc(dueDateText)})` : '';
       const finalExtras = (model.finalExtras || []).filter(e=>e && e.include);
       const mappingRows = [
         ['Current Month Bill',           'C9',    model.C9,  'none'],
@@ -6540,6 +6545,7 @@
           title="${infoBarAttr}"
           aria-label="${infoBarAttr}"
         >Please pay to <b>${companyNbsp}</b> (Vendor Code: <b>${esc(vendorCode)}</b>). Bank A/C No.: <b>${esc(bankAccount)}</b>; RTGS/NEFT IFSC: <b>${esc(ifsc)}</b>; Branch: <b>${esc(branch)}</b></div>
+        <div class="important-note" role="note">IMPORTANT: Payments made after 16:00 hrs on the Due Date${dueDateClause} will attract delayed payment charges.</div>
         <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
           <h3>Amount Mapping (per formula)</h3>
           <div class="footer-note" style="margin:0 0 6px 0;">
@@ -7926,7 +7932,7 @@
 
     // Initialize defaults for Central Dak Receipt inputs
     window.addEventListener('DOMContentLoaded', () => {
-      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_dueDate','rc_eic','rc_amount'];
       const editing = new Set();
       ids.forEach(id => {
         const el = document.getElementById(id);
@@ -7987,30 +7993,34 @@
       }
 
       function attachDateShim(){
-        const el = document.getElementById('rc_billDate');
-        if(!el) return;
-        el.addEventListener('focus', () => {
-          const v = el.value.trim();
-          let iso = '';
-          if(validDDMMYYYY(v)){
-            const [d,m,y] = v.split('-');
-            iso = `${y}-${m}-${d}`;
-          }
-          el.type = 'date';
-          if(iso) el.value = iso;
-        });
-        const restore = () => {
-          const v = el.value.trim();
-          el.type = 'text';
-          if(/^\d{4}-\d{2}-\d{2}$/.test(v)){
-            const [y,m,d] = v.split('-');
-            el.value = `${d}-${m}-${y}`;
-          }
-          const ok = validDDMMYYYY(el.value.trim());
-          el.classList.toggle('warn', !ok && el.value.trim() !== '');
+        const bindDateShim = (el) => {
+          if(!el) return;
+          el.addEventListener('focus', () => {
+            const v = el.value.trim();
+            let iso = '';
+            if(validDDMMYYYY(v)){
+              const [d,m,y] = v.split('-');
+              iso = `${y}-${m}-${d}`;
+            }
+            el.type = 'date';
+            if(iso) el.value = iso;
+          });
+          const restore = () => {
+            const v = el.value.trim();
+            el.type = 'text';
+            if(/^\d{4}-\d{2}-\d{2}$/.test(v)){
+              const [y,m,d] = v.split('-');
+              el.value = `${d}-${m}-${y}`;
+            }
+            const ok = validDDMMYYYY(el.value.trim());
+            el.classList.toggle('warn', !ok && el.value.trim() !== '');
+          };
+          el.addEventListener('blur', restore);
+          el.addEventListener('change', restore);
+          el.addEventListener('input', restore);
         };
-        el.addEventListener('blur', restore);
-        el.addEventListener('change', restore);
+
+        ['rc_billDate','rc_dueDate'].forEach(id => bindDateShim(document.getElementById(id)));
       }
 
       function initReceiptDefaults(){
@@ -8077,6 +8087,7 @@
         `.doc-header h2{margin:1mm 0 0;font-size:18pt}`+
         `.doc-meta{color:#555;font-size:10.5pt;text-align:right}`+
         `.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:6mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}`+
+        `.important-note{margin:-1mm 0 5mm;border:1px solid #ef4444;background:#fff4f4;color:#7f1d1d;font-weight:800;padding:2.5mm 4mm;font-size:10.5pt}`+
         `.sec{break-inside:avoid;margin:5mm 0 0}`+
         `.sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}`+
         `.kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}`+
