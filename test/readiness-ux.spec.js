@@ -95,6 +95,30 @@ test('due-date quick actions support previous working day and clear', async () =
   assert.equal(dueDate.value, '', 'Clear should remove due date');
 });
 
+test('due-date quick actions invalidate preview freshness', async () => {
+  const dom = await bootDom();
+  const doc = dom.window.document;
+  const dueDate = doc.getElementById('dueDate');
+  const save = doc.getElementById('saveHtmlPdf');
+  const open = doc.getElementById('openHtmlPdf');
+
+  dueDate.value = '2026-03-20';
+  doc.getElementById('B4').value = '1000';
+  doc.getElementById('B4').dataset.value = '1000';
+
+  const model = dom.window.compute(true);
+  assert.ok(model, 'Strict model should be available before rendering');
+  dom.window.renderHtmlPreview(model, '2026-03', '2026-03-01');
+  dom.window.updateIomUxState();
+  assert.equal(save.disabled, false, 'Save should be enabled right after fresh render');
+  assert.equal(open.disabled, false, 'Open should be enabled right after fresh render');
+
+  doc.getElementById('dueDatePlus7').click();
+  assert.equal(dueDate.value, '2026-03-27', 'Quick action should update due date');
+  assert.equal(save.disabled, true, 'Save should be disabled after due-date quick action');
+  assert.equal(open.disabled, true, 'Open should be disabled after due-date quick action');
+});
+
 test('readiness popover lists go-fix actions and focuses target field', async () => {
   const dom = await bootDom();
   const doc = dom.window.document;

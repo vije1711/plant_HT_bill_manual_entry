@@ -8049,7 +8049,12 @@
       const dueDateEl = $('dueDate');
       const setDueDateIso = (iso)=>{
         if(!dueDateEl) return;
-        dueDateEl.value = sanitizeDueDateIso(iso);
+        const nextIso = sanitizeDueDateIso(iso);
+        const prevIso = sanitizeDueDateIso(dueDateEl.value);
+        if(nextIso !== prevIso && typeof disablePrintActions === 'function'){
+          disablePrintActions();
+        }
+        dueDateEl.value = nextIso;
         compute();
       };
       $('dueDateToday')?.addEventListener('click', ()=> setDueDateIso(toIsoDateLocal(new Date())));
