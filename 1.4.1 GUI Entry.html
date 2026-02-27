@@ -5629,6 +5629,10 @@
         el.classList.add('invalid');
       }
     }
+    function shouldApplyInrMask(el){
+      return !!(el && !isConfigInput(el) && el.type==='text' && !el.closest('#receiptCard') && el.id !== 'rc_dueDate');
+    }
+
     function parseInrInput(el, format=true){
       if(/e/i.test(el.value)){
         showSciHint(el);
@@ -6867,7 +6871,7 @@
             const el = $(id);
             if(el){
               el.value = val;
-              if(!isConfigInput(el) && el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+              if(shouldApplyInrMask(el)) parseInrInput(el);
             }
           });
         }
@@ -7217,7 +7221,7 @@
         Object.entries(SAMPLE).forEach(([id,val])=>{
           const el = $(id);
           el.value = val;
-          if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+          if(shouldApplyInrMask(el)) parseInrInput(el);
         });
       }
 
@@ -7522,7 +7526,7 @@
       // Apply INR masking and numeric guards
       document.querySelectorAll('input').forEach(el=>{
         if(isConfigInput(el)) return;
-        if(el.type==='text' && !el.closest('#receiptCard')){
+        if(shouldApplyInrMask(el)){
           el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
           el.addEventListener('blur', ()=>parseInrInput(el));
         }else if(el.type==='number'){
