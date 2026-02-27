@@ -5914,7 +5914,14 @@
       }
     }
     function shouldApplyInrMask(el){
-      return !!(el && !isConfigInput(el) && el.type==='text' && !el.closest('#receiptCard') && el.id !== 'rc_dueDate');
+      return !!(
+        el &&
+        !isConfigInput(el) &&
+        el.type==='text' &&
+        !el.closest('#receiptCard') &&
+        el.id !== 'rc_dueDate' &&
+        el.id !== 'dueDate'
+      );
     }
 
     function parseInrInput(el, format=true){
@@ -7175,6 +7182,7 @@
         if(!raw) return false;
         const data = JSON.parse(raw);
         if(data.inputs){
+          const hasDueDateKey = Object.prototype.hasOwnProperty.call(data.inputs, 'dueDate');
           Object.entries(data.inputs).forEach(([id,val])=>{
             const el = $(id);
             if(el){
@@ -7182,6 +7190,14 @@
               if(shouldApplyInrMask(el)) parseInrInput(el);
             }
           });
+          if(!hasDueDateKey){
+            const legacyDueDateRaw = typeof data.inputs.rc_dueDate === 'string' ? data.inputs.rc_dueDate : '';
+            const legacyDueDateIso = sanitizeDueDateIso(legacyDueDateRaw);
+            const dueDateEl = $('dueDate');
+            if(dueDateEl && legacyDueDateIso){
+              dueDateEl.value = legacyDueDateIso;
+            }
+          }
         }
         if(Array.isArray(data.sheets)){
           const _wb = getWB();

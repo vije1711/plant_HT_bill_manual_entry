@@ -119,6 +119,40 @@ test('due-date quick actions invalidate preview freshness', async () => {
   assert.equal(open.disabled, true, 'Open should be disabled after due-date quick action');
 });
 
+test('restore migrates legacy rc_dueDate to dueDate when dueDate key is missing', async () => {
+  const dom = await bootDom();
+  const doc = dom.window.document;
+  const dueDate = doc.getElementById('dueDate');
+
+  dueDate.value = '';
+  dom.window.localStorage.setItem('weg-billing-v1', JSON.stringify({
+    inputs: { rc_dueDate: '15-03-2026' },
+    sheets: []
+  }));
+
+  const restored = dom.window.restore();
+  assert.equal(restored, true, 'Restore should report success for legacy payload');
+  assert.equal(dueDate.value, '2026-03-15', 'Legacy rc_dueDate should migrate to dueDate in ISO format');
+});
+
+test('dueDate text fallback is excluded from INR masking during restore', async () => {
+  const dom = await bootDom();
+  const doc = dom.window.document;
+  const dueDate = doc.getElementById('dueDate');
+
+  dueDate.type = 'text';
+  dueDate.value = '';
+  dom.window.localStorage.setItem('weg-billing-v1', JSON.stringify({
+    inputs: { dueDate: '2026-03-20' },
+    sheets: []
+  }));
+
+  const restored = dom.window.restore();
+  assert.equal(restored, true, 'Restore should report success');
+  assert.equal(dom.window.shouldApplyInrMask(dueDate), false, 'dueDate should never be treated as INR-masked text input');
+  assert.equal(dueDate.value, '2026-03-20', 'dueDate value should remain ISO text (not INR-formatted)');
+});
+
 test('readiness popover lists go-fix actions and focuses target field', async () => {
   const dom = await bootDom();
   const doc = dom.window.document;
