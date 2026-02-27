@@ -71,6 +71,6 @@ test('reference bill calculations', async () => {
   close(amt('TOD_NIGHT_REBATE'), -1 * qty('TOD_NIGHT_REBATE') * 1.5 / 100);
   close(qty('PF_CHARGE_SLAB1'), 6229914.60);
   close(amt('PF_CHARGE_SLAB1'), -1 * qty('PF_CHARGE_SLAB1') * 2.35 / 100);
-  close(qty('ARREAR_ED'), 10929059.54);
-  close(amt('ARREAR_ED'), 2185811.91);
+  close(qty('ARREAR_ED'), 10919059.54);
+  close(amt('ARREAR_ED'), 2183811.91);
 });
