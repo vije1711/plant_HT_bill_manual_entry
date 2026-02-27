@@ -1337,6 +1337,7 @@
     .doc-header .dept { font-size:11pt; }
     .doc-meta { color:#555; font-size:10.5pt; text-align:right; }
     .info-bar { background:#f3f4f6; border:1px solid #e5e7eb; padding:2mm 4mm; margin-bottom:8mm; font-size:10.5pt; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; word-break:break-word; }
+    .important-note { margin:-2mm 0 6mm; border:1px solid #ef4444; background:#fff4f4; color:#7f1d1d; font-weight:800; padding:2.5mm 4mm; font-size:10.5pt; }
     .sec { break-inside: avoid; margin: 7mm 0 0; }
     .sec h3 { margin:0 0 3mm; font-size:12pt; border-bottom:1px solid #ddd; padding-bottom:2.5mm; }
     .kv { display:grid; grid-template-columns: 1fr minmax(52mm,auto) 10mm; gap:2mm; padding:2mm 0; border-bottom:1px dashed #eee; }
@@ -4403,7 +4404,7 @@
       const card = document.getElementById('receiptCard');
       if (card?.dataset.bound === '1') return;
       if (card) card.dataset.bound = '1';
-      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_dueDate','rc_eic','rc_amount'];
       // Strip any stale disabling to keep inputs interactive
       ids.forEach(id => {
         const el = document.getElementById(id);
@@ -5912,6 +5913,10 @@
         el.classList.add('invalid');
       }
     }
+    function shouldApplyInrMask(el){
+      return !!(el && !isConfigInput(el) && el.type==='text' && !el.closest('#receiptCard') && el.id !== 'rc_dueDate');
+    }
+
     function parseInrInput(el, format=true){
       if(/e/i.test(el.value)){
         showSciHint(el);
@@ -7174,7 +7179,7 @@
             const el = $(id);
             if(el){
               el.value = val;
-              if(!isConfigInput(el) && el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+              if(shouldApplyInrMask(el)) parseInrInput(el);
             }
           });
         }
@@ -7718,7 +7723,7 @@
         Object.entries(SAMPLE).forEach(([id,val])=>{
           const el = $(id);
           el.value = val;
-          if(el.type==='text' && !el.closest('#receiptCard')) parseInrInput(el);
+          if(shouldApplyInrMask(el)) parseInrInput(el);
         });
       }
 
@@ -8023,7 +8028,7 @@
       // Apply INR masking and numeric guards
       document.querySelectorAll('input').forEach(el=>{
         if(isConfigInput(el)) return;
-        if(el.type==='text' && !el.closest('#receiptCard')){
+        if(shouldApplyInrMask(el)){
           el.addEventListener('input', ()=>{ parseInrInput(el,false); compute(); });
           el.addEventListener('blur', ()=>parseInrInput(el));
         }else if(el.type==='number'){
@@ -8476,7 +8481,7 @@
 
     // Initialize defaults for Central Dak Receipt inputs
     window.addEventListener('DOMContentLoaded', () => {
-      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_eic','rc_amount'];
+      const ids = ['rc_vendorCode','rc_vendorName','rc_billNo','rc_billDate','rc_dueDate','rc_eic','rc_amount'];
       const editing = new Set();
       ids.forEach(id => {
         const el = document.getElementById(id);
@@ -8537,30 +8542,34 @@
       }
 
       function attachDateShim(){
-        const el = document.getElementById('rc_billDate');
-        if(!el) return;
-        el.addEventListener('focus', () => {
-          const v = el.value.trim();
-          let iso = '';
-          if(validDDMMYYYY(v)){
-            const [d,m,y] = v.split('-');
-            iso = `${y}-${m}-${d}`;
-          }
-          el.type = 'date';
-          if(iso) el.value = iso;
-        });
-        const restore = () => {
-          const v = el.value.trim();
-          el.type = 'text';
-          if(/^\d{4}-\d{2}-\d{2}$/.test(v)){
-            const [y,m,d] = v.split('-');
-            el.value = `${d}-${m}-${y}`;
-          }
-          const ok = validDDMMYYYY(el.value.trim());
-          el.classList.toggle('warn', !ok && el.value.trim() !== '');
+        const bindDateShim = (el) => {
+          if(!el) return;
+          el.addEventListener('focus', () => {
+            const v = el.value.trim();
+            let iso = '';
+            if(validDDMMYYYY(v)){
+              const [d,m,y] = v.split('-');
+              iso = `${y}-${m}-${d}`;
+            }
+            el.type = 'date';
+            if(iso) el.value = iso;
+          });
+          const restore = () => {
+            const v = el.value.trim();
+            el.type = 'text';
+            if(/^\d{4}-\d{2}-\d{2}$/.test(v)){
+              const [y,m,d] = v.split('-');
+              el.value = `${d}-${m}-${y}`;
+            }
+            const ok = validDDMMYYYY(el.value.trim());
+            el.classList.toggle('warn', !ok && el.value.trim() !== '');
+          };
+          el.addEventListener('blur', restore);
+          el.addEventListener('change', restore);
+          el.addEventListener('input', restore);
         };
-        el.addEventListener('blur', restore);
-        el.addEventListener('change', restore);
+
+        ['rc_billDate','rc_dueDate'].forEach(id => bindDateShim(document.getElementById(id)));
       }
 
       function initReceiptDefaults(){
@@ -8627,6 +8636,7 @@
         `.doc-header h2{margin:1mm 0 0;font-size:18pt}`+
         `.doc-meta{color:#555;font-size:10.5pt;text-align:right}`+
         `.info-bar{background:#f3f4f6;border:1px solid #e5e7eb;padding:2mm 4mm;margin-bottom:6mm;font-size:10.5pt;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word}`+
+        `.important-note{margin:-1mm 0 5mm;border:1px solid #ef4444;background:#fff4f4;color:#7f1d1d;font-weight:800;padding:2.5mm 4mm;font-size:10.5pt}`+
         `.sec{break-inside:avoid;margin:5mm 0 0}`+
         `.sec h3{margin:0 0 3mm;font-size:12pt;border-bottom:1px solid #ddd;padding-bottom:2.5mm}`+
         `.kv{display:grid;grid-template-columns:1fr minmax(52mm,auto) 10mm;gap:2mm;padding:2mm 0;border-bottom:1px dashed #eee}`+
