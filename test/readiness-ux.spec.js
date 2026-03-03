@@ -232,6 +232,24 @@ test('toolbar shows consolidated workbook, make iom, configuration, and more men
   assert.equal(doc.getElementById('openConfigMenu'), null, 'More should no longer contain a configuration launcher');
 });
 
+test('finance readiness badge reserves fixed width so toolbar neighbors do not wiggle', () => {
+  assert.match(
+    htmlSource,
+    /#financeReadinessBadge\{[\s\S]*?justify-content:flex-start;[\s\S]*?min-inline-size:calc\(7ch \+ 42px\);[\s\S]*?flex:0 0 auto;/,
+    'Finance readiness badge should reserve a font-aware minimum width for Ready and Blocked states'
+  );
+  assert.match(
+    htmlSource,
+    /#financeReadinessBadge::after\{[\s\S]*?flex:0 0 7px;[\s\S]*?visibility:hidden;/,
+    'Finance readiness badge should balance the left status dot with an equal invisible spacer'
+  );
+  assert.match(
+    htmlSource,
+    /#financeReadinessState\{[\s\S]*?display:block;[\s\S]*?flex:1 1 auto;[\s\S]*?text-align:center;/,
+    'Finance readiness label should fill the reserved slot and stay centered within the badge'
+  );
+});
+
 test('workbook menu includes sheet, workbook, and analysis actions', async () => {
   const dom = await bootDom();
   const doc = dom.window.document;
