@@ -7166,6 +7166,7 @@
           title="${infoBarAttr}"
           aria-label="${infoBarAttr}"
         >Please pay to <b>${companyNbsp}</b> (Vendor Code: <b>${esc(vendorCode)}</b>). Bank A/C No.: <b>${esc(bankAccount)}</b>; RTGS/NEFT IFSC: <b>${esc(ifsc)}</b>; Branch: <b>${esc(branch)}</b></div>
+        <div class="important-note" data-testid="due-date-cutoff-note"><b>IMPORTANT (Finance):</b> Ensure payment is credited to ${esc(DISCOM)} before 16:00 hrs IST on the Due Date (${esc(dueDateText)}) to avoid delayed payment charges.</div>
         <section class="sec mapping" role="table" aria-label="Amount Mapping (per formula)">
           <h3>Amount Mapping (per formula)</h3>
           <div class="footer-note" style="margin:0 0 6px 0;">
@@ -7206,8 +7207,7 @@
             The payment of ${asINR(model.FINAL)} is certified and verified.<br/>
             The expenditure is in the interest of the company.<br/>
             Certified copies of the bills are attached.<br/>
-            <span data-testid="receipt-note">Bill received via central post.</span><br/>
-            <span class="important-note" data-testid="due-date-cutoff-note"><b>IMPORTANT (Finance):</b> Ensure payment is credited to ${esc(DISCOM)} before 16:00 hrs IST on the Due Date (${esc(dueDateText)}) to avoid delayed payment charges.</span>
+            <span data-testid="receipt-note">Bill received via central post.</span>
           </div>
           <div class="footer-note" style="margin-top:6px;">
             Attachments: Bill copy; Credit & Debit Adjustment Details (PGVCL); SES sheet; BWS receipt.

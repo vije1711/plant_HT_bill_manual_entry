@@ -1,97 +1,82 @@
 ## Summary
 
-This branch removes the Due Date quick-action strip from the `Adjustments & Carry-forward` card to make the Due Date area cleaner and shorter.
+This branch moves the IOM finance cutoff warning from the lower `Certification & Attachments` section to the top portion of the generated IOM/PDF.
 
-The removed controls were:
-- `Today`
-- `+7 Days`
-- `Month End`
-- `Previous Working Day`
-- `Clear`
+The warning text itself is unchanged. The change is purely about document placement and visibility.
 
-After this change, the Due Date area is intentionally simplified to:
-- the `Due Date` label
-- the inline payment-risk badge
-- the native date input
-- the existing hint / validation behavior
+After this update, the warning now appears:
+- immediately below the payee / bank information bar
+- before the `Amount Mapping (per formula)` section
 
 ## Why
 
-The quick-action strip was adding visual and vertical weight inside one of the densest cards in the app.
+The due-date cutoff warning is one of the most operationally important instructions in the IOM:
+- it is finance-facing
+- it is time-sensitive
+- it directly warns about delayed payment charges if payment is credited after `16:00 hrs IST` on the Due Date
 
-Even after exploring a more compact strip treatment, the cleaner outcome was to remove the quick actions entirely and let the field rely on direct date entry / native date-picker interaction.
+Previously, the note appeared lower in the document inside `Certification & Attachments`, which made it easier to miss while reading the IOM top-down.
 
-This improves the form in a few practical ways:
-- reduces vertical space in the `Adjustments & Carry-forward` card
-- lowers visual clutter around the due-date field
-- removes extra focus targets from a busy section of the form
-- keeps the due-date risk indicator as the main supporting signal instead of competing with shortcut buttons
+Moving it upward improves the document flow because the instruction now appears next to the payment context users are already reading:
+- payee details
+- vendor code
+- bank account / IFSC / branch details
+
+This gives the finance warning earlier visual priority and makes the IOM more usable as a payment-processing document.
 
 ## What Changed
 
-### UI
+### IOM template
 
 In `1.4.1 GUI Entry.html`:
-- removed the `.due-date-actions` quick-action group from the Due Date field
-- removed the five quick-action buttons from the DOM
-- kept the compact inline due-date risk badge and assistive status text in place
-- kept the native Due Date input unchanged
+- inserted the existing `IMPORTANT (Finance)` warning directly after the `.info-bar`
+- removed the same warning from the lower `Certification & Attachments` footer-note block
+- kept the text content unchanged
+- kept `data-testid="due-date-cutoff-note"` unchanged
 
-### Styling
+This means the change is limited to rendered document order; it does not alter business logic, data binding, or note wording.
 
-Removed the quick-action-specific styling for:
-- `.due-date-field .due-date-actions`
-- `.due-date-field .due-date-actions .ghost`
+### Test coverage
 
-This returns the Due Date block to a simpler layout without the extra action row.
+Updated `test/basic.test.js` to protect the new placement.
 
-### JavaScript
+The test now verifies that the due-date cutoff note:
+- still renders
+- still includes the expected cutoff wording
+- still includes the formatted due date
+- appears after `.info-bar`
+- appears before `.mapping`
 
-Removed the quick-action helper code and listeners:
-- `dueDateMonthEndIso()`
-- `previousWorkingDayIso(baseIso)`
-- shared `setDueDateIso(...)`
-- click handlers for:
-  - `dueDateToday`
-  - `dueDatePlus7`
-  - `dueDateMonthEnd`
-  - `dueDatePrevWorkingDay`
-  - `dueDateClear`
+This helps prevent future regressions where the note gets pushed back into the lower certification block or otherwise loses its intended prominence.
 
-The standard manual Due Date change flow remains intact.
+## User-Facing Impact
 
-### Tests
+### Before
+- finance warning was buried in the lower certification area
+- warning appeared after the mapping section
+- users had to read deeper into the document to encounter the cutoff instruction
 
-Updated `test/readiness-ux.spec.js` to reflect the intentional removal.
+### After
+- finance warning appears near the top of the IOM
+- warning is seen alongside payment destination / banking details
+- the payment-risk instruction is harder to overlook during processing
 
-Removed shortcut-specific tests that no longer apply and replaced them with a structural regression test that confirms:
-- `.due-date-actions` is absent
-- all five legacy quick-action button IDs are absent
+## Scope
 
-This keeps the suite aligned with the new intended UI instead of preserving dead expectations.
+This branch does **not** change:
+- the wording of the finance cutoff note
+- due-date calculation or validation rules
+- finance-readiness gating logic
+- IOM amount mapping logic
+- signatures, receipt note, or attachment content
+- PDF generation behavior apart from the note’s position in the rendered document
 
-## Behavior After Change
+## Risk / Notes
 
-What still works:
-- manual Due Date entry
-- native browser date-picker usage
-- Due Date validation
-- due-date risk classification / badge updates
-- finance readiness behavior tied to Due Date
-- existing IOM gating behavior
+This is a low-risk presentation change, but one practical note remains:
+- because the warning now appears earlier on the page, very dense IOM layouts should still be visually checked for pagination balance when long bank/location strings are present
 
-What is intentionally removed:
-- one-click date shortcuts from the Due Date field
-- dedicated `Clear` button for the Due Date field
-
-## Tradeoffs
-
-This branch deliberately favors a cleaner and more compact form over shortcut-heavy date entry.
-
-Tradeoff to note:
-- users lose fast preset actions such as `Month End` and `Previous Working Day`
-
-That said, the resulting UI is simpler, easier to scan, and better aligned with the goal of reducing visual crowding in the card.
+Functionally, the change is intentionally narrow.
 
 ## Validation
 
@@ -104,20 +89,11 @@ npm test
 Result:
 - `14/14` tests passed
 
+Additional focused validation:
+- `test/basic.test.js` passed with explicit DOM-order assertions for the moved warning
+
 ## Files Changed
 
 - `1.4.1 GUI Entry.html`
-- `test/readiness-ux.spec.js`
+- `test/basic.test.js`
 - `pr_body.md`
-
-## Notes
-
-This is a focused UI simplification branch.
-
-It does not change:
-- PDF / IOM wording
-- finance-readiness logic
-- due-date risk-state rules
-- rendering / print gating rules
-
-It only removes the Due Date quick-action surface and its supporting code/tests.
