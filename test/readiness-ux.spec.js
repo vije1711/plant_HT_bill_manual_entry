@@ -3,9 +3,10 @@ const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const fs = require('node:fs');
 const path = require('node:path');
+const htmlSource = fs.readFileSync(path.join(__dirname, '..', '1.4.1 GUI Entry.html'), 'utf8');
 
 async function bootDom() {
-  let html = fs.readFileSync(path.join(__dirname, '..', '1.4.1 GUI Entry.html'), 'utf8');
+  let html = htmlSource;
   html = html.replace(/<script src="\.\/xlsx\.full\.min\.js"><\/script>/, '');
 
   const dom = new JSDOM(html, {
@@ -160,6 +161,84 @@ test('dueDate text fallback is excluded from INR masking during restore', async 
   assert.equal(restored, true, 'Restore should report success');
   assert.equal(dom.window.shouldApplyInrMask(dueDate), false, 'dueDate should never be treated as INR-masked text input');
   assert.equal(dueDate.value, '2026-03-20', 'dueDate value should remain ISO text (not INR-formatted)');
+});
+
+test('due date row uses a compact visible risk badge and removes extra preview rows', async () => {
+  const dom = await bootDom();
+  const doc = dom.window.document;
+  const label = doc.querySelector('label[for="dueDate"]');
+  const dueDate = doc.getElementById('dueDate');
+  const chip = doc.getElementById('dueDateRiskChip');
+  const text = chip && chip.querySelector('.due-date-risk-text');
+  const assistive = doc.getElementById('dueDateRiskAssistive');
+
+  assert.ok(label, 'Due Date label should exist');
+  assert.equal(label.textContent.includes('DUE'), false, 'Due Date label should no longer show the old DUE badge');
+  assert.ok(chip, 'Due Date row should include the inline risk badge');
+  assert.ok(text, 'Due Date risk badge should expose visible text state');
+  assert.equal(text.textContent, 'NONE', 'Due Date risk badge should show the default visible state');
+  assert.equal(doc.getElementById('dueDatePreview'), null, 'Due Date preview row should be removed');
+  assert.ok(assistive, 'Due Date should expose assistive risk text');
+  assert.match(dueDate.getAttribute('aria-describedby') || '', /\bdueDateRiskAssistive\b/, 'Due Date input should reference assistive risk text');
+  assert.equal(assistive.getAttribute('role'), 'status', 'Due Date assistive text should be exposed as a polite status region');
+  assert.equal(assistive.getAttribute('aria-live'), 'polite', 'Due Date assistive text should announce updates politely');
+});
+
+test('due-date risk badge updates visible text, tooltip, and assistive text', async () => {
+  const dom = await bootDom();
+  const doc = dom.window.document;
+  const chip = doc.getElementById('dueDateRiskChip');
+  const text = chip.querySelector('.due-date-risk-text');
+  const assistive = doc.getElementById('dueDateRiskAssistive');
+
+  dom.window.updateDueDatePreview('');
+  assert.equal(chip.dataset.state, 'none', 'Empty due date should use the none risk state');
+  assert.equal(text.textContent, 'NONE', 'Empty due date should expose the default visible risk text');
+  assert.equal(chip.title, 'Payment risk: Not set', 'Empty due date should expose a not-set tooltip');
+  assert.equal(assistive.textContent, 'Payment risk: Not set', 'Empty due date should expose not-set assistive text');
+
+  dom.window.getDueDateRiskState = () => 'high-risk';
+  dom.window.updateDueDatePreview('2026-03-10');
+  assert.equal(chip.dataset.state, 'high-risk', 'Risk icon should reflect the updated due-date risk state');
+  assert.equal(text.textContent, 'RISK', 'High-risk due date should expose visible risk text without hover');
+  assert.equal(chip.title, 'Payment risk: High risk', 'Risk icon should expose the updated tooltip text');
+  assert.equal(assistive.textContent, 'Payment risk: High risk', 'Risk icon should expose the updated assistive text');
+});
+
+test('due-date assistive status only rewrites when the announced risk changes', async () => {
+  const dom = await bootDom();
+  const doc = dom.window.document;
+  const assistive = doc.getElementById('dueDateRiskAssistive');
+  let writes = 0;
+  let value = 'Payment risk: High risk';
+
+  Object.defineProperty(assistive, 'textContent', {
+    configurable: true,
+    get() {
+      return value;
+    },
+    set(next) {
+      writes += 1;
+      value = String(next);
+    }
+  });
+
+  dom.window.getDueDateRiskState = () => 'high-risk';
+  dom.window.updateDueDatePreview('2026-03-10');
+  assert.equal(writes, 0, 'Same risk text should not rewrite the live region during unrelated recomputes');
+
+  dom.window.getDueDateRiskState = () => 'overdue';
+  dom.window.updateDueDatePreview('2026-03-10');
+  assert.equal(writes, 1, 'Changed risk text should update the live region once');
+  assert.equal(value, 'Payment risk: Overdue', 'Changed risk text should update to the new announcement');
+});
+
+test('forced-colors due-date badge override matches stateful badges at equal specificity', () => {
+  assert.match(
+    htmlSource,
+    /@media\s*\(forced-colors:\s*active\)\s*\{[\s\S]*?\.due-date-field\s+\.due-date-risk-badge,\s*[\s\S]*?\.due-date-field\s+\.due-date-risk-badge\[data-state\]/,
+    'Forced-colors block should target stateful due-date badges so it can override the state-specific palette'
+  );
 });
 
 test('toolbar shows consolidated workbook, make iom, configuration, and more menus', async () => {
