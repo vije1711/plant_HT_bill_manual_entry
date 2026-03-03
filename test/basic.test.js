@@ -57,6 +57,12 @@ test('signatures and receipt note present', async () => {
   assert.ok(dueNote, 'IOM note must include due-date cutoff warning');
   assert.match(dueNote.textContent, /before 16:00 hrs IST/);
   assert.match(dueNote.textContent, /15\/03\/2026/);
+  const infoBar = el.querySelector('.info-bar');
+  const mappingSection = el.querySelector('.mapping');
+  assert.ok(infoBar, 'info bar should render');
+  assert.ok(mappingSection, 'mapping section should render');
+  assert.equal(infoBar.compareDocumentPosition(dueNote) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING, dom.window.Node.DOCUMENT_POSITION_FOLLOWING, 'due-date cutoff note should appear after the info bar');
+  assert.equal(dueNote.compareDocumentPosition(mappingSection) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING, dom.window.Node.DOCUMENT_POSITION_FOLLOWING, 'due-date cutoff note should appear before the mapping section');
 });
 
 test('strict compute requires due date', async () => {
