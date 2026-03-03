@@ -775,19 +775,6 @@
       font-size:13px;
       flex:0 0 auto;
     }
-    .due-date-field .due-date-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      margin-top:7px;
-    }
-    .due-date-field .due-date-actions .ghost{
-      padding:3px 8px;
-      font-size:11px;
-      line-height:1.2;
-      min-height:26px;
-      border-radius:999px;
-    }
     .due-date-field .due-date-risk-badge{
       display:inline-flex;
       align-items:center;
@@ -4122,13 +4109,6 @@
                   <span class="due-date-icon" aria-hidden="true">&#128197;</span>
                 </div>
                 <span id="dueDateRiskAssistive" class="sr-only" role="status" aria-live="polite">Payment risk: Not set</span>
-                <div class="due-date-actions" role="group" aria-label="Due date quick actions">
-                  <button type="button" id="dueDateToday" class="ghost">Today</button>
-                  <button type="button" id="dueDatePlus7" class="ghost">+7 Days</button>
-                  <button type="button" id="dueDateMonthEnd" class="ghost">Month End</button>
-                  <button type="button" id="dueDatePrevWorkingDay" class="ghost">Previous Working Day</button>
-                  <button type="button" id="dueDateClear" class="ghost">Clear</button>
-                </div>
                 <span class="hint" id="dueDateHint"></span>
               </div>
               <div class="f adjustments-field"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
@@ -7852,18 +7832,6 @@
         return `${yyyy}-${mm}`;
       }
 
-      function dueDateMonthEndIso(){
-        const label = monthLabel();
-        const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(label);
-        if(match){
-          const yyyy = Number(match[1]);
-          const mm = Number(match[2]);
-          return toIsoDateLocal(new Date(yyyy, mm, 0));
-        }
-        const now = new Date();
-        return toIsoDateLocal(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-      }
-
       function setDueDateRiskChip(iso){
         const chip = $('dueDateRiskChip');
         const assistive = $('dueDateRiskAssistive');
@@ -7926,18 +7894,6 @@
         }
         const mins = (now.getHours() * 60) + now.getMinutes();
         return mins >= (16 * 60) ? 'overdue' : 'today';
-      }
-
-      function previousWorkingDayIso(baseIso){
-        let dt = parseIsoDateLocal(baseIso);
-        if(!dt){
-          dt = parseIsoDateLocal(dueDateMonthEndIso()) || new Date();
-        }
-        dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-        do{
-          dt.setDate(dt.getDate() - 1);
-        }while(dt.getDay() === 0 || dt.getDay() === 6);
-        return toIsoDateLocal(dt);
       }
 
       function collectStrictReadinessIssues(limit = 3){
@@ -8544,30 +8500,6 @@
       });
 
       const dueDateEl = $('dueDate');
-      const setDueDateIso = (iso)=>{
-        if(!dueDateEl) return;
-        const nextIso = sanitizeDueDateIso(iso);
-        const prevIso = sanitizeDueDateIso(dueDateEl.value);
-        if(nextIso !== prevIso && typeof disablePrintActions === 'function'){
-          disablePrintActions();
-        }
-        dueDateEl.value = nextIso;
-        compute();
-      };
-      $('dueDateToday')?.addEventListener('click', ()=> setDueDateIso(toIsoDateLocal(new Date())));
-      $('dueDatePlus7')?.addEventListener('click', ()=>{
-        const baseIso = sanitizeDueDateIso(dueDateEl ? dueDateEl.value : '');
-        const baseDate = baseIso ? parseIsoDateLocal(baseIso) : new Date();
-        if(!baseDate) return;
-        baseDate.setDate(baseDate.getDate() + 7);
-        setDueDateIso(toIsoDateLocal(baseDate));
-      });
-      $('dueDateMonthEnd')?.addEventListener('click', ()=> setDueDateIso(dueDateMonthEndIso()));
-      $('dueDatePrevWorkingDay')?.addEventListener('click', ()=>{
-        const baseIso = sanitizeDueDateIso(dueDateEl ? dueDateEl.value : '');
-        setDueDateIso(previousWorkingDayIso(baseIso));
-      });
-      $('dueDateClear')?.addEventListener('click', ()=> setDueDateIso(''));
       if(dueDateEl){
         dueDateEl.addEventListener('change', ()=>{
           dueDateEl.value = sanitizeDueDateIso(dueDateEl.value);

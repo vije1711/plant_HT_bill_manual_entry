@@ -92,41 +92,16 @@ test('due-date risk classification returns expected states', async () => {
   assert.equal(risk('2026-03-15', new Date('2026-03-10T09:00:00')), 'safe');
 });
 
-test('due-date quick actions support previous working day and clear', async () => {
+test('due-date field no longer renders quick-action controls', async () => {
   const dom = await bootDom();
   const doc = dom.window.document;
-  const dueDate = doc.getElementById('dueDate');
 
-  dueDate.value = '2026-03-09'; // Monday
-  doc.getElementById('dueDatePrevWorkingDay').click();
-  assert.equal(dueDate.value, '2026-03-06', 'Previous working day from Monday should be Friday');
-
-  doc.getElementById('dueDateClear').click();
-  assert.equal(dueDate.value, '', 'Clear should remove due date');
-});
-
-test('due-date quick actions invalidate preview freshness', async () => {
-  const dom = await bootDom();
-  const doc = dom.window.document;
-  const dueDate = doc.getElementById('dueDate');
-  const save = doc.getElementById('saveHtmlPdf');
-  const open = doc.getElementById('openHtmlPdf');
-
-  dueDate.value = '2026-03-20';
-  doc.getElementById('B4').value = '1000';
-  doc.getElementById('B4').dataset.value = '1000';
-
-  const model = dom.window.compute(true);
-  assert.ok(model, 'Strict model should be available before rendering');
-  dom.window.renderHtmlPreview(model, '2026-03', '2026-03-01');
-  dom.window.updateIomUxState();
-  assert.equal(save.disabled, false, 'Save should be enabled right after fresh render');
-  assert.equal(open.disabled, false, 'Open should be enabled right after fresh render');
-
-  doc.getElementById('dueDatePlus7').click();
-  assert.equal(dueDate.value, '2026-03-27', 'Quick action should update due date');
-  assert.equal(save.disabled, true, 'Save should be disabled after due-date quick action');
-  assert.equal(open.disabled, true, 'Open should be disabled after due-date quick action');
+  assert.equal(doc.querySelector('.due-date-actions'), null, 'Due Date field should not render the removed quick-action group');
+  assert.equal(doc.getElementById('dueDateToday'), null, 'Today quick action should be removed');
+  assert.equal(doc.getElementById('dueDatePlus7'), null, '+7 Days quick action should be removed');
+  assert.equal(doc.getElementById('dueDateMonthEnd'), null, 'Month End quick action should be removed');
+  assert.equal(doc.getElementById('dueDatePrevWorkingDay'), null, 'Previous Working Day quick action should be removed');
+  assert.equal(doc.getElementById('dueDateClear'), null, 'Clear quick action should be removed');
 });
 
 test('restore migrates legacy rc_dueDate to dueDate when dueDate key is missing', async () => {
