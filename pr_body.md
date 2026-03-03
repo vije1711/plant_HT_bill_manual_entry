@@ -1,179 +1,148 @@
 ## Summary
 
-This PR completes the finance-readiness and toolbar UX refactor for the standalone HT Bill processing app.
+This PR is a focused follow-up on top of the recently merged toolbar / finance-readiness work.
 
-It adds a dedicated Due Date workflow for IOM generation, introduces finance-readiness gating around IOM/PDF actions, and reorganizes the top toolbar into a cleaner, more task-oriented structure.
+It refines the `Due Date` area inside the `Adjustments & Carry-forward` card so the risk signal is:
+- more compact than before
+- still visible without hover
+- usable in keyboard, touch, screen-reader, and forced-colors scenarios
 
-The branch also includes a substantial round of UX hardening after review, especially around:
-- stale-preview prevention
-- keyboard accessibility
-- focus recovery
-- menu placement on short or narrow viewports
-- backward compatibility for persisted due-date state
-
-`pr_body.md` is intentionally committed in this branch as the written source of what was changed and why.
+The branch also commits `pr_body.md` itself so the branch carries its own written change log / source of truth.
 
 ## Why
 
-The original request was to improve the IOM finance workflow, specifically:
-- add a Due Date input under `Adjustments & Carry-forward`
-- add a short, formal note for Finance clarifying the DISCOM cut-off
-- make the due-date selection experience less clunky
+The earlier UX pass improved the Due Date workflow, but the Due Date presentation still felt vertically heavy.
 
-As we implemented that, a few adjacent issues became clear:
-- Save/Open PDF actions could remain enabled after inputs changed, which risked exporting stale previews
-- the new finance-readiness information needed to be visible without overcrowding the header
-- the toolbar had become too wide and was wrapping awkwardly
-- several menu and focus behaviors needed to be reworked after consolidation
+We compacted that section by:
+- removing the decorative `DUE` badge
+- removing the standalone preview line
+- removing the separate `Risk:` row
+- moving the risk indicator inline next to `Due Date`
 
-This PR addresses all of that as one coherent UX pass.
+That cleanup looked better visually, but review surfaced a few accessibility issues that needed to be fixed before the refactor was truly complete:
+- icon-only risk state depended too much on color / hover
+- the live status node could re-announce unchanged risk text on unrelated recomputes
+- the forced-colors fallback selector was not strong enough to override the state-specific palette
+
+This PR lands the compact design and the follow-up accessibility hardening together.
 
 ## What Changed
 
-### 1. Due Date and finance-readiness workflow
+### 1. Compact inline due-date risk badge
 
-Added a dedicated `Due Date` field in the form and wired it into readiness and IOM generation.
+The Due Date row in `Adjustments & Carry-forward` has been reworked.
 
-Included a concise finance-facing payment cut-off note in the generated IOM/PDF using the DISCOM context, so Finance is clearly instructed to process payment before the DISCOM cut-off time.
+#### Removed
+- the old `DUE` label chip
+- the standalone due-date preview row
+- the standalone `Risk:` chip row
 
-Improved the due-date workflow with quick actions so users can set a practical due date faster instead of typing it manually every time.
+#### Added
+- an inline risk badge beside `Due Date`
+- warning-triangle icon + short visible state label
+- compact badge states:
+  - `NONE`
+  - `SAFE`
+  - `TODAY`
+  - `RISK`
+  - `LATE`
 
-Also added readiness checks so:
-- `Render IOM` is enabled only when base readiness is satisfied
-- `Save as PDF` / `Open PDF View` are enabled only when a fresh preview exists
-- any relevant form change invalidates stale preview actions until the IOM is rendered again
+This keeps the section shorter while preserving a clear visible payment-risk signal.
 
-### 2. Stale-preview protection and compatibility fixes
+### 2. Visible risk state without hover
 
-Hardened the render/export flow so stale IOM previews cannot be accidentally reused.
+The badge now exposes the current state directly in visible text instead of depending only on:
+- color
+- tooltip hover
+- screen-reader-only text
 
-This includes:
-- invalidating preview freshness when regular form inputs change
-- invalidating preview freshness when due-date quick actions change the due date
-- keeping Save/Open disabled until the preview is fresh again
+This fixes the regression for:
+- touch users
+- sighted keyboard users
+- forced-colors / high-contrast users
+- anyone who cannot or does not hover the inline indicator
 
-Added backward-compatibility protection for existing persisted browser state:
-- legacy `rc_dueDate` values are restored into the new `dueDate` field
-- the new due-date control is excluded from INR masking, including text-input fallback scenarios
+### 3. Assistive/live status support
 
-### 3. Toolbar and dropdown consolidation
+The due-date risk assistive node remains connected to the date input through `aria-describedby`.
 
-Reorganized the top bar into a cleaner, task-based structure:
-- `Billing Month`
-- `Workbook`
-- `Make IOM`
-- `Configuration`
-- `More`
+It now also acts as a polite status region so due-date quick-action changes can be announced to assistive technology.
 
-This removed the old overcrowded top-level sprawl and grouped related actions together.
+Important follow-up hardening included in this branch:
+- the live region is only rewritten when the announced risk text actually changes
+- unrelated recomputes no longer keep re-announcing the same payment-risk message
 
-#### Workbook
-Merged the previous Sheets / Workbook / Analysis areas into a single `Workbook` menu.
+### 4. Forced-colors support
 
-The Workbook dropdown now contains:
-- workbook actions
-- sheet browsing/search
-- analysis actions
-- a clearly separated danger zone for `Clear Sheets`
+Added a dedicated forced-colors fallback for the due-date risk badge.
 
-#### Make IOM
-Folded Finance readiness into `Make IOM` instead of keeping it as a separate top-level item.
+The final selector explicitly targets both:
+- `.due-date-risk-badge`
+- `.due-date-risk-badge[data-state]`
 
-The menu now provides:
-- inline readiness chip in the summary
-- readiness checklist
-- `Go Fix` issue actions
-- IOM actions
-- print preference controls
+That ensures the high-contrast fallback can win over the state-specific badge palette in forced-colors mode.
 
-#### Configuration
-Kept `Configuration` as its own top-level item and split the contents into more scannable groups:
-- A. Shares
-- B. Central Dak
-- C. Rendered details
-- D. Vendor display
-- E. Bank details
-- F. Approvals
+### 5. Test coverage
 
-#### More
-Reduced `More` to lower-frequency actions:
-- theme selection
-- utility actions
-- reset in a separate danger zone
+Expanded `test/readiness-ux.spec.js` to cover the new compact badge contract.
 
-### 4. Menu usability and accessibility hardening
+Added checks for:
+- Due Date row structure after compaction
+- visible state text in the risk badge
+- tooltip updates
+- assistive text updates
+- live-region rewrite guard
+- forced-colors override selector presence
 
-A large part of this branch is follow-up refinement after review to make the consolidated menus behave correctly.
-
-Key fixes include:
-- restoring sheet-search arrow-key navigation into filtered sheet results
-- allowing `ArrowUp` from sheet search to move back into preceding Workbook actions
-- ensuring empty sheet-result states still allow arrow navigation into Workbook actions
-- filtering disabled IOM actions out of roving keyboard navigation
-- preserving keyboard focus when readiness issues are refreshed inside `Make IOM`
-- closing `Make IOM` when `Go Fix` actions are clicked and focusing the correct field
-- restoring document-level `Escape` close behavior for `Configuration`
-- restoring focus correctly when `Configuration` is dismissed via outside click
-- keeping `Configuration` open during `Load/Import` by exempting the hidden file input from outside-click dismissal
-- supporting directional keyboard navigation for the 2-column theme grid in `More`
-- allowing arrow navigation to leave the bottom row of the theme grid and continue into the next menu section
-
-### 5. Responsive placement and viewport behavior
-
-The consolidated menus are wider and taller than before, so menu placement needed dedicated handling.
-
-This branch adds and refines a shared placement helper that now:
-- clamps menus horizontally to the viewport
-- preserves each panel's CSS max-height cap
-- remeasures after dynamic content changes
-- repositions menus after Workbook sheet list refreshes and after Make IOM readiness refreshes
-- prefers the larger space above when a wrapped sticky toolbar leaves too little usable room below
-
-This keeps the menus usable across:
-- short viewports
-- split-screen layouts
-- wrapped toolbar layouts
-- higher zoom scenarios
-
-### 6. Workbook refresh behavior after download
-
-When `Auto-update on Download` is enabled, downloading the workbook can create/update the current month sheet.
-
-The open Workbook browser now refreshes immediately after that update so the newly added month appears in the visible sheet list right away, without requiring the user to close/reopen the menu.
-
-### 7. Header polish
-
-Replaced the old generic circle mark with a cleaner animated lightning/power icon in the header.
-
-The final version keeps the motion subtle and includes reduced-motion support.
-
-## Files
+## Files Changed
 
 ### `1.4.1 GUI Entry.html`
-Contains the full product change set:
-- Due Date UI and note integration
-- finance-readiness UI and gating
-- toolbar/menu restructuring
-- configuration regrouping
-- menu placement logic
-- keyboard/focus behavior fixes
-- header icon refresh
+Contains the product changes for the Due Date section:
+- compact label-row risk badge
+- updated CSS for compact badge styling
+- visible short state labels
+- assistive/live-region behavior
+- forced-colors fallback
+- guarded live-region updates
 
 ### `test/readiness-ux.spec.js`
-Expanded significantly to cover the new UX contract, including:
-- readiness gating
-- stale-preview invalidation
-- due-date compatibility behavior
-- consolidated toolbar structure
-- Workbook search and arrow navigation
-- menu placement behavior
-- Make IOM focus/placement behavior
-- Configuration close/focus behavior
-- theme-grid keyboard navigation
-- auto-refresh behavior after download
+Contains regression coverage for:
+- compact due-date badge structure
+- visible risk labels
+- tooltip + assistive text sync
+- live-region non-reannouncement behavior
+- forced-colors override selector coverage
 
 ### `pr_body.md`
-Committed as the branch-local change log / source of truth for this work.
+Committed intentionally as the branch-local narrative of what this follow-up branch changes and why.
+
+## Implementation Notes
+
+### Visible label mapping
+The compact badge uses short visible labels:
+- `none` -> `NONE`
+- `safe` -> `SAFE`
+- `today` -> `TODAY`
+- `high-risk` -> `RISK`
+- `overdue` -> `LATE`
+
+### Full accessible wording
+The full assistive/tooltip wording remains:
+- `Payment risk: Not set`
+- `Payment risk: Safe`
+- `Payment risk: Due today`
+- `Payment risk: High risk`
+- `Payment risk: Overdue`
+
+### Logic intentionally unchanged
+This PR does **not** change:
+- due-date risk classification thresholds
+- finance-readiness gating
+- quick-action behavior
+- validation rules
+- IOM/PDF note wording
+
+This is a presentation + accessibility follow-up around the existing due-date risk model.
 
 ## Testing
 
@@ -186,6 +155,18 @@ npm test
 Result:
 - `14/14` tests passing
 
+## Review-driven fixes included
+
+This branch includes the follow-up fixes raised during review:
+- keep the risk state visible without hover
+- prevent repeated live-region announcements on unchanged recomputes
+- ensure forced-colors overrides actually win against state-specific badge styling
+
 ## Notes
 
-This branch went through multiple review-driven hardening passes. The final state is intentionally more robust than the original feature request because the toolbar consolidation exposed several real keyboard, focus, and viewport edge cases that are now covered by tests.
+This is a targeted follow-up branch from `main` after PR #214 was merged.
+
+It is intentionally narrow in scope:
+- no toolbar reorganization here
+- no new workflow changes
+- just the Due Date risk badge cleanup and its accessibility/test hardening

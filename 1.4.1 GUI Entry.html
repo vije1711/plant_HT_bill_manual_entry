@@ -751,6 +751,12 @@
       align-items:center;
       gap:8px;
     }
+    .due-date-field .due-date-label{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      justify-content:flex-start;
+    }
     .due-date-field .due-date-row input{
       flex:1 1 auto;
       min-width:0;
@@ -782,49 +788,74 @@
       min-height:26px;
       border-radius:999px;
     }
-    .due-date-field .due-date-preview{
-      margin-top:6px;
-      font-size:11.5px;
-      color:var(--muted);
-      min-height:16px;
-    }
-    .due-date-field .due-date-preview strong{
-      color:var(--ink);
-      font-weight:700;
-    }
-    .due-date-field .due-date-risk-chip{
+    .due-date-field .due-date-risk-badge{
       display:inline-flex;
       align-items:center;
-      margin-top:6px;
-      padding:2px 8px;
+      justify-content:center;
+      gap:4px;
+      min-height:20px;
+      padding:0 6px;
       border-radius:999px;
-      font-size:11px;
-      font-weight:700;
       border:1px solid rgba(148,163,184,.35);
       background:rgba(15,23,42,.35);
       color:var(--muted);
-      width:max-content;
-      max-width:100%;
+      flex:0 0 auto;
+      white-space:nowrap;
+      line-height:1;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.04em;
     }
-    .due-date-field .due-date-risk-chip[data-state="safe"]{
+    .due-date-field .due-date-risk-badge svg{
+      width:10px;
+      height:10px;
+      display:block;
+      fill:currentColor;
+      flex:0 0 auto;
+    }
+    .due-date-field .due-date-risk-text{
+      display:inline-block;
+      min-width:4.25ch;
+      text-align:center;
+    }
+    .due-date-field .due-date-risk-badge[data-state="safe"]{
       border-color:rgba(34,197,94,.45);
       color:#34d399;
       background:rgba(34,197,94,.12);
     }
-    .due-date-field .due-date-risk-chip[data-state="today"]{
+    .due-date-field .due-date-risk-badge[data-state="today"]{
       border-color:rgba(59,130,246,.48);
       color:#60a5fa;
       background:rgba(59,130,246,.12);
     }
-    .due-date-field .due-date-risk-chip[data-state="high-risk"]{
+    .due-date-field .due-date-risk-badge[data-state="high-risk"]{
       border-color:rgba(245,158,11,.52);
       color:#fbbf24;
       background:rgba(245,158,11,.13);
     }
-    .due-date-field .due-date-risk-chip[data-state="overdue"]{
+    .due-date-field .due-date-risk-badge[data-state="overdue"]{
       border-color:rgba(239,68,68,.55);
       color:#fca5a5;
       background:rgba(239,68,68,.14);
+    }
+    @media (forced-colors: active){
+      .due-date-field .due-date-risk-badge,
+      .due-date-field .due-date-risk-badge[data-state]{
+        border-color:CanvasText;
+        background:Canvas;
+        color:CanvasText;
+      }
+    }
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0, 0, 0, 0);
+      white-space:nowrap;
+      border:0;
     }
     .due-date-field input.invalid + .hint{
       display:block;
@@ -4077,11 +4108,20 @@
               <div class="f adjustments-field"><label>Delayed Payment Charges (&#8377;) <span class="mono">F9</span></label><input type="text" id="F9"/><span class="hint"></span></div>
               <div class="f adjustments-field"><label>Advance Payment / Adjust. (&#8377;) <span class="mono">G9</span></label><input type="text" id="G9" placeholder="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)" title="Include sign as on bill, e.g. -5241084.60 (credit) or 4102.69 (charge)"/><span class="hint"></span></div>
               <div class="f adjustments-field due-date-field">
-                <label for="dueDate">Due Date <span class="mono">DUE</span></label>
+                <label for="dueDate" class="due-date-label">
+                  <span>Due Date</span>
+                  <span id="dueDateRiskChip" class="due-date-risk-badge" data-state="none" title="Payment risk: Not set" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M12 3.2 21 19a1.2 1.2 0 0 1-1.04 1.8H4.04A1.2 1.2 0 0 1 3 19L12 3.2Zm0 4.55a1.1 1.1 0 0 0-1.1 1.1v5.35a1.1 1.1 0 1 0 2.2 0V8.85A1.1 1.1 0 0 0 12 7.75Zm0 10.02a1.34 1.34 0 1 0 0 2.68 1.34 1.34 0 0 0 0-2.68Z"/>
+                    </svg>
+                    <span class="due-date-risk-text">NONE</span>
+                  </span>
+                </label>
                 <div class="due-date-row">
-                  <input type="date" id="dueDate" aria-describedby="dueDatePreview dueDateHint"/>
+                  <input type="date" id="dueDate" aria-describedby="dueDateHint dueDateRiskAssistive"/>
                   <span class="due-date-icon" aria-hidden="true">&#128197;</span>
                 </div>
+                <span id="dueDateRiskAssistive" class="sr-only" role="status" aria-live="polite">Payment risk: Not set</span>
                 <div class="due-date-actions" role="group" aria-label="Due date quick actions">
                   <button type="button" id="dueDateToday" class="ghost">Today</button>
                   <button type="button" id="dueDatePlus7" class="ghost">+7 Days</button>
@@ -4089,8 +4129,6 @@
                   <button type="button" id="dueDatePrevWorkingDay" class="ghost">Previous Working Day</button>
                   <button type="button" id="dueDateClear" class="ghost">Clear</button>
                 </div>
-                <div class="due-date-preview" id="dueDatePreview">Due Date: <strong>Not selected</strong></div>
-                <div class="due-date-risk-chip" id="dueDateRiskChip" data-state="none">Risk: --</div>
                 <span class="hint" id="dueDateHint"></span>
               </div>
               <div class="f adjustments-field"><label>Freeze Amount (&#8377;) <span class="mono">E9</span></label><input type="text" id="E9"/><span class="hint"></span></div>
@@ -7828,16 +7866,30 @@
 
       function setDueDateRiskChip(iso){
         const chip = $('dueDateRiskChip');
-        if(!chip) return;
+        const assistive = $('dueDateRiskAssistive');
         const state = getDueDateRiskState(iso);
-        chip.dataset.state = state;
         const label = (
           state === 'safe' ? 'Safe' :
-          state === 'today' ? 'Today' :
+          state === 'today' ? 'Due today' :
           state === 'high-risk' ? 'High risk' :
-          state === 'overdue' ? 'Overdue' : '--'
+          state === 'overdue' ? 'Overdue' : 'Not set'
         );
-        chip.textContent = `Risk: ${label}`;
+        const visibleLabel = (
+          state === 'safe' ? 'SAFE' :
+          state === 'today' ? 'TODAY' :
+          state === 'high-risk' ? 'RISK' :
+          state === 'overdue' ? 'LATE' : 'NONE'
+        );
+        const accessibleText = `Payment risk: ${label}`;
+        if(chip){
+          chip.dataset.state = state;
+          chip.title = accessibleText;
+          const textEl = chip.querySelector('.due-date-risk-text');
+          if(textEl) textEl.textContent = visibleLabel;
+        }
+        if(assistive && assistive.textContent !== accessibleText){
+          assistive.textContent = accessibleText;
+        }
       }
 
       function updateDueDatePreview(forcedIso){
@@ -7851,13 +7903,12 @@
         if(dueDateEl && iso && dueDateEl.value !== iso){
           dueDateEl.value = iso;
         }
-        if(!previewEl) return;
-        if(iso){
+        setDueDateRiskChip(iso);
+        if(previewEl && iso){
           previewEl.innerHTML = `Due Date: <strong>${esc(formatDueDateDisplay(iso))}</strong>`;
-        }else{
+        }else if(previewEl){
           previewEl.innerHTML = 'Due Date: <strong>Not selected</strong>';
         }
-        setDueDateRiskChip(iso);
       }
 
       function getDueDateRiskState(dueIso, nowDate = new Date()){
