@@ -1,153 +1,191 @@
 ## Summary
 
-This PR delivers the first four approved UX upgrades for the IOM/Finance workflow and includes a regression fix from review:
+This PR completes the finance-readiness and toolbar UX refactor for the standalone HT Bill processing app.
 
-1. Finance Readiness badge + popover near **Make IOM**
-2. Due Date risk chip (`Safe`, `Today`, `High risk`, `Overdue`)
-3. Due Date quick actions (`Previous Working Day`, `Clear`)
-4. IOM action gating (Render/Save/Open) based on readiness
-5. Regression fix: prevent stale-preview export by requiring a **fresh** render after edits
+It adds a dedicated Due Date workflow for IOM generation, introduces finance-readiness gating around IOM/PDF actions, and reorganizes the top toolbar into a cleaner, more task-oriented structure.
 
-The goal is to make Finance-facing output safer and more explicit, while reducing accidental stale PDF export.
+The branch also includes a substantial round of UX hardening after review, especially around:
+- stale-preview prevention
+- keyboard accessibility
+- focus recovery
+- menu placement on short or narrow viewports
+- backward compatibility for persisted due-date state
 
----
+`pr_body.md` is intentionally committed in this branch as the written source of what was changed and why.
 
-## Why this change
+## Why
 
-Before this update:
-- Readiness state was not centralized in one visible place
-- Due Date urgency was not surfaced inline
-- Operators could still miss re-render intent after edits
-- Review caught a regression where Save/Open could remain enabled after input changes if readiness stayed true
+The original request was to improve the IOM finance workflow, specifically:
+- add a Due Date input under `Adjustments & Carry-forward`
+- add a short, formal note for Finance clarifying the DISCOM cut-off
+- make the due-date selection experience less clunky
 
-This PR addresses all of the above.
+As we implemented that, a few adjacent issues became clear:
+- Save/Open PDF actions could remain enabled after inputs changed, which risked exporting stale previews
+- the new finance-readiness information needed to be visible without overcrowding the header
+- the toolbar had become too wide and was wrapping awkwardly
+- several menu and focus behaviors needed to be reworked after consolidation
 
----
+This PR addresses all of that as one coherent UX pass.
 
-## What changed
+## What Changed
 
-### 1) Finance Readiness UI near Make IOM
+### 1. Due Date and finance-readiness workflow
 
-Added a toolbar readiness control:
-- `#financeReadinessBadge`
-- popover panel `#financeReadinessPopover`
-- checklist rows:
-  - `#readinessDueDate`
-  - `#readinessStrict`
-  - `#readinessFinalCheck`
-- issue list with jump-to-field actions:
-  - `#readinessIssueList`
+Added a dedicated `Due Date` field in the form and wired it into readiness and IOM generation.
 
-Behavior:
-- Shows `Ready` or `Blocked`
-- Displays actionable blocking issues
-- Clicking an issue focuses/scrolls to the field and closes the popover
+Included a concise finance-facing payment cut-off note in the generated IOM/PDF using the DISCOM context, so Finance is clearly instructed to process payment before the DISCOM cut-off time.
 
-### 2) Due Date risk chip
+Improved the due-date workflow with quick actions so users can set a practical due date faster instead of typing it manually every time.
 
-Added inline risk chip:
-- `#dueDateRiskChip`
+Also added readiness checks so:
+- `Render IOM` is enabled only when base readiness is satisfied
+- `Save as PDF` / `Open PDF View` are enabled only when a fresh preview exists
+- any relevant form change invalidates stale preview actions until the IOM is rendered again
 
-States:
-- `none` (no due date)
-- `safe`
-- `today`
-- `high-risk` (due tomorrow)
-- `overdue` (past due date, or same day >= 16:00)
+### 2. Stale-preview protection and compatibility fixes
 
-### 3) Due Date quick actions
+Hardened the render/export flow so stale IOM previews cannot be accidentally reused.
 
-Added two new quick action buttons:
-- `#dueDatePrevWorkingDay`
-- `#dueDateClear`
+This includes:
+- invalidating preview freshness when regular form inputs change
+- invalidating preview freshness when due-date quick actions change the due date
+- keeping Save/Open disabled until the preview is fresh again
 
-Rules:
-- Previous working day skips weekend days (Sat/Sun)
-- Clear resets due date and updates readiness/risk immediately
+Added backward-compatibility protection for existing persisted browser state:
+- legacy `rc_dueDate` values are restored into the new `dueDate` field
+- the new due-date control is excluded from INR masking, including text-input fallback scenarios
 
-### 4) Centralized readiness and action gating
+### 3. Toolbar and dropdown consolidation
 
-Introduced unified readiness flow:
-- `computeIomReadiness()`
-- `updateIomUxState()`
-- `getDueDateRiskState()`
+Reorganized the top bar into a cleaner, task-based structure:
+- `Billing Month`
+- `Workbook`
+- `Make IOM`
+- `Configuration`
+- `More`
 
-Gating rules:
-- `Render IOM` enabled only when **base readiness** is met
-- `Save as PDF` / `Open PDF View` enabled only when:
-  - base readiness is met
-  - preview exists
-  - preview is fresh
-  - host is not busy
+This removed the old overcrowded top-level sprawl and grouped related actions together.
 
-### 5) Regression fix: stale-preview export protection
+#### Workbook
+Merged the previous Sheets / Workbook / Analysis areas into a single `Workbook` menu.
 
-Review finding addressed:
-- Added preview freshness flag on host:
-  - set fresh on render (`data-preview-fresh='1'`)
-  - set stale on any input/change path via `disablePrintActions()` (`data-preview-fresh='0'`)
-- Save/Open remain disabled until user renders again
+The Workbook dropdown now contains:
+- workbook actions
+- sheet browsing/search
+- analysis actions
+- a clearly separated danger zone for `Clear Sheets`
 
-This restores and strengthens the stale-preview safeguard.
+#### Make IOM
+Folded Finance readiness into `Make IOM` instead of keeping it as a separate top-level item.
 
----
+The menu now provides:
+- inline readiness chip in the summary
+- readiness checklist
+- `Go Fix` issue actions
+- IOM actions
+- print preference controls
 
-## Files changed
+#### Configuration
+Kept `Configuration` as its own top-level item and split the contents into more scannable groups:
+- A. Shares
+- B. Central Dak
+- C. Rendered details
+- D. Vendor display
+- E. Bank details
+- F. Approvals
 
-### Application
-- `1.4.1 GUI Entry.html`
-  - UI: readiness popover + due-date risk/quick actions
-  - CSS: readiness/risk visuals
-  - JS: readiness model, gating, issue navigation, stale-preview freshness tracking
+#### More
+Reduced `More` to lower-frequency actions:
+- theme selection
+- utility actions
+- reset in a separate danger zone
 
-### Tests
-- `test/readiness-ux.spec.js` (new)
-  - action gating behavior
-  - stale preview disable after edits
-  - risk classification
-  - quick actions
-  - go-fix focus behavior
-- `test/basic.test.js`
-  - updated expectations for current sample defaults
-  - due-date note + strict due-date requirement checks
-- `test/sample-bill.spec.js`
-  - aligned expected ARREAR_ED values with current compute behavior
+### 4. Menu usability and accessibility hardening
 
-### PR metadata
-- `pr_body.md` (this file)
+A large part of this branch is follow-up refinement after review to make the consolidated menus behave correctly.
 
----
+Key fixes include:
+- restoring sheet-search arrow-key navigation into filtered sheet results
+- allowing `ArrowUp` from sheet search to move back into preceding Workbook actions
+- ensuring empty sheet-result states still allow arrow navigation into Workbook actions
+- filtering disabled IOM actions out of roving keyboard navigation
+- preserving keyboard focus when readiness issues are refreshed inside `Make IOM`
+- closing `Make IOM` when `Go Fix` actions are clicked and focusing the correct field
+- restoring document-level `Escape` close behavior for `Configuration`
+- restoring focus correctly when `Configuration` is dismissed via outside click
+- keeping `Configuration` open during `Load/Import` by exempting the hidden file input from outside-click dismissal
+- supporting directional keyboard navigation for the 2-column theme grid in `More`
+- allowing arrow navigation to leave the bottom row of the theme grid and continue into the next menu section
 
-## Validation
+### 5. Responsive placement and viewport behavior
 
-Executed:
-- `npm test`
+The consolidated menus are wider and taller than before, so menu placement needed dedicated handling.
+
+This branch adds and refines a shared placement helper that now:
+- clamps menus horizontally to the viewport
+- preserves each panel's CSS max-height cap
+- remeasures after dynamic content changes
+- repositions menus after Workbook sheet list refreshes and after Make IOM readiness refreshes
+- prefers the larger space above when a wrapped sticky toolbar leaves too little usable room below
+
+This keeps the menus usable across:
+- short viewports
+- split-screen layouts
+- wrapped toolbar layouts
+- higher zoom scenarios
+
+### 6. Workbook refresh behavior after download
+
+When `Auto-update on Download` is enabled, downloading the workbook can create/update the current month sheet.
+
+The open Workbook browser now refreshes immediately after that update so the newly added month appears in the visible sheet list right away, without requiring the user to close/reopen the menu.
+
+### 7. Header polish
+
+Replaced the old generic circle mark with a cleaner animated lightning/power icon in the header.
+
+The final version keeps the motion subtle and includes reduced-motion support.
+
+## Files
+
+### `1.4.1 GUI Entry.html`
+Contains the full product change set:
+- Due Date UI and note integration
+- finance-readiness UI and gating
+- toolbar/menu restructuring
+- configuration regrouping
+- menu placement logic
+- keyboard/focus behavior fixes
+- header icon refresh
+
+### `test/readiness-ux.spec.js`
+Expanded significantly to cover the new UX contract, including:
+- readiness gating
+- stale-preview invalidation
+- due-date compatibility behavior
+- consolidated toolbar structure
+- Workbook search and arrow navigation
+- menu placement behavior
+- Make IOM focus/placement behavior
+- Configuration close/focus behavior
+- theme-grid keyboard navigation
+- auto-refresh behavior after download
+
+### `pr_body.md`
+Committed as the branch-local change log / source of truth for this work.
+
+## Testing
+
+Ran:
+
+```bash
+npm test
+```
 
 Result:
-- 14 passed
-- 0 failed
-
----
+- `14/14` tests passing
 
 ## Notes
 
-- `Untitled.png` exists untracked in the branch workspace and is intentionally not included in this PR.
-- Existing due-date note now uses concise Finance wording with DISCOM interpolation and remains covered by tests.
-
----
-
-## Risks / compatibility
-
-- Readiness now actively controls IOM actions; this is intentional and improves safety.
-- No formula logic for billing computation was changed in this PR.
-- Previous-working-day logic is weekend-aware only (no holiday calendar integration).
-
----
-
-## Rollout / usage
-
-1. Set/verify Due Date.
-2. Observe readiness + risk status.
-3. Resolve any listed issues via popover links.
-4. Render IOM.
-5. Save/Open PDF only after fresh render state is available.
+This branch went through multiple review-driven hardening passes. The final state is intentionally more robust than the original feature request because the toolbar consolidation exposed several real keyboard, focus, and viewport edge cases that are now covered by tests.
