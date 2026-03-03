@@ -50,14 +50,73 @@
       padding:6px 0;               /* slimmer top bar */
     }
 
-    .brand svg{width:26px;height:26px}
+    .brand svg{width:30px;height:30px}
     .brand h1{font-size:18px;line-height:1.2}
     .sub{font-size:12px;margin-top:2px}
 
     .brand{display:flex;align-items:center;gap:12px}
     .brand h1{margin:0;letter-spacing:.3px}
     .sub{color:var(--ink)}
-
+    .brand-mark{
+      overflow:visible;
+      filter:drop-shadow(0 0 10px rgba(34,211,238,.18));
+    }
+    .brand-mark .brand-ring{
+      fill:none;
+      stroke-linecap:round;
+      transform-box:fill-box;
+      transform-origin:center;
+    }
+    .brand-mark .brand-ring-outer{
+      stroke:url(#brandRingGrad);
+      stroke-width:1.8;
+      stroke-dasharray:54 34;
+      opacity:.72;
+      animation:brandOrbit 8s linear infinite;
+    }
+    .brand-mark .brand-ring-inner{
+      stroke:rgba(255,255,255,.35);
+      stroke-width:1.4;
+      stroke-dasharray:24 16;
+      opacity:.78;
+      animation:brandOrbitReverse 5.5s linear infinite;
+    }
+    .brand-mark .brand-core{
+      fill:url(#brandCoreGrad);
+      animation:brandPulse 2.4s ease-in-out infinite;
+    }
+    .brand-mark .brand-bolt{
+      fill:url(#brandBoltGrad);
+      filter:drop-shadow(0 0 8px rgba(251,191,36,.35));
+      animation:brandBoltPulse 1.8s ease-in-out infinite;
+      transform-box:fill-box;
+      transform-origin:center;
+    }
+    @keyframes brandOrbit{
+      from{transform:rotate(0deg);}
+      to{transform:rotate(360deg);}
+    }
+    @keyframes brandOrbitReverse{
+      from{transform:rotate(360deg);}
+      to{transform:rotate(0deg);}
+    }
+    @keyframes brandPulse{
+      0%, 100%{opacity:.72; transform:scale(.92);}
+      50%{opacity:1; transform:scale(1.06);}
+    }
+    @keyframes brandBoltPulse{
+      0%, 100%{transform:scale(.96); opacity:.88;}
+      45%{transform:scale(1.04); opacity:1;}
+      55%{transform:scale(1.08); opacity:1;}
+    }
+    @media (prefers-reduced-motion: reduce){
+      .brand-mark .brand-ring-outer,
+      .brand-mark .brand-ring-inner,
+      .brand-mark .brand-core,
+      .brand-mark .brand-bolt{
+        animation:none;
+      }
+    }
     button, .ghost{
       border:0;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:600;letter-spacing:.2px;
       line-height:1.1;               /* compact but readable */
@@ -1092,6 +1151,81 @@
       padding:12px;
       gap:12px;
     }
+    .workbook-panel,
+    .more-panel{
+      width:min(360px, 92vw);
+      --menu-max-height:min(70vh, calc(100vh - 24px));
+      max-height:var(--menu-max-height);
+      overflow:auto;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+    }
+    .more-panel{
+      width:min(320px, 92vw);
+    }
+    .menu-section{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .menu-inline-pill{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      min-height:30px;
+    }
+    .menu-section-title{
+      font-size:11px;
+      color:var(--muted);
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      padding:0 4px;
+    }
+    .menu-section-title.danger{
+      color:#fca5a5;
+    }
+    .menu-status-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:0 4px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .menu-status-value{
+      color:var(--ink);
+      font-weight:600;
+    }
+    .sheet-menu-scroller{
+      max-height:180px;
+      overflow:auto;
+    }
+    .theme-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:6px;
+    }
+    .theme-grid [role="menuitem"]{
+      justify-content:flex-start;
+      text-align:left;
+      white-space:normal;
+      height:auto;
+      min-height:40px;
+      padding:6px 8px;
+      align-items:flex-start;
+    }
+    .config-menu{
+      z-index:3;
+    }
+    .config-flyout{
+      left:auto;
+      right:0;
+      top:calc(100% + 4px);
+      bottom:auto;
+      --menu-max-height:min(75vh, calc(100vh - 24px));
+      max-height:var(--menu-max-height);
+    }
     .config-group{
       display:flex;
       flex-direction:column;
@@ -1147,6 +1281,12 @@
       flex-wrap:wrap;
       gap:8px;
       justify-content:flex-end;
+      position:sticky;
+      bottom:-12px;
+      margin-top:4px;
+      padding-top:10px;
+      background:linear-gradient(180deg, rgba(15,23,42,0), rgba(15,23,42,.92) 28%);
+      border-top:1px solid rgba(255,255,255,.08);
     }
     .config-actions button{
       flex:0 0 auto;
@@ -1154,20 +1294,97 @@
     .menu-panel.drop-up{ top:auto; bottom:calc(100% + 4px); }
     .menu-panel [role="menuitem"]{display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; border-radius:8px}
     .menu-panel [role="menuitem"]:hover,.menu-panel [role="menuitem"]:focus{background:rgba(255,255,255,.06); outline:none}
-    .readiness-panel{
-      width:min(320px, 92vw);
+    .menu-panel .danger-action{
+      color:#fecaca;
+      background:rgba(127,29,29,.28);
+      box-shadow:inset 0 0 0 1px rgba(248,113,113,.18);
+    }
+    .menu-panel .danger-action:hover,
+    .menu-panel .danger-action:focus{
+      background:rgba(127,29,29,.4);
+    }
+    .iom-panel{
+      width:min(340px, 92vw);
       gap:8px;
+      --menu-max-height:min(70vh, calc(100vh - 24px));
+      max-height:var(--menu-max-height);
+      overflow:auto;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+    }
+    .iom-summary{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-width:0;
+      line-height:normal;
+    }
+    .iom-summary-main{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+    }
+    .iom-summary-label{
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .iom-summary-caret{
+      color:var(--muted);
+      font-size:12px;
+      flex:0 0 auto;
     }
     #financeReadinessBadge{
-      min-width:220px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+      height:22px;
+      padding:0 8px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.35);
+      background:rgba(255,255,255,.04);
+      font-size:11px;
+      line-height:1;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+    #financeReadinessBadge .status-dot{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:rgba(148,163,184,.7);
+      flex:0 0 auto;
     }
     #financeReadinessBadge[data-state="ready"]{
       border-color:rgba(34,197,94,.55);
       box-shadow:0 0 0 1px rgba(34,197,94,.2) inset;
     }
+    #financeReadinessBadge[data-state="ready"] .status-dot{
+      background:#22c55e;
+      box-shadow:0 0 0 3px rgba(34,197,94,.16);
+    }
     #financeReadinessBadge[data-state="blocked"]{
       border-color:rgba(245,158,11,.48);
       box-shadow:0 0 0 1px rgba(245,158,11,.16) inset;
+    }
+    #financeReadinessBadge[data-state="blocked"] .status-dot{
+      background:#f59e0b;
+      box-shadow:0 0 0 3px rgba(245,158,11,.14);
+    }
+    .readiness-menu-block{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding:2px 0;
+    }
+    .readiness-menu-head{
+      font-size:11px;
+      color:var(--muted);
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      padding:0 4px;
     }
     .readiness-checks{
       display:flex;
@@ -2095,7 +2312,7 @@
         color:#ffb3a9;
       }
 
-      #themeMenu .menu-panel button[data-active="true"]{
+      #moreMenu .menu-panel [data-theme-option][data-active="true"]{
         border-color:rgba(211,154,88,.56);
         background:linear-gradient(180deg, rgba(76,61,42,.82), rgba(58,45,30,.88));
         color:#f7e6cc;
@@ -2175,7 +2392,7 @@
         border-color:rgba(129,178,255,.34);
         background:linear-gradient(180deg, rgba(17,29,52,.96), rgba(10,20,39,.96));
       }
-      html[data-theme="classic"] #themeMenu .menu-panel button[data-active="true"]{
+      html[data-theme="classic"] #moreMenu .menu-panel [data-theme-option][data-active="true"]{
         border-color:rgba(34,211,238,.64);
         background:linear-gradient(180deg, rgba(14,52,77,.9), rgba(18,39,80,.9));
         color:#d9fbff;
@@ -2402,7 +2619,7 @@
         border-color:rgba(104,164,116,.3);
         background:linear-gradient(180deg, rgba(16,34,24,.96), rgba(10,24,17,.96));
       }
-      html[data-theme="military"] #themeMenu .menu-panel button[data-active="true"]{
+      html[data-theme="military"] #moreMenu .menu-panel [data-theme-option][data-active="true"]{
         border-color:rgba(122,244,148,.62);
         background:linear-gradient(180deg, rgba(30,80,50,.9), rgba(18,61,40,.9));
         color:#dcffea;
@@ -2652,7 +2869,7 @@
         border-color:rgba(124,193,223,.3);
         background:linear-gradient(180deg, rgba(16,39,54,.96), rgba(12,30,43,.96));
       }
-      html[data-theme="arctic"] #themeMenu .menu-panel button[data-active="true"]{
+      html[data-theme="arctic"] #moreMenu .menu-panel [data-theme-option][data-active="true"]{
         border-color:rgba(109,224,255,.64);
         background:linear-gradient(180deg, rgba(22,78,101,.9), rgba(20,61,83,.9));
         color:#ddf8ff;
@@ -2871,7 +3088,7 @@
         border-color:rgba(120,150,186,.28);
         background:linear-gradient(180deg, rgba(252,255,255,.98), rgba(238,245,253,.97));
       }
-      html[data-theme="executive"] #themeMenu .menu-panel button[data-active="true"]{
+      html[data-theme="executive"] #moreMenu .menu-panel [data-theme-option][data-active="true"]{
         border-color:rgba(43,108,176,.56);
         background:linear-gradient(180deg, rgba(220,235,252,.92), rgba(206,224,246,.92));
         color:#15355b;
@@ -3115,7 +3332,7 @@
         border-color:rgba(248,204,46,.28);
         background:linear-gradient(180deg, rgba(30,25,12,.96), rgba(22,20,11,.96));
       }
-      html[data-theme="hazard"] #themeMenu .menu-panel button[data-active="true"]{
+      html[data-theme="hazard"] #moreMenu .menu-panel [data-theme-option][data-active="true"]{
         border-color:rgba(248,204,46,.66);
         background:linear-gradient(180deg, rgba(95,75,19,.9), rgba(74,58,15,.9));
         color:#fff5ce;
@@ -3378,14 +3595,28 @@
   <div class="wrap">
     <header>
       <div class="brand">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <svg class="brand-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <linearGradient id="brandRingGrad" x1="5" y1="6" x2="31" y2="30" gradientUnits="userSpaceOnUse">
               <stop stop-color="#22d3ee"/>
+              <stop offset=".55" stop-color="#60a5fa"/>
               <stop offset="1" stop-color="#a78bfa"/>
             </linearGradient>
+            <linearGradient id="brandBoltGrad" x1="13" y1="7" x2="23" y2="29" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fde68a"/>
+              <stop offset=".48" stop-color="#fbbf24"/>
+              <stop offset="1" stop-color="#f59e0b"/>
+            </linearGradient>
+            <radialGradient id="brandCoreGrad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(18 18) rotate(90) scale(6)">
+              <stop stop-color="#ecfeff"/>
+              <stop offset=".58" stop-color="#67e8f9" stop-opacity=".9"/>
+              <stop offset="1" stop-color="#0f172a" stop-opacity="0"/>
+            </radialGradient>
           </defs>
-          <path d="M16 3c7.18 0 13 5.82 13 13s-5.82 13-13 13S3 23.18 3 16 8.82 3 16 3Zm0 4a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 3.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 16 10.2Z" fill="url(#g)"/>
+          <circle class="brand-ring brand-ring-outer" cx="18" cy="18" r="14.5"/>
+          <circle class="brand-ring brand-ring-inner" cx="18" cy="18" r="9.5"/>
+          <circle class="brand-core" cx="18" cy="18" r="5.5"/>
+          <path class="brand-bolt" d="M20.2 4.8 11.7 18.3h5.6L14.4 31l10-14.5h-5.7l1.5-11.7Z"/>
         </svg>
         <div>
           <h1>WEG Billing Calculator</h1>
@@ -3393,89 +3624,94 @@
         </div>
       </div>
       <div class="toolbar">
-        <!-- Theme selector -->
-        <div class="menu" aria-label="Theme">
-          <details id="themeMenu">
-            <summary id="themeMenuSummary" aria-haspopup="menu">Theme: Industrial Premium &#9662;</summary>
-            <div class="menu-panel" role="menu">
-              <button id="themeClassic" role="menuitem" class="ghost" data-theme-option="classic">Classic Neon</button>
-              <button id="themeIndustrial" role="menuitem" class="ghost" data-theme-option="industrial">Industrial Premium</button>
-              <button id="themeMilitary" role="menuitem" class="ghost" data-theme-option="military">Covert Ops</button>
-              <button id="themeArctic" role="menuitem" class="ghost" data-theme-option="arctic">Arctic Command</button>
-              <button id="themeExecutive" role="menuitem" class="ghost" data-theme-option="executive">Executive Light</button>
-              <button id="themeHazard" role="menuitem" class="ghost" data-theme-option="hazard">Hazard Control</button>
-            </div>
-          </details>
-        </div>
         <!-- Month -->
         <label class="pill"><span>Billing Month</span><input type="month" id="billMonth"/></label>
-        <!-- Sheets menu (searchable) -->
-        <div class="menu" aria-label="Sheets">
+        <!-- Workbook menu -->
+        <div class="menu" aria-label="Workbook">
           <details id="sheetsMenu">
-            <summary aria-haspopup="menu">Sheets &#9662;</summary>
-            <div class="menu-panel" role="menu">
-              <div class="pill" style="display:flex;gap:6px;align-items:center;min-height:30px">
-                <input id="sheetSearch" type="text" placeholder="Search sheets&hellip;" aria-label="Search sheets" style="height:28px;line-height:28px;padding:0 8px;width:100%">
+            <summary aria-haspopup="menu">Workbook &#9662;</summary>
+            <div class="menu-panel workbook-panel" role="menu">
+              <div class="menu-section">
+                <div class="menu-section-title">Workbook actions</div>
+                <button id="addSheet" role="menuitem" class="ghost">Add/Update Sheet</button>
+                <button id="uploadExcel" role="menuitem" class="ghost">Upload</button>
+                <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
+                <label id="autoUpdateToggle" role="menuitemcheckbox" aria-checked="true" class="ghost">
+                  <input type="checkbox" id="autoUpdateOnDownload" checked> Auto-update on Download
+                </label>
+                <button id="downloadExcel" role="menuitem" class="ghost">Download</button>
               </div>
-              <div id="sheetMenuList" style="max-height:320px;overflow:auto"></div>
+              <div class="menu-sep"></div>
+              <div class="menu-section">
+                <div class="menu-section-title">Browse sheets</div>
+                <div class="pill menu-inline-pill">
+                  <input id="sheetSearch" type="text" placeholder="Search sheets&hellip;" aria-label="Search sheets" style="height:28px;line-height:28px;padding:0 8px;width:100%">
+                </div>
+                <div id="sheetMenuList" class="sheet-menu-scroller"></div>
+              </div>
+              <div class="menu-sep"></div>
+              <div class="menu-section">
+                <div class="menu-section-title">Analysis</div>
+                <button id="analyzeWorkbook" role="menuitem" class="ghost">Build Monthly Trends</button>
+                <button id="exportAnalysisCsv" role="menuitem" class="ghost">Export Analysis CSV</button>
+              </div>
+              <div class="menu-sep"></div>
+              <div class="menu-section">
+                <div class="menu-section-title danger">Danger zone</div>
+                <button id="clearSheets" role="menuitem" class="ghost danger-action">Clear Sheets</button>
+              </div>
             </div>
           </details>
         </div>
         <div id="sheetList" class="pills" role="listbox" hidden aria-hidden="true"></div>
 
-        <!-- Workbook menu -->
-        <div class="menu" aria-label="Workbook">
-          <details>
-            <summary aria-haspopup="menu">Workbook &#9662;</summary>
-            <div class="menu-panel" role="menu">
-              <button id="addSheet" role="menuitem" class="ghost">Add/Update Sheet</button>
-              <button id="uploadExcel" role="menuitem" class="ghost">Upload</button>
-              <input type="file" id="uploadXlsx" accept=".xlsx" hidden>
-                <label id="autoUpdateToggle" role="menuitemcheckbox" aria-checked="true" class="ghost">
-                  <input type="checkbox" id="autoUpdateOnDownload" checked> Auto-update on Download
-                </label>
-              <div class="menu-sep"></div>
-              <button id="downloadExcel" role="menuitem" class="ghost">Download</button>
-            </div>
-          </details>
-        </div>
-
         <!-- IOM Output menu -->
         <div class="menu" aria-label="IOM Output">
-          <details>
-            <summary aria-haspopup="menu">Make IOM &#9662;</summary>
-            <div class="menu-panel" role="menu">
-              <button id="renderHtml" role="menuitem" class="ghost">Render IOM</button>
-              <button id="menuSavePdf" role="menuitem" class="ghost">Save as PDF</button>
-              <button id="menuOpenPdf" role="menuitem" class="ghost">Open PDF View</button>
-              <label role="menuitemcheckbox" aria-checked="false" class="ghost"><input type="checkbox" id="autoPrintHtml"> Auto-print</label>
-            </div>
-          </details>
-        </div>
-        <div class="menu" aria-label="Finance Readiness">
-          <details id="financeReadinessDetails">
-            <summary id="financeReadinessBadge" aria-haspopup="menu" aria-controls="financeReadinessPopover">
-              Finance Ready: <span id="financeReadinessState">Blocked</span> &#9662;
+          <details id="iomMenu">
+            <summary class="iom-summary" aria-haspopup="menu" aria-controls="iomMenuPanel">
+              <span class="iom-summary-main">
+                <span class="iom-summary-label">Make IOM</span>
+                <span id="financeReadinessBadge" data-state="blocked">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span id="financeReadinessState">Blocked</span>
+                </span>
+              </span>
+              <span class="iom-summary-caret" aria-hidden="true">&#9662;</span>
             </summary>
-            <div class="menu-panel readiness-panel" id="financeReadinessPopover" role="menu">
-              <div class="readiness-checks" aria-live="polite">
-                <div class="readiness-check" id="readinessDueDate" data-state="bad">
-                  <span class="dot" aria-hidden="true"></span>
-                  <span>Due Date set</span>
+            <div class="menu-panel iom-panel" id="iomMenuPanel" role="menu">
+              <div class="readiness-menu-block">
+                <div class="readiness-menu-head">Finance readiness</div>
+                <div class="readiness-checks" aria-live="polite">
+                  <div class="readiness-check" id="readinessDueDate" data-state="bad">
+                    <span class="dot" aria-hidden="true"></span>
+                    <span>Due Date set</span>
+                  </div>
+                  <div class="readiness-check" id="readinessStrict" data-state="bad">
+                    <span class="dot" aria-hidden="true"></span>
+                    <span>Mandatory checks passed</span>
+                  </div>
+                  <div class="readiness-check" id="readinessFinalCheck" data-state="bad">
+                    <span class="dot" aria-hidden="true"></span>
+                    <span>Final check stable</span>
+                  </div>
                 </div>
-                <div class="readiness-check" id="readinessStrict" data-state="bad">
-                  <span class="dot" aria-hidden="true"></span>
-                  <span>Mandatory checks passed</span>
-                </div>
-                <div class="readiness-check" id="readinessFinalCheck" data-state="bad">
-                  <span class="dot" aria-hidden="true"></span>
-                  <span>Final check stable</span>
+                <div class="menu-sep"></div>
+                <div class="readiness-issues-title">Fix before render</div>
+                <div id="readinessIssueList" class="readiness-issue-list">
+                  <div class="readiness-empty">No blocking issues.</div>
                 </div>
               </div>
               <div class="menu-sep"></div>
-              <div class="readiness-issues-title">Go Fix</div>
-              <div id="readinessIssueList" class="readiness-issue-list">
-                <div class="readiness-empty">No blocking issues.</div>
+              <div class="menu-section">
+                <div class="menu-section-title">Actions</div>
+                <button id="renderHtml" role="menuitem">Render IOM</button>
+                <button id="menuSavePdf" role="menuitem" class="ghost">Save as PDF</button>
+                <button id="menuOpenPdf" role="menuitem" class="ghost">Open PDF View</button>
+              </div>
+              <div class="menu-sep"></div>
+              <div class="menu-section">
+                <div class="menu-section-title">Print preference</div>
+                <label role="menuitemcheckbox" aria-checked="false" class="ghost"><input type="checkbox" id="autoPrintHtml"> Auto-print</label>
               </div>
             </div>
           </details>
@@ -3487,34 +3723,13 @@
                 style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"
                 aria-hidden="true" tabindex="-1" disabled aria-disabled="true">Open PDF View</button>
 
-        <!-- Utilities menu -->
-        <div class="menu" aria-label="Utilities">
-          <details>
-            <summary aria-haspopup="menu">Utilities &#9662;</summary>
-            <div class="menu-panel" role="menu">
-              <button id="resetSample" role="menuitem" class="ghost">Sample Data</button>
-              <button id="resetAll" role="menuitem" class="ghost">Reset</button>
-              <button id="clearSheets" role="menuitem" class="ghost">Clear Sheets</button>
-            </div>
-          </details>
-        </div>
-        <!-- Analysis menu -->
-        <div class="menu" aria-label="Analysis">
-          <details>
-            <summary aria-haspopup="menu">Analysis &#9662;</summary>
-            <div class="menu-panel" role="menu">
-              <button id="analyzeWorkbook" role="menuitem" class="ghost">Build Monthly Trends</button>
-              <button id="exportAnalysisCsv" role="menuitem" class="ghost">Export Analysis CSV</button>
-            </div>
-          </details>
-        </div>
         <!-- Configuration menu -->
-        <div class="menu" aria-label="Configuration">
+        <div class="menu config-menu" aria-label="Configuration">
           <details id="configMenu">
             <summary id="configMenuSummary" aria-haspopup="dialog">Configuration &#9662;</summary>
-            <div class="menu-panel config-panel" role="group" aria-label="Configuration panel">
+            <div class="menu-panel config-panel config-flyout" role="group" aria-label="Configuration panel">
               <div class="config-group" data-config-group="A">
-                <h3>A. WEG &mdash; Inputs</h3>
+                <h3>A. Shares</h3>
                 <div class="config-field">
                   <label for="config_share_bitlavadia_pct">Share Bitlavadia (%)</label>
                   <input type="number" step="0.01" min="0" max="100" id="config_share_bitlavadia_pct" aria-label="Share Bitlavadia percentage" inputmode="decimal">
@@ -3527,7 +3742,7 @@
                 </div>
               </div>
               <div class="config-group" data-config-group="B">
-                <h3>B. Central Dak Receipt &mdash; Inputs</h3>
+                <h3>B. Central Dak</h3>
                 <div class="config-field">
                   <label for="config_vendor_code">Vendor Code</label>
                   <input type="text" id="config_vendor_code" aria-label="Vendor Code" autocomplete="off">
@@ -3545,20 +3760,20 @@
                 </div>
               </div>
               <div class="config-group" data-config-group="C">
-                <h3>C. Central Dak Receipt &mdash; Rendered sheet</h3>
+                <h3>C. Rendered details</h3>
                 <div class="config-field">
                   <label for="config_ips_samakhiali">Unit Name</label>
                   <input type="text" id="config_ips_samakhiali" aria-label="IPS unit name placeholder">
                   <div class="config-hint" id="config_ips_samakhiali_hint"></div>
                 </div>
-              </div>
-              <div class="config-group" data-config-group="D">
-                <h3>D. IOM Sheet &mdash; Rendered</h3>
                 <div class="config-field">
                   <label for="config_iom_location">Location</label>
                   <input type="text" id="config_iom_location" aria-label="IOM location placeholder">
                   <div class="config-hint" id="config_iom_location_hint" data-default="Auto-fills from Unit Name; adjust if needed."></div>
                 </div>
+              </div>
+              <div class="config-group" data-config-group="D">
+                <h3>D. Vendor display</h3>
                 <div class="config-field">
                   <label for="config_iom_company_name">Vendor Name</label>
                   <input type="text" id="config_iom_company_name" aria-label="IOM vendor name">
@@ -3569,6 +3784,9 @@
                   <input type="text" id="config_iom_vendor_code" aria-label="IOM vendor code">
                   <div class="config-hint" id="config_iom_vendor_code_hint" data-default="Auto-fills from Central Dak vendor code."></div>
                 </div>
+              </div>
+              <div class="config-group" data-config-group="E">
+                <h3>E. Bank details</h3>
                 <div class="config-field">
                   <label for="config_bank_ac_no">Bank A/C No.</label>
                   <input type="text" id="config_bank_ac_no" aria-label="Bank account number" autocomplete="off">
@@ -3584,6 +3802,9 @@
                   <input type="text" id="config_branch" aria-label="Bank branch">
                   <div class="config-hint" id="config_branch_hint"></div>
                 </div>
+              </div>
+              <div class="config-group" data-config-group="F">
+                <h3>F. Approvals</h3>
                 <div class="config-field">
                   <label for="config_approver_dgm_wic">Approver &mdash; DGM (O&amp;M)/WIC</label>
                   <input type="text" id="config_approver_dgm_wic" aria-label="Approver DGM O and M WIC">
@@ -3611,15 +3832,48 @@
             </div>
           </details>
         </div>
-        <input type="file" id="configFileInput" accept="application/json" hidden>
+        <!-- More menu -->
+        <div class="menu" aria-label="More">
+          <details id="moreMenu">
+            <summary id="moreMenuSummary" aria-haspopup="menu">More &#9662;</summary>
+            <div class="menu-panel more-panel" role="menu">
+              <div class="menu-section">
+                <div class="menu-section-title">Theme</div>
+                <div class="menu-status-row">
+                  <span>Active</span>
+                  <span id="themeMenuStatus" class="menu-status-value">Industrial Premium</span>
+                </div>
+                <div class="theme-grid" data-menu-grid-columns="2">
+                  <button id="themeClassic" role="menuitem" class="ghost" data-theme-option="classic">Classic Neon</button>
+                  <button id="themeIndustrial" role="menuitem" class="ghost" data-theme-option="industrial">Industrial Premium</button>
+                  <button id="themeMilitary" role="menuitem" class="ghost" data-theme-option="military">Covert Ops</button>
+                  <button id="themeArctic" role="menuitem" class="ghost" data-theme-option="arctic">Arctic Command</button>
+                  <button id="themeExecutive" role="menuitem" class="ghost" data-theme-option="executive">Executive Light</button>
+                  <button id="themeHazard" role="menuitem" class="ghost" data-theme-option="hazard">Hazard Control</button>
+                </div>
+              </div>
+              <div class="menu-sep"></div>
+              <div class="menu-section">
+                <div class="menu-section-title">Utilities</div>
+                <button id="resetSample" role="menuitem" class="ghost">Sample Data</button>
+              </div>
+              <div class="menu-sep"></div>
+              <div class="menu-section">
+                <div class="menu-section-title danger">Danger zone</div>
+                <button id="resetAll" role="menuitem" class="ghost danger-action">Reset</button>
+              </div>
+            </div>
+          </details>
+        </div>
       </div>
+        <input type="file" id="configFileInput" accept="application/json" hidden>
       </header>
       <script>
         // UI-only theme menu wiring
         document.addEventListener('DOMContentLoaded', function(){
           var root = document.documentElement;
-          var menu = document.getElementById('themeMenu');
-          var summary = document.getElementById('themeMenuSummary');
+          var menu = document.getElementById('moreMenu');
+          var status = document.getElementById('themeMenuStatus');
           var options = [
             { id:'themeClassic', value:'classic', label:'Classic Neon' },
             { id:'themeIndustrial', value:'industrial', label:'Industrial Premium' },
@@ -3648,9 +3902,9 @@
               el.setAttribute('aria-checked', isActive ? 'true' : 'false');
               el.textContent = (isActive ? '✓ ' : '') + opt.label;
             });
-            if(summary){
+            if(status){
               var selected = options.find(function(opt){ return opt.value === active; }) || options[1];
-              summary.innerHTML = 'Theme: ' + selected.label + ' &#9662;';
+              status.textContent = selected.label;
             }
           }
 
@@ -4881,23 +5135,56 @@
       validateConfigValues(window.appConfig);
       applyConfigToInputs(window.appConfig, { onlyBlank:true });
       const summary = document.getElementById('configMenuSummary');
+      const panel = details.querySelector('.config-flyout');
+      const fileInput = $('configFileInput');
+      let suppressReturnFocus = false;
+
+      const closeDetails = (options={}) => {
+        const restoreFocus = options.restoreFocus !== false;
+        if(!details.open) return;
+        suppressReturnFocus = !restoreFocus;
+        details.removeAttribute('open');
+      };
+      window.closeConfigMenu = closeDetails;
 
       const focusFirstField = () => {
         const firstEl = getConfigInputEl(CONFIG_KEYS[0]);
         if(firstEl) firstEl.focus();
       };
+      const focusConfigReturn = () => {
+        if(summary) summary.focus();
+      };
 
       details.addEventListener('toggle', ()=>{
         if(details.open){
-          requestAnimationFrame(focusFirstField);
+          closeGenericMenus();
+          requestAnimationFrame(()=>{
+            syncMenuPanelPlacement(details);
+            focusFirstField();
+          });
+        }else{
+          const shouldRestore = !suppressReturnFocus;
+          requestAnimationFrame(()=>{
+            const activeInsideClosedConfig = details.contains(document.activeElement);
+            if(shouldRestore || activeInsideClosedConfig) focusConfigReturn();
+            suppressReturnFocus = false;
+          });
         }
       });
       details.addEventListener('keydown', (e)=>{
         if(e.key === 'Escape'){
           e.preventDefault();
-          details.removeAttribute('open');
-          summary?.focus();
+          closeDetails();
         }
+      });
+      document.addEventListener('click', (e)=>{
+        if(!details.open) return;
+        const target = e.target;
+        if(details.contains(target) || fileInput?.contains(target)) return;
+        const focusableTarget = target instanceof Element
+          ? target.closest('button, a[href], input, select, textarea, summary, label, [tabindex]:not([tabindex="-1"]), [contenteditable="true"], [role="button"], [role="menuitem"], [role="menuitemcheckbox"]')
+          : null;
+        closeDetails({ restoreFocus: !focusableTarget });
       });
 
       CONFIG_KEYS.forEach(key=>{
@@ -5002,7 +5289,6 @@
         }
       });
 
-      const fileInput = $('configFileInput');
       const loadBtn = $('configLoad');
       loadBtn?.addEventListener('click', ()=>{
         fileInput?.click();
@@ -5044,7 +5330,6 @@
       const closeBtn = $('configClose');
       closeBtn?.addEventListener('click', ()=>{
         details.removeAttribute('open');
-        summary?.focus();
       });
     }
 
@@ -7845,57 +8130,163 @@
         lines.push(`Rupees ${inWords(finalAmt)} Only`);
         return lines.join('\n');
       }
-  // Basic menu behavior for <details>-based dropdowns
+  // Basic menu behavior for shared toolbar dropdowns
+  function getGenericMenuDetails(){
+    return Array.from(document.querySelectorAll('.menu details'))
+      .filter(d => d.id !== 'configMenu');
+  }
+  function getOpenGenericMenu(){
+    return getGenericMenuDetails().find(d => d.open) || null;
+  }
+  function closeGenericMenus(except){
+    getGenericMenuDetails().forEach(d => {
+      if (d !== except) d.removeAttribute('open');
+    });
+  }
   document.addEventListener('click', (e) => {
-    const openMenus = document.querySelectorAll('.menu details[open]');
+    const openMenus = getGenericMenuDetails().filter(d => d.open);
     for (const d of openMenus) {
       if (!d.contains(e.target)) d.removeAttribute('open');
     }
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      const open = document.querySelector('.menu details[open]');
+      const configMenu = document.getElementById('configMenu');
+      if (configMenu?.open) {
+        e.preventDefault();
+        window.closeConfigMenu?.();
+        return;
+      }
+      const open = getOpenGenericMenu();
       if (open) { open.removeAttribute('open'); open.querySelector('summary')?.focus(); }
     }
   });
-  document.querySelectorAll('.menu details').forEach(d => {
+  function syncMenuPanelPlacement(root){
+    const panel = root?.querySelector?.('.menu-panel');
+    if (!panel) return;
+    panel.style.removeProperty('transform');
+    panel.style.removeProperty('max-height');
+    const anchor = root?.querySelector?.('summary') || root;
+    const anchorRect = anchor?.getBoundingClientRect?.();
+    if (anchorRect) {
+      const viewportPadding = 8;
+      const minimumUsableHeight = 96;
+      const availableBelow = Math.max(1, Math.floor(window.innerHeight - anchorRect.bottom - viewportPadding));
+      const availableAbove = Math.max(1, Math.floor(anchorRect.top - viewportPadding));
+      const shouldDropUp = availableBelow < minimumUsableHeight && availableAbove > availableBelow;
+      const cssMaxHeight = getComputedStyle(panel).getPropertyValue('--menu-max-height').trim();
+      const availableSpace = shouldDropUp ? availableAbove : availableBelow;
+      panel.classList.toggle('drop-up', shouldDropUp);
+      panel.style.maxHeight = cssMaxHeight
+        ? `min(${availableSpace}px, ${cssMaxHeight})`
+        : `${availableSpace}px`;
+    } else {
+      panel.classList.remove('drop-up');
+    }
+    const rect = panel.getBoundingClientRect();
+    let shiftX = 0;
+    if (rect.right > window.innerWidth - 8) {
+      shiftX -= rect.right - (window.innerWidth - 8);
+    }
+    if (rect.left < 8) {
+      shiftX += 8 - rect.left;
+    }
+    if (shiftX) {
+      panel.style.transform = `translateX(${Math.round(shiftX)}px)`;
+    }
+  }
+  function isMenuActionDisabled(el){
+    if(!el) return true;
+    if(el.disabled || el.getAttribute('aria-disabled') === 'true') return true;
+    const nestedControl = el.querySelector?.('input, button, select, textarea');
+    if(nestedControl?.disabled) return true;
+    return false;
+  }
+  function getMenuActionItems(root){
+    if(!root?.querySelectorAll) return [];
+    return Array.from(root.querySelectorAll('.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'))
+      .filter(el => !isMenuActionDisabled(el));
+  }
+  function focusMenuActionItem(root, preferred){
+    const items = getMenuActionItems(root);
+    if (!items.length) return;
+    let next = preferred && items.includes(preferred) ? preferred : null;
+    if (!next && preferred?.dataset?.target) {
+      next = items.find(el => el.dataset?.target === preferred.dataset.target) || null;
+    }
+    if (!next) next = items[0];
+    items.forEach(el => { el.tabIndex = el === next ? 0 : -1; });
+    next.focus();
+  }
+  function focusMenuItems(items, next){
+    if(!items?.length || !next) return;
+    items.forEach(el => { el.tabIndex = el === next ? 0 : -1; });
+    next.focus();
+  }
+  function getMenuGridNavigation(open, key){
+    if(!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) return null;
+    const active = document.activeElement;
+    const grid = active?.closest?.('[data-menu-grid-columns]');
+    if(!grid || !open?.contains?.(grid)) return null;
+    const columns = Math.max(1, Number(grid.dataset.menuGridColumns || 1) || 1);
+    const menuItems = getMenuActionItems(open);
+    const gridItems = Array.from(grid.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]'))
+      .filter(el => !isMenuActionDisabled(el));
+    const index = gridItems.indexOf(active);
+    if(index < 0) return null;
+    const firstGridMenuIndex = menuItems.indexOf(gridItems[0]);
+    const lastGridMenuIndex = menuItems.indexOf(gridItems[gridItems.length - 1]);
+    let target = null;
+    if(key === 'ArrowRight'){
+      const nextIndex = index + 1;
+      if(nextIndex < gridItems.length && Math.floor(nextIndex / columns) === Math.floor(index / columns)) {
+        target = gridItems[nextIndex];
+      }
+    }else if(key === 'ArrowLeft'){
+      const prevIndex = index - 1;
+      if(prevIndex >= 0 && Math.floor(prevIndex / columns) === Math.floor(index / columns)) {
+        target = gridItems[prevIndex];
+      }
+    }else if(key === 'ArrowDown'){
+      target = gridItems[index + columns] || menuItems[lastGridMenuIndex + 1] || null;
+    }else if(key === 'ArrowUp'){
+      target = gridItems[index - columns] || (firstGridMenuIndex > 0 ? menuItems[firstGridMenuIndex - 1] : null);
+    }
+    if(!target) return null;
+    return { items: menuItems, target, handled: true };
+  }
+  getGenericMenuDetails().forEach(d => {
     d.addEventListener('toggle', () => {
       if (d.open) {
-        const panel = d.querySelector('.menu-panel');
-        // Flip up if panel would overflow the viewport bottom
-        if (panel) {
-          panel.classList.remove('drop-up');
-          const rect = panel.getBoundingClientRect();
-          const overflowsBottom = rect.bottom > window.innerHeight - 8;
-          if (overflowsBottom) panel.classList.add('drop-up');
-        }
-        const items = Array.from(d.querySelectorAll(
-          '.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'
-        ));
-        items.forEach((el,i)=> el.tabIndex = i===0 ? 0 : -1);
-        items[0]?.focus();
+        window.closeConfigMenu?.({ restoreFocus:false });
+        closeGenericMenus(d);
+        syncMenuPanelPlacement(d);
+        focusMenuActionItem(d);
       }
     });
   });
   // Re-evaluate placement on resize
   window.addEventListener('resize', () => {
-    const open = document.querySelector('.menu details[open]');
-    if (!open) return;
-    const panel = open.querySelector('.menu-panel');
-    if (!panel) return;
-    panel.classList.remove('drop-up');
-    const rect = panel.getBoundingClientRect();
-    if (rect.bottom > window.innerHeight - 8) panel.classList.add('drop-up');
+    const open = getOpenGenericMenu();
+    if (open) syncMenuPanelPlacement(open);
+    const configMenu = document.getElementById('configMenu');
+    if (configMenu?.open) syncMenuPanelPlacement(configMenu);
   });
 
   // Roving tabindex + arrow key nav inside menus
   document.addEventListener('keydown', (e) => {
-    const open = document.querySelector('.menu details[open]');
+    const open = getOpenGenericMenu();
     if (!open) return;
-    const items = Array.from(open.querySelectorAll('.menu-panel [role="menuitem"], .menu-panel [role="menuitemcheckbox"]'));
+    const items = getMenuActionItems(open);
     if (!items.length) return;
+    const gridNav = getMenuGridNavigation(open, e.key);
+    if (gridNav?.handled) {
+      e.preventDefault();
+      if (gridNav.target) focusMenuItems(gridNav.items, gridNav.target);
+      return;
+    }
     const i = items.indexOf(document.activeElement);
-    const move = (to) => { items.forEach(el=>el.tabIndex=-1); items[to].tabIndex=0; items[to].focus(); };
+    const move = (to) => { focusMenuItems(items, items[to]); };
     if (e.key === 'ArrowDown') { e.preventDefault(); move(Math.min(items.length-1, i<0?0:i+1)); }
     if (e.key === 'ArrowUp')   { e.preventDefault(); move(Math.max(0, i<=0?0:i-1)); }
     if (e.key === 'Home')      { e.preventDefault(); move(0); }
@@ -7997,8 +8388,11 @@
       if (sheetsDetails.open){
         const s = document.getElementById('sheetSearch');
         renderSheetMenu('');
-        // After paint, move focus into the search box
-        requestAnimationFrame(()=>{ if (s) s.focus(); });
+        // Re-measure after sheet rows are populated, then move focus into search.
+        requestAnimationFrame(()=>{
+          syncMenuPanelPlacement(sheetsDetails);
+          if (s) s.focus();
+        });
       }
     });
   }
@@ -8008,6 +8402,42 @@
     sheetSearchInput.addEventListener('input', (e)=>{
       const val = e.target && e.target.value ? e.target.value : '';
       renderSheetMenu(val);
+      const open = document.getElementById('sheetsMenu');
+      if(open?.open) requestAnimationFrame(()=> syncMenuPanelPlacement(open));
+    });
+    sheetSearchInput.addEventListener('keydown', (e)=>{
+      const open = document.getElementById('sheetsMenu');
+      if(!open?.open) return;
+      if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      const items = Array.from(document.querySelectorAll('#sheetMenuList [role="menuitem"]'));
+      const menuItems = getMenuActionItems(open);
+      if(!items.length){
+        const search = e.currentTarget;
+        const beforeSearch = menuItems.filter(el => (search.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) !== 0);
+        const afterSearch = menuItems.filter(el => (search.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0);
+        const target = e.key === 'ArrowDown'
+          ? (afterSearch[0] || menuItems[0] || null)
+          : (beforeSearch[beforeSearch.length - 1] || menuItems[0] || null);
+        if(!target) return;
+        menuItems.forEach(el => { el.tabIndex = el === target ? 0 : -1; });
+        e.preventDefault();
+        e.stopPropagation();
+        target.focus();
+        return;
+      }
+      let target = null;
+      if(e.key === 'ArrowDown'){
+        target = items[0] || null;
+      }else{
+        const firstSheetItem = items[0] || null;
+        const firstSheetIndex = firstSheetItem ? menuItems.indexOf(firstSheetItem) : -1;
+        if(firstSheetIndex > 0) target = menuItems[firstSheetIndex - 1];
+      }
+      if(!target) return;
+      menuItems.forEach(el => { el.tabIndex = el === target ? 0 : -1; });
+      e.preventDefault();
+      e.stopPropagation();
+      target.focus();
     });
   }
 
@@ -8035,7 +8465,7 @@
     });
   }
   syncMenuCheckboxAria();
-  document.querySelectorAll('.menu details').forEach(d=>{
+  getGenericMenuDetails().forEach(d=>{
     d.addEventListener('toggle', ()=> { if (d.open) syncMenuCheckboxAria(d); });
   });
 
@@ -8144,6 +8574,11 @@
         }
 
         canonicalizeWorkbook();
+        if (auto) {
+          refreshSheetList();
+          const openWorkbook = document.getElementById('sheetsMenu');
+          if (openWorkbook?.open) requestAnimationFrame(()=> syncMenuPanelPlacement(openWorkbook));
+        }
         if ((_wb.SheetNames?.length || 0) === 0) {
           toast('No sheets to download. Turn on auto&#8209;update or add a month sheet first.', 'warn');
           return;
@@ -8318,12 +8753,15 @@
         if(!btn) return;
         const targetId = btn.dataset.target || '';
         if(!targetId) return;
-        document.getElementById('financeReadinessDetails')?.removeAttribute('open');
+        document.getElementById('iomMenu')?.removeAttribute('open');
         focusReadinessTarget(targetId);
       });
-      document.getElementById('financeReadinessDetails')?.addEventListener('toggle', (e)=>{
+      document.getElementById('iomMenu')?.addEventListener('toggle', (e)=>{
         if(e.currentTarget && e.currentTarget.open){
+          const preferredFocus = e.currentTarget.contains(document.activeElement) ? document.activeElement : null;
           updateIomUxState();
+          syncMenuPanelPlacement(e.currentTarget);
+          focusMenuActionItem(e.currentTarget, preferredFocus);
         }
       });
 
