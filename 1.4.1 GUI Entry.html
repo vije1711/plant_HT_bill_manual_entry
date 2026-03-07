@@ -1727,7 +1727,7 @@
   <!-- Multi-theme on-screen UI styles -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Rajdhani:wght@500;600;700&family=Sora:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&family=Sora:wght@500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <style id="theme-css">
     @media screen {
       :root{
@@ -3835,6 +3835,232 @@
       html[data-theme="hazard"] table.data input[type="number"]:focus{
         border-color:rgba(248,204,46,.54);
         box-shadow:0 0 0 3px rgba(248,204,46,.14), inset 0 1px 0 rgba(255,245,210,.05);
+      }
+
+      /* Typography system */
+      html{
+        --font-body:"IBM Plex Sans", "Segoe UI", sans-serif;
+        --font-display:"Sora", "IBM Plex Sans", sans-serif;
+        --font-brand:"Sora", "IBM Plex Sans", sans-serif;
+        --font-label:"IBM Plex Sans", "Segoe UI", sans-serif;
+        --font-data:"Sora", "IBM Plex Sans", sans-serif;
+        --font-mono-ui:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+        --type-brand-track:.012em;
+        --type-heading-track:.03em;
+        --type-heading-weight:680;
+        --type-control-track:.04em;
+        --type-meta-track:.1em;
+        --type-label-track:.14em;
+        --type-kicker-track:.2em;
+        --type-table-track:.14em;
+        --type-data-track:.012em;
+      }
+      html[data-theme="industrial"]{
+        --font-body:"IBM Plex Sans", "Segoe UI", sans-serif;
+        --font-display:"Sora", "IBM Plex Sans", sans-serif;
+        --font-brand:"Sora", "IBM Plex Sans", sans-serif;
+        --font-label:"IBM Plex Sans", "Segoe UI", sans-serif;
+        --font-data:"Sora", "IBM Plex Sans", sans-serif;
+        --font-mono-ui:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+        --type-brand-track:.012em;
+        --type-heading-track:.03em;
+        --type-heading-weight:680;
+        --type-control-track:.05em;
+        --type-meta-track:.1em;
+        --type-label-track:.14em;
+        --type-kicker-track:.24em;
+        --type-table-track:.12em;
+        --type-data-track:.012em;
+      }
+      html[data-theme="classic"]{
+        --font-body:"Space Grotesk", "IBM Plex Sans", sans-serif;
+        --font-display:"Space Grotesk", "IBM Plex Sans", sans-serif;
+        --font-brand:"Space Grotesk", "IBM Plex Sans", sans-serif;
+        --font-label:"Space Grotesk", "IBM Plex Sans", sans-serif;
+        --font-data:"Space Grotesk", "IBM Plex Sans", sans-serif;
+        --font-mono-ui:"JetBrains Mono", "IBM Plex Mono", monospace;
+        --type-brand-track:.02em;
+        --type-heading-track:.04em;
+        --type-heading-weight:690;
+        --type-control-track:.055em;
+        --type-meta-track:.115em;
+        --type-label-track:.17em;
+        --type-kicker-track:.26em;
+        --type-table-track:.16em;
+        --type-data-track:.014em;
+      }
+      html[data-theme="military"]{
+        --font-body:"IBM Plex Sans", "Segoe UI", sans-serif;
+        --font-display:"Rajdhani", "Sora", "IBM Plex Sans", sans-serif;
+        --font-brand:"Rajdhani", "Sora", "IBM Plex Sans", sans-serif;
+        --font-label:"Rajdhani", "Sora", "IBM Plex Sans", sans-serif;
+        --font-data:"Rajdhani", "Sora", "IBM Plex Sans", sans-serif;
+        --font-mono-ui:"JetBrains Mono", "IBM Plex Mono", monospace;
+        --type-brand-track:.03em;
+        --type-heading-track:.045em;
+        --type-heading-weight:700;
+        --type-control-track:.075em;
+        --type-meta-track:.14em;
+        --type-label-track:.18em;
+        --type-kicker-track:.28em;
+        --type-table-track:.18em;
+        --type-data-track:.02em;
+      }
+      html[data-theme="arctic"]{
+        --font-body:"Manrope", "Aptos", "Segoe UI", sans-serif;
+        --font-display:"Outfit", "Manrope", "IBM Plex Sans", sans-serif;
+        --font-brand:"Outfit", "Manrope", "IBM Plex Sans", sans-serif;
+        --font-label:"Outfit", "Manrope", "IBM Plex Sans", sans-serif;
+        --font-data:"Outfit", "Manrope", "IBM Plex Sans", sans-serif;
+        --font-mono-ui:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+        --type-brand-track:.016em;
+        --type-heading-track:.028em;
+        --type-heading-weight:680;
+        --type-control-track:.05em;
+        --type-meta-track:.11em;
+        --type-label-track:.15em;
+        --type-kicker-track:.22em;
+        --type-table-track:.14em;
+        --type-data-track:.012em;
+      }
+      html[data-theme="executive"]{
+        --font-body:"Aptos", "Source Sans 3", "Segoe UI", sans-serif;
+        --font-display:"Source Serif 4", "Cambria", "Georgia", serif;
+        --font-brand:"Aptos Display", "Aptos", "Source Sans 3", "Segoe UI", sans-serif;
+        --font-label:"Aptos", "Source Sans 3", "Segoe UI", sans-serif;
+        --font-data:"Aptos", "Source Sans 3", "Segoe UI", sans-serif;
+        --font-mono-ui:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+        --type-brand-track:.01em;
+        --type-heading-track:.012em;
+        --type-heading-weight:620;
+        --type-control-track:.03em;
+        --type-meta-track:.075em;
+        --type-label-track:.14em;
+        --type-kicker-track:.22em;
+        --type-table-track:.13em;
+        --type-data-track:.008em;
+      }
+      html[data-theme="hazard"]{
+        --font-body:"Barlow", "Bahnschrift", "Trebuchet MS", sans-serif;
+        --font-display:"Barlow Condensed", "Bahnschrift SemiCondensed", "Bahnschrift", sans-serif;
+        --font-brand:"Barlow Condensed", "Bahnschrift SemiCondensed", "Bahnschrift", sans-serif;
+        --font-label:"Barlow Condensed", "Bahnschrift SemiCondensed", "Bahnschrift", sans-serif;
+        --font-data:"Bahnschrift", "Barlow", sans-serif;
+        --font-mono-ui:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+        --type-brand-track:.032em;
+        --type-heading-track:.045em;
+        --type-heading-weight:700;
+        --type-control-track:.08em;
+        --type-meta-track:.135em;
+        --type-label-track:.19em;
+        --type-kicker-track:.3em;
+        --type-table-track:.17em;
+        --type-data-track:.016em;
+      }
+      body,
+      button,
+      .ghost,
+      .pill,
+      .menu summary,
+      input[type="number"],
+      input[type="month"],
+      input[type="date"],
+      input[type="text"],
+      select,
+      .config-field label,
+      .config-hint,
+      #analysisMeta,
+      .analysis-stat-sub,
+      table.data tbody td{
+        font-family:var(--font-body);
+      }
+      .mono{
+        font-family:var(--font-mono-ui);
+      }
+      .brand h1{
+        font-family:var(--font-brand);
+        font-weight:650;
+        letter-spacing:var(--type-brand-track);
+      }
+      .card h2,
+      .mission-copy h2{
+        font-family:var(--font-display);
+        font-weight:var(--type-heading-weight);
+        letter-spacing:var(--type-heading-track);
+      }
+      .card h2{
+        line-height:1.12;
+      }
+      .sub,
+      .help,
+      .muted,
+      .main-final .final-main .mapping{
+        font-family:var(--font-body);
+      }
+      .sub{
+        letter-spacing:var(--type-control-track);
+      }
+      button,
+      .ghost,
+      .pill,
+      .menu summary,
+      .group .label,
+      .iom-summary-label{
+        font-family:var(--font-label);
+        letter-spacing:var(--type-control-track);
+      }
+      .group .label,
+      .iom-summary-label{
+        font-weight:650;
+      }
+      .main-final .final-breakdown .label,
+      .mission-kicker,
+      .mission-tags span,
+      .mission-kpi-label,
+      #analysisControls label:not(.analysis-toggle),
+      .analysis-stat-label,
+      .config-group h3,
+      #finalCheckBadge .status-label,
+      #finalCheckBadge .metric-label,
+      .tolerance-title,
+      table.data thead th{
+        font-family:var(--font-label);
+        font-weight:650;
+        text-transform:uppercase;
+      }
+      .main-final .final-breakdown .label,
+      .mission-tags span,
+      #finalCheckBadge .status-label,
+      #finalCheckBadge .metric-label,
+      .tolerance-title{
+        letter-spacing:var(--type-label-track);
+      }
+      .mission-kicker{
+        letter-spacing:var(--type-kicker-track);
+      }
+      #analysisControls label:not(.analysis-toggle),
+      .analysis-stat-label,
+      .config-group h3{
+        letter-spacing:var(--type-meta-track);
+      }
+      table.data thead th{
+        letter-spacing:var(--type-table-track);
+      }
+      .analysis-controls label.analysis-toggle{
+        font-family:var(--font-body);
+        letter-spacing:.01em;
+      }
+      .box .v,
+      .main-final .final-main .amount,
+      .main-final .final-breakdown .value,
+      .mission-kpi-value,
+      #finalCheckBadge .metric-value,
+      .tolerance-value,
+      .analysis-stat-value{
+        font-family:var(--font-data);
+        letter-spacing:var(--type-data-track);
+        font-variant-numeric:tabular-nums;
+        font-feature-settings:"tnum" 1;
       }
 
       @media (prefers-reduced-motion: reduce){
