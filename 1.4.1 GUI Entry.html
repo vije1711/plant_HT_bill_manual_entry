@@ -472,6 +472,17 @@
     }
     .analysis-stat-delta.plus{color:var(--good);}
     .analysis-stat-delta.minus{color:var(--bad);}
+    .analysis-table-wrap{
+      max-height:320px;
+      overflow:auto;
+      margin-top:2px;
+    }
+    .analysis-table th:first-child,
+    .analysis-table td:first-child{
+      text-align:left;
+      white-space:nowrap;
+      min-width:88px;
+    }
     .analysis-spark-legend{
       display:flex;
       gap:10px;
@@ -1927,15 +1938,31 @@
         color:rgba(226,232,240,.72);
       }
       .toolbar{
-        gap:9px;
-        row-gap:9px;
+        gap:10px;
+        row-gap:10px;
+        padding:8px 0 2px;
+      }
+      header .toolbar{
+        margin-top:8px;
+        padding-top:10px;
+        border-top:1px solid rgba(154,171,189,.12);
       }
 
       .pill,
-      .group,
       .menu summary{
         border-color:var(--steel-line);
         background:linear-gradient(180deg, rgba(24,33,43,.82), rgba(18,26,35,.82));
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+      }
+      .group{
+        border-color:rgba(156,174,193,.18);
+        background:linear-gradient(180deg, rgba(26,35,45,.72), rgba(17,25,34,.84));
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+        backdrop-filter:blur(10px);
+      }
+      .group .label{
+        color:rgba(191,203,216,.66);
+        letter-spacing:.1em;
       }
       .menu summary:hover,
       .pill:hover{
@@ -1952,6 +1979,20 @@
         background:linear-gradient(180deg, rgba(39,51,64,.94), rgba(28,38,49,.92));
         color:var(--ink);
         box-shadow:none;
+        transition:border-color .18s ease, background .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease;
+      }
+      button:not(.ghost){
+        border-color:rgba(211,154,88,.28);
+        background:linear-gradient(180deg, rgba(66,52,40,.96), rgba(41,34,27,.94));
+        box-shadow:inset 0 1px 0 rgba(255,239,217,.08), 0 10px 18px rgba(8,12,18,.22);
+      }
+      button:not(.ghost):hover{
+        border-color:rgba(211,154,88,.54);
+        background:linear-gradient(180deg, rgba(79,61,45,.98), rgba(47,37,29,.96));
+      }
+      .ghost{
+        background:linear-gradient(180deg, rgba(28,38,49,.92), rgba(20,29,38,.9));
+        color:rgba(222,231,240,.9);
       }
       button:hover, .ghost:hover{
         border-color:rgba(211,154,88,.48);
@@ -1974,9 +2015,11 @@
       input[type="text"],
       select{
         border-color:rgba(165,182,200,.24);
-        background:rgba(11,17,24,.72);
+        background:linear-gradient(180deg, rgba(10,16,23,.84), rgba(13,20,28,.78));
         color:var(--ink);
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 0 0 1px rgba(0,0,0,.08);
+        caret-color:rgba(220,170,110,.92);
+        transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
       }
       input[type="number"]:hover,
       input[type="month"]:hover,
@@ -1984,6 +2027,7 @@
       input[type="text"]:hover,
       select:hover{
         border-color:rgba(210,154,88,.36);
+        background:linear-gradient(180deg, rgba(13,20,28,.88), rgba(16,24,33,.82));
       }
       input[type="number"]:focus,
       input[type="month"]:focus,
@@ -2014,28 +2058,34 @@
         border-radius:14px;
         border:1px solid rgba(160,176,194,.18);
         background:
-          linear-gradient(180deg, rgba(28,37,48,.88), rgba(22,30,39,.9));
-        box-shadow:0 14px 32px rgba(4,8,12,.36);
-        transition:border-color .18s ease, transform .18s ease;
+          linear-gradient(180deg, rgba(31,40,51,.9), rgba(19,27,35,.94));
+        box-shadow:0 18px 36px rgba(4,8,12,.34), inset 0 1px 0 rgba(231,236,241,.05);
+        transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease, background .18s ease;
       }
       .card::after{
         content:"";
         position:absolute;
         inset:0;
         pointer-events:none;
-        background:linear-gradient(130deg, rgba(211,154,88,.07), transparent 34%, transparent 68%, rgba(129,149,172,.08));
+        background:
+          linear-gradient(130deg, rgba(211,154,88,.08), transparent 32%, transparent 66%, rgba(129,149,172,.1)),
+          linear-gradient(180deg, rgba(255,255,255,.03), transparent 22%);
       }
       .card:hover{
         border-color:rgba(211,154,88,.32);
         transform:translateY(-1px);
       }
       .card h2{
-        letter-spacing:.01em;
+        letter-spacing:.03em;
+        font-size:17px;
+        font-weight:680;
+        color:rgba(238,244,250,.92);
       }
 
       .box{
         border-color:rgba(158,176,196,.16);
         background:linear-gradient(180deg, rgba(33,44,56,.82), rgba(24,34,44,.8));
+        box-shadow:inset 0 1px 0 rgba(236,241,247,.04);
       }
       .box .field-label-row{
         color:rgba(217,225,235,.78);
@@ -2621,6 +2671,41 @@
         border-color:rgba(34,211,238,.52);
         background:linear-gradient(180deg, rgba(21,53,79,.9), rgba(26,39,73,.9));
       }
+      html[data-theme="classic"] .table-wrap{
+        border-color:rgba(128,175,255,.3);
+        background:linear-gradient(180deg, rgba(16,28,53,.92), rgba(11,22,44,.94));
+        box-shadow:0 16px 34px rgba(4,8,20,.34), inset 0 1px 0 rgba(216,241,255,.04);
+      }
+      html[data-theme="classic"] table.data{
+        font-size:12.5px;
+      }
+      html[data-theme="classic"] table.data thead th{
+        color:rgba(193,234,255,.82);
+        background:linear-gradient(180deg, rgba(17,43,73,.95), rgba(15,28,58,.92));
+        border-bottom:1px solid rgba(128,175,255,.22);
+      }
+      html[data-theme="classic"] table.data tbody td{
+        border-top:1px solid rgba(128,175,255,.08);
+      }
+      html[data-theme="classic"] table.data tbody tr:nth-child(even){
+        background:rgba(61,98,180,.06);
+      }
+      html[data-theme="classic"] table.data tbody tr:hover{
+        background:linear-gradient(90deg, rgba(34,211,238,.12), rgba(167,139,250,.08));
+      }
+      html[data-theme="classic"] table.data input[type="number"]{
+        border-color:rgba(133,176,255,.24);
+        background:linear-gradient(180deg, rgba(7,23,48,.92), rgba(10,20,42,.84));
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+      }
+      html[data-theme="classic"] table.data input[type="number"]:hover{
+        border-color:rgba(34,211,238,.42);
+        background:linear-gradient(180deg, rgba(10,28,57,.94), rgba(13,24,50,.86));
+      }
+      html[data-theme="classic"] table.data input[type="number"]:focus{
+        border-color:rgba(34,211,238,.68);
+        box-shadow:0 0 0 3px rgba(34,211,238,.18), inset 0 1px 0 rgba(255,255,255,.05);
+      }
       html[data-theme="classic"] #finalCheckBadge{
         border-color:rgba(128,175,255,.34);
         background:
@@ -2952,9 +3037,37 @@
       html[data-theme="military"] .table-wrap{
         border-color:rgba(104,164,116,.22);
         background:linear-gradient(180deg, rgba(17,36,26,.86), rgba(11,25,18,.9));
+        box-shadow:0 16px 32px rgba(3,10,7,.3), inset 0 1px 0 rgba(231,244,233,.04);
+      }
+      html[data-theme="military"] table.data{
+        font-size:12.5px;
       }
       html[data-theme="military"] table.data thead th{
-        background:rgba(18,43,29,.9);
+        color:rgba(215,237,219,.8);
+        background:linear-gradient(180deg, rgba(21,52,34,.94), rgba(15,38,26,.92));
+        border-bottom:1px solid rgba(104,164,116,.18);
+      }
+      html[data-theme="military"] table.data tbody td{
+        border-top:1px solid rgba(104,164,116,.08);
+      }
+      html[data-theme="military"] table.data tbody tr:nth-child(even){
+        background:rgba(93,241,132,.03);
+      }
+      html[data-theme="military"] table.data tbody tr:hover{
+        background:linear-gradient(90deg, rgba(93,241,132,.08), rgba(204,167,96,.06));
+      }
+      html[data-theme="military"] table.data input[type="number"]{
+        border-color:rgba(104,164,116,.22);
+        background:linear-gradient(180deg, rgba(11,28,20,.92), rgba(14,24,18,.84));
+        box-shadow:inset 0 1px 0 rgba(233,243,229,.04);
+      }
+      html[data-theme="military"] table.data input[type="number"]:hover{
+        border-color:rgba(122,244,148,.34);
+        background:linear-gradient(180deg, rgba(14,34,24,.94), rgba(16,27,20,.86));
+      }
+      html[data-theme="military"] table.data input[type="number"]:focus{
+        border-color:rgba(122,244,148,.52);
+        box-shadow:0 0 0 3px rgba(122,244,148,.14), inset 0 1px 0 rgba(233,243,229,.05);
       }
 
       @keyframes arcticScan{
@@ -3165,9 +3278,37 @@
       html[data-theme="arctic"] .table-wrap{
         border-color:rgba(124,193,223,.22);
         background:linear-gradient(180deg, rgba(17,40,58,.86), rgba(12,31,45,.9));
+        box-shadow:0 16px 32px rgba(5,16,28,.3), inset 0 1px 0 rgba(232,247,255,.05);
+      }
+      html[data-theme="arctic"] table.data{
+        font-size:12.5px;
       }
       html[data-theme="arctic"] table.data thead th{
-        background:rgba(16,42,60,.9);
+        color:rgba(210,240,250,.82);
+        background:linear-gradient(180deg, rgba(19,51,72,.94), rgba(14,39,56,.92));
+        border-bottom:1px solid rgba(124,193,223,.18);
+      }
+      html[data-theme="arctic"] table.data tbody td{
+        border-top:1px solid rgba(124,193,223,.08);
+      }
+      html[data-theme="arctic"] table.data tbody tr:nth-child(even){
+        background:rgba(109,224,255,.028);
+      }
+      html[data-theme="arctic"] table.data tbody tr:hover{
+        background:linear-gradient(90deg, rgba(109,224,255,.1), rgba(157,201,255,.06));
+      }
+      html[data-theme="arctic"] table.data input[type="number"]{
+        border-color:rgba(124,193,223,.22);
+        background:linear-gradient(180deg, rgba(9,29,42,.92), rgba(13,25,37,.84));
+        box-shadow:inset 0 1px 0 rgba(241,250,255,.04);
+      }
+      html[data-theme="arctic"] table.data input[type="number"]:hover{
+        border-color:rgba(109,224,255,.36);
+        background:linear-gradient(180deg, rgba(12,34,49,.94), rgba(15,29,41,.86));
+      }
+      html[data-theme="arctic"] table.data input[type="number"]:focus{
+        border-color:rgba(109,224,255,.52);
+        box-shadow:0 0 0 3px rgba(109,224,255,.16), inset 0 1px 0 rgba(241,250,255,.05);
       }
 
       /* Executive Light */
@@ -3427,8 +3568,36 @@
         background:linear-gradient(180deg, rgba(247,252,255,.95), rgba(235,244,252,.92));
         box-shadow:0 12px 24px rgba(34,67,102,.1);
       }
+      html[data-theme="executive"] table.data{
+        font-size:12.5px;
+      }
       html[data-theme="executive"] table.data thead th{
-        background:rgba(225,236,248,.92);
+        color:rgba(76,102,132,.86);
+        background:linear-gradient(180deg, rgba(229,239,250,.98), rgba(217,230,243,.94));
+        border-bottom:1px solid rgba(120,150,186,.18);
+      }
+      html[data-theme="executive"] table.data tbody td{
+        border-top:1px solid rgba(120,150,186,.1);
+      }
+      html[data-theme="executive"] table.data tbody tr:nth-child(even){
+        background:rgba(83,126,176,.035);
+      }
+      html[data-theme="executive"] table.data tbody tr:hover{
+        background:linear-gradient(90deg, rgba(95,143,196,.08), rgba(255,255,255,.55));
+      }
+      html[data-theme="executive"] table.data input[type="number"]{
+        border-color:rgba(120,150,186,.2);
+        background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(240,246,253,.94));
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.92);
+        color:#1b2a3a;
+      }
+      html[data-theme="executive"] table.data input[type="number"]:hover{
+        border-color:rgba(95,143,196,.34);
+        background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(235,244,252,.96));
+      }
+      html[data-theme="executive"] table.data input[type="number"]:focus{
+        border-color:rgba(95,143,196,.5);
+        box-shadow:0 0 0 3px rgba(95,143,196,.14), inset 0 1px 0 rgba(255,255,255,.92);
       }
 
       /* Hazard Control */
@@ -3635,9 +3804,37 @@
       html[data-theme="hazard"] .table-wrap{
         border-color:rgba(248,204,46,.22);
         background:linear-gradient(180deg, rgba(32,27,13,.86), rgba(23,20,11,.9));
+        box-shadow:0 16px 32px rgba(14,10,3,.3), inset 0 1px 0 rgba(255,244,201,.04);
+      }
+      html[data-theme="hazard"] table.data{
+        font-size:12.5px;
       }
       html[data-theme="hazard"] table.data thead th{
-        background:rgba(38,31,14,.9);
+        color:rgba(255,232,156,.84);
+        background:linear-gradient(180deg, rgba(49,39,16,.94), rgba(34,28,13,.92));
+        border-bottom:1px solid rgba(248,204,46,.18);
+      }
+      html[data-theme="hazard"] table.data tbody td{
+        border-top:1px solid rgba(248,204,46,.08);
+      }
+      html[data-theme="hazard"] table.data tbody tr:nth-child(even){
+        background:rgba(248,204,46,.03);
+      }
+      html[data-theme="hazard"] table.data tbody tr:hover{
+        background:linear-gradient(90deg, rgba(248,204,46,.1), rgba(245,158,11,.06));
+      }
+      html[data-theme="hazard"] table.data input[type="number"]{
+        border-color:rgba(248,204,46,.22);
+        background:linear-gradient(180deg, rgba(23,19,10,.92), rgba(19,17,10,.84));
+        box-shadow:inset 0 1px 0 rgba(255,245,210,.04);
+      }
+      html[data-theme="hazard"] table.data input[type="number"]:hover{
+        border-color:rgba(248,204,46,.38);
+        background:linear-gradient(180deg, rgba(28,23,11,.94), rgba(24,20,10,.86));
+      }
+      html[data-theme="hazard"] table.data input[type="number"]:focus{
+        border-color:rgba(248,204,46,.54);
+        box-shadow:0 0 0 3px rgba(248,204,46,.14), inset 0 1px 0 rgba(255,245,210,.05);
       }
 
       @media (prefers-reduced-motion: reduce){
@@ -3662,8 +3859,13 @@
         }
         #finalCheckBadge,
         #finalCheckBadge .status-wrap,
+        #finalCheckBadge .status-wrap::before,
+        #finalCheckBadge .status-wrap::after,
+        #finalCheckBadge .metric,
+        #finalCheckBadge .metric-value,
         .tolerance-card,
-        .tolerance-bar-fill{
+        .tolerance-bar-fill,
+        .tolerance-value{
           transition:none !important;
         }
         body.boot-sequence #bootFx{
@@ -3760,6 +3962,54 @@
   }
   @media(max-width:480px){
     table.data input[type="number"]{max-width:80px;}
+  }
+  html[data-theme="industrial"] .table-wrap{
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(23,31,40,.92), rgba(18,25,33,.94));
+    border-color:rgba(156,174,193,.16);
+    box-shadow:0 16px 32px rgba(4,8,12,.28), inset 0 1px 0 rgba(234,239,243,.04);
+  }
+  html[data-theme="industrial"] table.data{
+    font-size:12.5px;
+  }
+  html[data-theme="industrial"] table.data thead th{
+    padding:8px 8px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    font-size:10.5px;
+    color:rgba(198,210,223,.78);
+    background:linear-gradient(180deg, rgba(26,36,47,.94), rgba(19,27,36,.92));
+    border-bottom:1px solid rgba(162,180,199,.16);
+  }
+  html[data-theme="industrial"] table.data th,
+  html[data-theme="industrial"] table.data td{
+    padding:7px 8px;
+  }
+  html[data-theme="industrial"] table.data tbody td{
+    border-top:1px solid rgba(158,176,194,.08);
+  }
+  html[data-theme="industrial"] table.data tbody tr:nth-child(even){
+    background:rgba(255,255,255,.022);
+  }
+  html[data-theme="industrial"] table.data tbody tr:hover{
+    background:linear-gradient(90deg, rgba(211,154,88,.08), rgba(255,255,255,.035));
+  }
+  html[data-theme="industrial"] table.data input[type="number"]{
+    height:28px;
+    padding:3px 6px;
+    border-radius:8px;
+    border-color:rgba(164,182,201,.18);
+    background:linear-gradient(180deg, rgba(12,18,25,.9), rgba(16,22,30,.82));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  html[data-theme="industrial"] table.data input[type="number"]:hover{
+    border-color:rgba(210,154,88,.34);
+    background:linear-gradient(180deg, rgba(15,21,29,.92), rgba(19,26,35,.84));
+  }
+  html[data-theme="industrial"] table.data input[type="number"]:focus{
+    border-color:rgba(210,154,88,.58);
+    box-shadow:0 0 0 3px rgba(210,154,88,.16), inset 0 1px 0 rgba(255,255,255,.04);
   }
   .good{color:var(--good);}
   .bad{color:var(--bad);}
@@ -4649,14 +4899,14 @@
             <canvas id="analysisChart" height="220" aria-label="Analysis trend chart"></canvas>
           </div>
           <div class="hr"></div>
-          <div style="max-height:320px;overflow:auto">
-            <table id="analysisTable" style="width:100%;border-collapse:collapse;font-size:12px">
+          <div class="table-wrap analysis-table-wrap">
+            <table id="analysisTable" class="data analysis-table">
               <thead>
                 <tr>
                   <th style="text-align:left">Month</th>
-                  <th>A4 kWh</th><th>C9 &#8377;</th><th>I9 &#8377;</th>
-                  <th>B19 &#8377;/kWh</th><th>A18 kWh</th><th>C18 kWh</th><th>C26 &#8377;</th>
-                  <th>Eff Rate &#8377;/kWh</th><th>&Delta; C9 MoM &#8377;</th><th>&Delta;% C9</th>
+                  <th class="num">A4 kWh</th><th class="num">C9 &#8377;</th><th class="num">I9 &#8377;</th>
+                  <th class="num">B19 &#8377;/kWh</th><th class="num">A18 kWh</th><th class="num">C18 kWh</th><th class="num">C26 &#8377;</th>
+                  <th class="num">Eff Rate &#8377;/kWh</th><th class="num">&Delta; C9 MoM &#8377;</th><th class="num">&Delta;% C9</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -4671,16 +4921,16 @@
               if(!tr) return;
               tr.innerHTML = [
                 '<th style="text-align:left">Month</th>',
-                ' <th>Monthly Consumption (A4)</th>',
-                ' <th>Current Month Bill (C9)</th>',
-                ' <th>Actual Paid (I9)</th>',
-                ' <th>Wind Rate &#8377;/kWh (B19)</th>',
-                ' <th>Bitlavadia Share (A18)</th>',
-                ' <th>Nanisindhodi Share (C18)</th>',
-                ' <th>Net Wind Credit (C26)</th>',
-                ' <th>Effective Rate &#8377;/kWh</th>',
-                ' <th>MoM Change in Bill (&Delta;C9)</th>',
-                ' <th>% Change in Bill (&Delta;C9)</th>'
+                ' <th class="num">Monthly Consumption (A4)</th>',
+                ' <th class="num">Current Month Bill (C9)</th>',
+                ' <th class="num">Actual Paid (I9)</th>',
+                ' <th class="num">Wind Rate &#8377;/kWh (B19)</th>',
+                ' <th class="num">Bitlavadia Share (A18)</th>',
+                ' <th class="num">Nanisindhodi Share (C18)</th>',
+                ' <th class="num">Net Wind Credit (C26)</th>',
+                ' <th class="num">Effective Rate &#8377;/kWh</th>',
+                ' <th class="num">MoM Change in Bill (&Delta;C9)</th>',
+                ' <th class="num">% Change in Bill (&Delta;C9)</th>'
               ].join('');
             }catch(_){ }
           });
@@ -10220,16 +10470,16 @@
               const tr=document.createElement('tr');
               tr.innerHTML =
                 `<td>${r.month}</td>`+
-                `<td style="text-align:right">${fmt0.format(r.A4)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.C9)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.I9)}</td>`+
-                `<td style="text-align:right">${fmtRate.format(r.B19)}</td>`+
-                `<td style="text-align:right">${fmt0.format(r.A18)}</td>`+
-                `<td style="text-align:right">${fmt0.format(r.C18)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.C26)}</td>`+
-                `<td style="text-align:right">${fmtRate.format(r.eff)}</td>`+
-                `<td style="text-align:right">${fmtINR.format(r.deltaC9)}</td>`+
-                `<td style="text-align:right">${fmt2.format(r.deltaPct)}%</td>`;
+                `<td class="num">${fmt0.format(r.A4)}</td>`+
+                `<td class="num">${fmtINR.format(r.C9)}</td>`+
+                `<td class="num">${fmtINR.format(r.I9)}</td>`+
+                `<td class="num">${fmtRate.format(r.B19)}</td>`+
+                `<td class="num">${fmt0.format(r.A18)}</td>`+
+                `<td class="num">${fmt0.format(r.C18)}</td>`+
+                `<td class="num">${fmtINR.format(r.C26)}</td>`+
+                `<td class="num">${fmtRate.format(r.eff)}</td>`+
+                `<td class="num">${fmtINR.format(r.deltaC9)}</td>`+
+                `<td class="num">${fmt2.format(r.deltaPct)}%</td>`;
               tbody.appendChild(tr);
             });
           }
