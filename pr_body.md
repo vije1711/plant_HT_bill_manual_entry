@@ -1,120 +1,148 @@
 ## Summary
 
-This branch refines the visual treatment of the sticky header card that contains the `WEG Billing Calculator` title.
+This branch polishes the `Final Bill Check` panel in two connected ways:
 
-The issue reported during review was a thick line appearing above the top menu/title card, making the header feel visually detached from the rest of the card surface. The previous implementation used a full-width `header::before` accent strip, which read more like a separate slab sitting on top of the card than an integrated detail.
+- reworks the status/tolerance animation so it feels calmer and more deliberate
+- compacts the right-side card stack so it no longer forces excessive empty space inside `Final Bill for IOM`
 
-This update replaces that full-width strip with a shorter, integrated accent tab so the header keeps its industrial styling without looking improperly assembled.
+The work is scoped to [1.4.1 GUI Entry.html](./1.4.1%20GUI%20Entry.html) and is intentionally presentation-focused. No billing formulas or reconciliation math were changed.
 
-## Problem
+## Why This Change Was Needed
 
-Before this change:
+Two issues were visible in the existing `Final Bill Check` area:
 
-- the header rendered a bright, full-width accent line across the top edge
-- that line visually competed with the existing border and inset highlight already used by the card
-- the combination made the `WEG Billing Calculator` panel look like it had an extra layer placed on top of it
-- after the first pass at softening the line, the result became too understated and lost the intentional visual character of the header
+1. The motion behavior felt too generic and noisy.
 
-The final goal for this branch was not simply to remove the line, but to make the top accent feel deliberate, integrated, and visually "cool" again.
+- `Stable`, `Watch`, and `Action` all felt too similar
+- refreshes did not clearly distinguish "live update" from "constant ambient motion"
+- the tolerance bar and metrics did not have a clean one-shot update rhythm
+
+2. The right column was vertically heavier than the left column.
+
+- `Final Bill Check` content started lower than `Final Bill for IOM`
+- the badge and tolerance card stack consumed too much height
+- because both sections share the same grid row, the taller right column stretched the left section and created a visible dead zone at the bottom of `Final Bill for IOM`
+
+The layout issue was not just subjective. It was measured before the compaction pass:
+
+- left title-to-content gap: `12px`
+- right title-to-content gap: `32px`
+- empty space inside `Final Bill for IOM`: `133.65625px`
+- gap between the check badge and tolerance card: `16px`
 
 ## Final Approach
 
-The header accent is still implemented through `header::before`, but its geometry and presentation were reworked:
+### 1. Calm / premium motion profile
 
-- the accent no longer spans the full width of the header
-- it now starts inset from the left edge
-- it uses a compact width that scales responsively instead of stretching across the whole card
-- its height was increased from a hairline into a small top tab
-- a rounded lower edge was added so the shape feels attached to the header card
-- a subtle shadow and inner highlight were added so the accent feels like a built-in piece of the panel rather than a painted rule
+The animation direction chosen for this branch was the restrained option:
 
-The original theme-driven gradient was preserved, so the accent still participates in the industrial palette and remains consistent with the existing brand/header styling.
+- `Stable` now uses a soft breathing treatment instead of a constant busy sweep
+- `Watch` keeps a lighter scan behavior with lower visual pressure
+- `Action` pulses the status tile rather than making the whole card feel alarmed
+- real value changes trigger a one-shot refresh sequence instead of causing motion to loop constantly
+
+### 2. Right-column compaction without type-scale changes
+
+The height mismatch was fixed by reducing vertical bulk in the right column rather than shrinking the headline values.
+
+This keeps the equal-height dashboard composition intact while avoiding the font disharmony risk that would come from scaling the key numbers down just to save space.
 
 ## What Changed
 
-In `1.4.1 GUI Entry.html`:
+### Motion and state behavior
 
-- updated the `header::before` pseudo-element used for the top accent treatment
-- changed the accent from:
-  - full-width
-  - 3px tall
-  - flat line styling
-- to a new treatment that is:
-  - left-inset
-  - responsive in width
-  - 8px tall
-  - rounded at the bottom corners
-  - lightly shadowed and highlighted
-  - explicitly non-interactive with `pointer-events:none`
+- registered `--final-usage` as a typed CSS custom property so the status ring can interpolate cleanly
+- added calmer state-specific motion:
+  - `finalStatusBreathe`
+  - refined `checkWarnSweep`
+  - softened `checkDangerPulse`
+  - slower `toleranceAlert`
+- added one-shot refresh animations:
+  - `finalRefreshSweep`
+  - `finalStatusSettle`
+  - `finalMetricLift`
+  - `finalMetricSheen`
+  - `toleranceShimmer`
+- expanded reduced-motion handling so the new transitions and refresh animations are disabled consistently when requested
 
-## What Did Not Change
+### Refresh logic
 
-This branch does not change:
+- added `restartTransientClass(...)` to reliably restart one-shot animation classes
+- introduced a `motionSignature` on the final-check badge so refresh animation only runs when state/value data actually changes
+- refresh animation now applies to:
+  - `#finalCheckBadge`
+  - `.tolerance-card`
+- static refreshes no longer retrigger the stronger motion path unnecessarily
 
-- header layout structure
-- toolbar controls
-- menu behavior
-- theme selection logic
-- brand/title copy
-- any business logic, calculations, or export workflows
-- any test behavior outside of re-running the existing suite for regression confidence
+### Layout and spacing
 
-This is a presentation-only polish change scoped to the header accent detail.
+The compaction pass is intentionally spacing-only on the right column:
 
-## User-Facing Impact
+- `.final-check-card`
+  - gap reduced from `16px` to `12px`
+  - heading spacing aligned with the left card through a stronger heading override
+- `#finalCheckBadge`
+  - margin-top removed
+  - overall padding reduced from `20px 24px 22px` to `16px 20px 18px`
+  - internal gap reduced from `24px` to `20px`
+- `#finalCheckBadge .status-wrap`
+  - base width reduced from `118px` to `112px`
+  - themed width reduced from `124px` to `116px`
+  - internal gap reduced from `10px` to `8px`
+  - padding reduced from `18px 14px` to `14px 12px`
+- `#finalCheckBadge .metrics`
+  - grid gap reduced from `12px 14px` to `10px 12px`
+- `#finalCheckBadge .metric`
+  - padding reduced from `10px 12px` to `8px 12px`
+- `.tolerance-card`
+  - gap reduced from `12px` to `10px`
+  - padding reduced from `18px 20px 20px` to `14px 18px 16px`
 
-### Before
+## Verified Before/After Measurements
 
-- the title/header card looked like it had a separate thick strip pasted on top
-- the top edge drew too much attention away from the actual title and controls
-- a first softening pass removed the harshness, but also removed too much personality
+These measurements came from the Playwright capture used during the layout pass:
 
-### After
+- right title gap: `32px -> 12px`
+- left title gap: `12px -> 12px`
+- empty space inside `Final Bill for IOM`: `133.65625px -> 73.65625px`
+- gap between badge and tolerance card: `16px -> 12px`
+- final-check column height: `506px -> 446px`
+- final-check badge height: `278px -> 254px`
+- tolerance card height: `127px -> 115px`
 
-- the `WEG Billing Calculator` card reads as a single integrated panel
-- the header keeps a distinct styled accent without the detached-strip look
-- the top detail feels more intentional and decorative instead of accidental
-- the visual hierarchy shifts back toward the title and toolbar content
-
-## Implementation Notes
-
-The update intentionally keeps the existing gradient colors:
-
-- copper-toned primary accent
-- steel-toned trailing fade
-
-That means the change improves the shape language of the header without forcing a broader retune of the active theme system.
-
-The resulting accent behaves more like a design tab or integrated plate than a border override, which better matches the industrial control-panel style already present in the page chrome.
-
-## Validation
-
-Validated locally with:
-
-```bash
-npm test
-```
-
-Result:
-
-- full test suite passed (`14/14`)
-
-## Risk Assessment
-
-Risk is low because:
-
-- only CSS for the header accent pseudo-element changed
-- no DOM structure changed
-- no JavaScript logic changed
-- no tests required updating to accommodate behavior changes
-
-The main residual risk is purely visual and limited to how the accent feels across viewport sizes and themes, but the responsive width and preserved theme gradient help keep that risk narrow.
+The important result is that the right card now starts at the same visual depth as the left card, and the shared grid row shrinks by `60px` without changing the primary number sizes.
 
 ## Files Changed
 
 - `1.4.1 GUI Entry.html`
 - `pr_body.md`
 
+## Validation
+
+Validated locally with:
+
+```bash
+git diff --check -- "1.4.1 GUI Entry.html"
+```
+
+Additional visual validation:
+
+- captured pre/post layout measurements via Playwright
+- confirmed the right title-to-content gap now matches the left card
+- confirmed the shared top-row height dropped from `506px` to `446px`
+
+Local capture artifacts were saved under `output/playwright/layout-check/` during development for comparison, but are not part of this commit.
+
+## Risk Assessment
+
+Risk is low to moderate and primarily visual:
+
+- CSS for the final-check badge and tolerance card was retuned in several places
+- the refresh logic now depends on a motion signature to decide when to animate
+- no financial formulas, data mapping, or output calculations were changed
+
+The main residual risk is visual feel across themes and viewport sizes, but the implementation deliberately avoids resizing the headline values and keeps the compaction focused on spacing and animation behavior.
+
 ## PR Title
 
-Refine header accent integration
+Polish final bill check motion and spacing
