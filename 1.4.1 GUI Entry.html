@@ -4062,6 +4062,14 @@
         font-variant-numeric:tabular-nums;
         font-feature-settings:"tnum" 1;
       }
+      .mission-kpi{
+        min-width:0;
+      }
+      html[data-theme="industrial"] .mission-kpi:not(.mission-kpi-main) .mission-kpi-value,
+      html[data-theme="classic"] .mission-kpi:not(.mission-kpi-main) .mission-kpi-value{
+        font-size:clamp(18px, 2.05vw, 27px);
+        letter-spacing:0;
+      }
 
       @media (prefers-reduced-motion: reduce){
         #finalCheckBadge,
